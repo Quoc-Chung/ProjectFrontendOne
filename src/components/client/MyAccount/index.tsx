@@ -47,6 +47,8 @@ const MyAccount = () => {
 
                 <div className="p-4 sm:p-7.5 xl:p-9">
                   <div className="flex flex-wrap xl:flex-nowrap xl:flex-col gap-4">
+                    {/* Danh sách 4 cái nút ở trang dashboard  */}
+
                     <button
                       onClick={() => setActiveTab("dashboard")}
                       className={`flex items-center rounded-md gap-2.5 py-3 px-4.5 ease-out duration-200 hover:bg-blue hover:text-white ${
@@ -245,6 +247,7 @@ const MyAccount = () => {
                       </svg>
                       Logout
                     </button>
+
                   </div>
                 </div>
               </div>

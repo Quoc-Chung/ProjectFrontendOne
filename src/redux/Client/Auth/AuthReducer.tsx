@@ -19,6 +19,7 @@ import {
 const initialState = {
   loading: false,
   user: null,
+  isLogin : false,
   token: typeof window !== "undefined" ? localStorage.getItem("token") : null,
   error: null,
 };
@@ -42,6 +43,7 @@ export const authReducer = (state = initialState, action: any) => {
         loading: false,
         user: action.payload,
         token: action.payload.token,
+        isLogin: true
       };
     case LOGIN_FAILURE:
       return { ...state, loading: false, error: action.payload };
@@ -58,7 +60,7 @@ export const authReducer = (state = initialState, action: any) => {
     case LOGOUT_REQUEST:
       return { ...state, loading: true, error: null };
     case LOGOUT_SUCCESS:
-      return { ...state, loading: false, user: null, token: null };
+      return { ...state, loading: false, user: null, token: null , isLogin: false};
     case LOGOUT_FAILURE:
       return { ...state, loading: false, error: action.payload };
 
