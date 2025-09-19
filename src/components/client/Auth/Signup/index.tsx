@@ -2,19 +2,16 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";   
 import Breadcrumb from "@/components/client/Common/Breadcrumb";
-import Swal from "sweetalert2";
 import { toast } from "react-toastify";
-
-
 import { useAppDispatch } from "@/redux/store";
-
-
 import { Register } from "@/types/Client/Auth/Register";
 import { register } from "../../../../redux/Client/Auth/Action";
 
 const Signup: React.FC = () => {
   const dispatch = useAppDispatch();
+  const router = useRouter(); 
 
   const [formData, setFormData] = useState<Register>({
     account: "",
@@ -23,28 +20,25 @@ const Signup: React.FC = () => {
     fullname: "",
   });
 
-  // handle input change
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  // handle form submit
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     console.log("Register data:", formData);
-
+  
     dispatch(
       register(
         formData,
         () => {
-          Swal.fire({
-            title: "🎉 Đăng ký thành công!",
-            text: "Chào mừng bạn trải nghiệm app!",
-            icon: "success",
-            timer: 2000,
-            showConfirmButton: false,
-          });
+           localStorage.setItem("account", formData.account); 
+           localStorage.setItem("password", formData.password)
+          toast.success("🎉 Đăng kí thành công");
+          setTimeout(() => {
+            router.push("/signin");
+          }, 2000);
         },
         (err) => {
           toast.error(`Đăng ký thất bại: ${err}`);

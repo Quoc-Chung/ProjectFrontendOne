@@ -5,11 +5,43 @@ import { menuData } from "./menuData";
 import Dropdown from "./Dropdown";
 import { useCartModalContext } from "@/app/context/CartSidebarModalContext";
 import Image from "next/image";
+import { useSelector } from "react-redux";
+import { RootState, useAppDispatch } from "../../../redux/store";
+import { logoutAction } from "../../../redux/Client/Auth/Action";
+import { toast } from "react-toastify";
+import { useRouter } from "next/navigation";
+
 
 const Header = () => {
+  const router = useRouter();
   const [navigationOpen, setNavigationOpen] = useState(false);
   const [stickyMenu, setStickyMenu] = useState(false);
   const { openCartModal } = useCartModalContext();
+  
+  
+  const { user, token, isLogin } = useSelector((state: RootState) => state.auth);
+
+
+  const dispatch = useAppDispatch();
+
+  const handleLogout = (e) => {
+       e.preventDefault();       
+          dispatch(
+            logoutAction(  
+              {token},
+              () => {             
+                toast.success("🎉Logout thành công");
+                setTimeout(() => {
+                  router.push("/signin");
+                }, 2000);
+              },
+              (err) => {
+                toast.error(`Logout thất bại: ${err}`);
+              }
+            )
+          );
+  }
+  
 
   const product = []
   const totalPrice = 0
@@ -99,10 +131,11 @@ const Header = () => {
 
                   <div>
                     <span className="block text-2xs text-dark-4 uppercase">
-                      account
+                       {user && isLogin ? user.account: "account"}
                     </span>
                     <p className="font-medium text-custom-sm text-dark">
-                      Sign In
+                        {user && isLogin ? 
+                              <button onClick={handleLogout}> Logout </button>:  <button  >Login</button> }
                     </p>
                   </div>
                 </Link>
@@ -246,9 +279,9 @@ const Header = () => {
               </nav>
               {/* //   <!-- Main Nav End --> */}
             </div>
-            {/* // <!--=== Main Nav End ===--> */}
+     
 
-            {/* // <!--=== Nav Right Start ===--> */}
+  
             <div className="hidden xl:block">
               <ul className="flex items-center gap-5.5">
                 <li className="py-4">

@@ -17,6 +17,8 @@ import {
   CHANGE_PASSWORD_FAILURE,
 } from "./ActionType";
 import { Register } from "@/types/Client/Auth/Register";
+import { LoginRequest } from "../../../types/Client/Auth/LoginRequest";
+import { LogoutRequest } from "../../../types/Client/Auth/LogoutRequest";
 
 // ============== REGISTER ==============
 export const register = (data: Register, onSuccess?: any, onError?: any) => {
@@ -29,11 +31,14 @@ export const register = (data: Register, onSuccess?: any, onError?: any) => {
         body: JSON.stringify(data),
       });
       const resData = await res.json();
-
+      console.log(resData)
+      /*- Return errror if code  not equal 200  -*/ 
       if (resData.status?.code !== "200") {
         throw new Error(resData.status?.message || "Đăng ký thất bại");
       }
+     
 
+      /*- Gửi mỗi phần data lên trên store -*/ 
       dispatch({ type: REGISTER_SUCCESS, payload: resData.data });
       onSuccess?.(resData);
     } catch (error: any) {
@@ -44,7 +49,7 @@ export const register = (data: Register, onSuccess?: any, onError?: any) => {
 };
 
 // ============== LOGIN ==============
-export const login = (data: any, onSuccess?: any, onError?: any) => {
+export const login = (data: LoginRequest, onSuccess?: any, onError?: any) => {
   return async (dispatch) => {
     dispatch({ type: LOGIN_REQUEST });
     try {
@@ -61,7 +66,6 @@ export const login = (data: any, onSuccess?: any, onError?: any) => {
       }
 
       if (resData.data?.token) {
-        localStorage.setItem("token", resData.data.token);
         dispatch({ type: LOGIN_SUCCESS, payload: resData.data });
         onSuccess?.(resData);
       } else {
@@ -73,6 +77,7 @@ export const login = (data: any, onSuccess?: any, onError?: any) => {
     }
   };
 };
+/*- Bổ xung sau -*/ 
 export const updateUser = (formData: FormData, onSuccess?: any, onError?: any) => {
   return async (dispatch) => {
     dispatch({ type: UPDATE_USER_REQUEST });
@@ -99,20 +104,16 @@ export const updateUser = (formData: FormData, onSuccess?: any, onError?: any) =
     }
   };
 };
-export const logoutAction = (onSuccess?: any, onError?: any) => async (dispatch) => {
+export const logoutAction = (logoutRequest : LogoutRequest, onSuccess?: any, onError?: any) => async (dispatch) => {
   dispatch({ type: LOGOUT_REQUEST });
   try {
-
-     const token = localStorage.getItem("token");
-
+    
       const res = await fetch(`${BASE_API_URL}/api/logout`, {
         method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { Authorization: `Bearer ${logoutRequest.token}` },
       });
     const resData = await res.json();
     if(resData.status.code === 200){
-      console.log("LOGOUT THÀNH CÔNG.");
-      localStorage.removeItem("token");
       sessionStorage.clear();
     }
     dispatch({ type: LOGOUT_SUCCESS });
