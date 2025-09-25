@@ -60,11 +60,10 @@ const Sidebar: React.FC = () => {
               <li key={item.href} className="group">
                 <Link
                   href={item.href}
-                  className={`w-full  px-4 py-2.5 rounded-xl flex items-center space-x-3 transition-all duration-300 group-hover:translate-x-1 ${
-                    isActive
-                      ? "bg-blue-600 text-white shadow-lg border-r-4 border-blue-400"
-                      : "text-gray-600 hover:bg-gray-100/70 hover:text-gray-900"
-                  }`}
+                  className={`w-full  px-4 py-2.5 rounded-xl flex items-center space-x-3 transition-all duration-300 group-hover:translate-x-1 ${isActive
+                    ? "bg-blue-600 text-white shadow-lg border-r-4 border-blue-400"
+                    : "text-gray-600 hover:bg-gray-100/70 hover:text-gray-900"
+                    }`}
                 >
                   <div className="transition-transform duration-200 group-hover:scale-110">
                     <item.icon size={20} />

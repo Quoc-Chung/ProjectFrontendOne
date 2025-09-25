@@ -11,6 +11,7 @@ import { Product, ProductDetail, SortConfig } from "@/types/Admin";
 import { formatPrice } from '../../utils/helpers';
 import Image from "next/image";
 import { ProductDetails } from "./ProductDetails"; 
+import { useRouter } from "next/navigation";
 
 interface ProductManagementProps {
   products: Product[];
@@ -24,6 +25,7 @@ const ProductManagement: React.FC<ProductManagementProps> = ({
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [selectedCategory, setSelectedCategory] = useState<string>("");
   const [selectedBrand, setSelectedBrand] = useState<string>("");
+  const router = useRouter()
 
   const [priceRange, setPriceRange] = useState<{ min: string; max: string }>({
     min: "",
@@ -35,7 +37,7 @@ const ProductManagement: React.FC<ProductManagementProps> = ({
   });
   const [currentPage, setCurrentPage] = useState<number>(1);
 
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null); // để chuyển sang detail
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null); 
 
   const itemsPerPage = 5;
 
@@ -152,6 +154,9 @@ const ProductManagement: React.FC<ProductManagementProps> = ({
       />
     );
   }
+  const handleAddProduct = () =>{
+     router.push("/admin-app/products/create")
+  }
 
   // --- Giao diện danh sách sản phẩm ---
   return (
@@ -161,7 +166,10 @@ const ProductManagement: React.FC<ProductManagementProps> = ({
         <h2 className="text-xl font-semibold text-gray-900">
           Quản Lý Sản Phẩm
         </h2>
-        <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors shadow-sm">
+        <button 
+
+        onClick={handleAddProduct}
+        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors shadow-sm">
           <Plus size={18} />
           <span>Thêm Sản Phẩm</span>
         </button>

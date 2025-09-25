@@ -15,7 +15,7 @@ import PreviewSliderModal from "@/components/client/Common/PreviewSlider";
 import ScrollToTop from "@/components/client/Common/ScrollToTop";
 import PreLoader from "@/components/client/Common/PreLoader";
 import ReduxProvider from "../../utils/Provider/ReduxProvider";
-import { ToastContainer } from "react-toastify"; 
+import { ToastContainer } from "react-toastify";
 
 export default function RootLayout({
   children,
@@ -32,40 +32,40 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning={true}>
       <body>
         <ReduxProvider>
-          {loading ? (
-            <PreLoader />
-          ) : (
-            <>
-              <CartModalProvider>
-                <ModalProvider>
-                  <PreviewSliderProvider>
-                    <Header />
-                    {children}
+            {loading ? (
+              <PreLoader />
+            ) : (
+              <>
+                <CartModalProvider>
+                  <ModalProvider>
+                    <PreviewSliderProvider>
+                      <Header />
+                      {children}
 
-                    <QuickViewModal />
-                    <CartSidebarModal />
-                    <PreviewSliderModal />
-                  </PreviewSliderProvider>
-                </ModalProvider>
-              </CartModalProvider>
-              <ScrollToTop />
-              <Footer />
-            </>
-          )}
+                      <QuickViewModal />
+                      <CartSidebarModal />
+                      <PreviewSliderModal />
+                    </PreviewSliderProvider>
+                  </ModalProvider>
+                </CartModalProvider>
+                <ScrollToTop />
+                <Footer />
+              </>
+            )}
 
-          {/* 👇 Thêm ToastContainer ở đây */}
-          <ToastContainer
-            position="top-right" 
-            autoClose={1000}       
-            hideProgressBar={false}
-            newestOnTop={false}
-            closeOnClick
-            rtl={false}
-            pauseOnFocusLoss
-            draggable
-            pauseOnHover
-            theme="colored"       
-          />
+            {/* 👇 Thêm ToastContainer ở đây */}
+            <ToastContainer
+              position="top-right"
+              autoClose={1000}
+              hideProgressBar={false}
+              newestOnTop={false}
+              closeOnClick
+              rtl={false}
+              pauseOnFocusLoss
+              draggable
+              pauseOnHover
+              theme="colored"
+            />
         </ReduxProvider>
       </body>
     </html>
