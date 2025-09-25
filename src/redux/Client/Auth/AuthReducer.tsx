@@ -14,14 +14,44 @@ import {
   CHANGE_PASSWORD_REQUEST,
   CHANGE_PASSWORD_SUCCESS,
   CHANGE_PASSWORD_FAILURE,
+  LOGIN_GOOGLE_REQUEST,
+  LOGIN_GOOGLE_SUCCESS,
+  LOGIN_GOOGLE_FAILURE,
+  FORGOT_PASSWORD_REQUEST,
+  FORGOT_PASSWORD_SUCCESS,
+  FORGOT_PASSWORD_FAILURE,
+  VERIFY_OTP_REQUEST,
+  VERIFY_OTP_SUCCESS,
+  VERIFY_OTP_FAILURE,
+  RESET_PASSWORD_REQUEST,
+  RESET_PASSWORD_SUCCESS,
+  RESET_PASSWORD_FAILURE,
 } from "./ActionType";
 
 const initialState = {
   loading: false,
   user: null,
-  isLogin : false,
+  isLogin: false,
   token: typeof window !== "undefined" ? localStorage.getItem("token") : null,
   error: null,
+
+  forgotPassword: {
+    loading: false,
+    data: null,
+    error: null,
+  },
+
+  verifyOtp: {
+    loading: false,
+    data: null,
+    error: null,
+  },
+
+  resetPassword: {
+    loading: false,
+    data: null,
+    error: null,
+  },
 };
 
 export const authReducer = (state = initialState, action: any) => {
@@ -48,6 +78,27 @@ export const authReducer = (state = initialState, action: any) => {
     case LOGIN_FAILURE:
       return { ...state, loading: false, error: action.payload };
 
+    // ============== LOGIN WITH GOOGLE ==============  
+    case LOGIN_GOOGLE_REQUEST:
+      return {
+        ...state,
+        loading: false,
+        error: null
+      }
+
+    case LOGIN_GOOGLE_SUCCESS:
+      return {
+        ...state,
+        loading: false,
+        user: action.payload,
+        token: action.payload.token,
+        isLogin: true,
+      }
+
+    case LOGIN_GOOGLE_FAILURE:
+      return { ...state, loading: false, error: action.payload };
+
+
     // ============== UPDATE USER ==============
     case UPDATE_USER_REQUEST:
       return { ...state, loading: true, error: null };
@@ -60,7 +111,7 @@ export const authReducer = (state = initialState, action: any) => {
     case LOGOUT_REQUEST:
       return { ...state, loading: true, error: null };
     case LOGOUT_SUCCESS:
-      return { ...state, loading: false, user: null, token: null , isLogin: false};
+      return { ...state, loading: false, user: null, token: null, isLogin: false };
     case LOGOUT_FAILURE:
       return { ...state, loading: false, error: action.payload };
 
@@ -71,6 +122,63 @@ export const authReducer = (state = initialState, action: any) => {
       return { ...state, loading: false };
     case CHANGE_PASSWORD_FAILURE:
       return { ...state, loading: false, error: action.payload };
+
+    // ----- FORGOT PASSWORD -----
+    case FORGOT_PASSWORD_REQUEST:
+      return {
+        ...state,
+        forgotPassword: { loading: true, data: null, error: null },
+      };
+
+    case FORGOT_PASSWORD_SUCCESS:
+      return {
+        ...state,
+        forgotPassword: { loading: false, data: action.payload, error: null },
+      };
+
+    case FORGOT_PASSWORD_FAILURE:
+      return {
+        ...state,
+        forgotPassword: { loading: false, data: null, error: action.payload },
+      };
+
+    // ----- VERIFY OTP -----
+    case VERIFY_OTP_REQUEST:
+      return {
+        ...state,
+        verifyOtp: { loading: true, data: null, error: null },
+      };
+
+    case VERIFY_OTP_SUCCESS:
+      return {
+        ...state,
+        verifyOtp: { loading: false, data: action.payload, error: null },
+      };
+
+    case VERIFY_OTP_FAILURE:
+      return {
+        ...state,
+        verifyOtp: { loading: false, data: null, error: action.payload },
+      };
+
+    // ----- RESET PASSWORD -----
+    case RESET_PASSWORD_REQUEST:
+      return {
+        ...state,
+        resetPassword: { loading: true, data: null, error: null },
+      };
+
+    case RESET_PASSWORD_SUCCESS:
+      return {
+        ...state,
+        resetPassword: { loading: false, data: action.payload, error: null },
+      };
+
+    case RESET_PASSWORD_FAILURE:
+      return {
+        ...state,
+        resetPassword: { loading: false, data: null, error: action.payload },
+      };
 
     default:
       return state;

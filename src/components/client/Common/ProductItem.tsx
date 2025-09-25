@@ -4,7 +4,6 @@ import Image from "next/image";
 import { Product } from "@/types/product";
 import { useModalContext } from "@/app/context/QuickViewModalContext";
 
-import { useDispatch } from "react-redux";
 import Link from "next/link";
 
 const ProductItem = ({ item }: { item: Product }) => {
@@ -50,6 +49,8 @@ const ProductItem = ({ item }: { item: Product }) => {
               />
             </svg>
           </button>
+
+          
 
           <button
           

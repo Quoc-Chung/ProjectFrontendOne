@@ -15,10 +15,26 @@ import {
   CHANGE_PASSWORD_REQUEST,
   CHANGE_PASSWORD_SUCCESS,
   CHANGE_PASSWORD_FAILURE,
+  LOGIN_GOOGLE_REQUEST,
+  LOGIN_GOOGLE_SUCCESS,
+  LOGIN_GOOGLE_FAILURE,
+  FORGOT_PASSWORD_REQUEST,
+  FORGOT_PASSWORD_SUCCESS,
+  FORGOT_PASSWORD_FAILURE,
+  VERIFY_OTP_REQUEST,
+  VERIFY_OTP_SUCCESS,
+  VERIFY_OTP_FAILURE,
+  RESET_PASSWORD_REQUEST,
+  RESET_PASSWORD_SUCCESS,
+  RESET_PASSWORD_FAILURE,
 } from "./ActionType";
 import { Register } from "@/types/Client/Auth/Register";
 import { LoginRequest } from "../../../types/Client/Auth/LoginRequest";
 import { LogoutRequest } from "../../../types/Client/Auth/LogoutRequest";
+import { ChangePassword } from "../../../types/Client/Auth/ChangePassword";
+import { useSelector } from "react-redux";
+import { RootState } from "../../store";
+import { LoginResponse } from "../../../types/Client/Auth/LoginResponse";
 
 // ============== REGISTER ==============
 export const register = (data: Register, onSuccess?: any, onError?: any) => {
@@ -32,13 +48,13 @@ export const register = (data: Register, onSuccess?: any, onError?: any) => {
       });
       const resData = await res.json();
       console.log(resData)
-      /*- Return errror if code  not equal 200  -*/ 
+      /*- Return errror if code  not equal 200  -*/
       if (resData.status?.code !== "200") {
         throw new Error(resData.status?.message || "Đăng ký thất bại");
       }
-     
 
-      /*- Gửi mỗi phần data lên trên store -*/ 
+
+      /*- Gửi mỗi phần data lên trên store -*/
       dispatch({ type: REGISTER_SUCCESS, payload: resData.data });
       onSuccess?.(resData);
     } catch (error: any) {
@@ -77,7 +93,14 @@ export const login = (data: LoginRequest, onSuccess?: any, onError?: any) => {
     }
   };
 };
-/*- Bổ xung sau -*/ 
+// ============== LOGIN WITH GOOGLE ==============
+export const loginWithGoogleCallback = (data: any, onSuccess?: any, onErrror?: any) => {
+  return async (dispatch) => {
+    dispatch({ type: LOGIN_GOOGLE_REQUEST });
+  }
+}
+
+
 export const updateUser = (formData: FormData, onSuccess?: any, onError?: any) => {
   return async (dispatch) => {
     dispatch({ type: UPDATE_USER_REQUEST });
@@ -104,16 +127,16 @@ export const updateUser = (formData: FormData, onSuccess?: any, onError?: any) =
     }
   };
 };
-export const logoutAction = (logoutRequest : LogoutRequest, onSuccess?: any, onError?: any) => async (dispatch) => {
+export const logoutAction = (logoutRequest: LogoutRequest, onSuccess?: any, onError?: any) => async (dispatch) => {
   dispatch({ type: LOGOUT_REQUEST });
   try {
-    
-      const res = await fetch(`${BASE_API_URL}/api/logout`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${logoutRequest.token}` },
-      });
+
+    const res = await fetch(`${BASE_API_URL}/api/logout`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${logoutRequest.token}` },
+    });
     const resData = await res.json();
-    if(resData.status.code === 200){
+    if (resData.status.code === 200) {
       sessionStorage.clear();
     }
     dispatch({ type: LOGOUT_SUCCESS });
@@ -125,11 +148,12 @@ export const logoutAction = (logoutRequest : LogoutRequest, onSuccess?: any, onE
 };
 
 // ============== CHANGE PASSWORD ==============
-export const changePassword = (data: any, onSuccess?: any, onError?: any) => {
+export const changePassword = (data: ChangePassword, onSuccess?: any, onError?: any) => {
   return async (dispatch) => {
+
     dispatch({ type: CHANGE_PASSWORD_REQUEST });
+    const { token } = useSelector((state: RootState) => state.auth);
     try {
-      const token = localStorage.getItem("token");
 
       const res = await fetch(`${BASE_API_URL}/api/auth/change-password`, {
         method: "POST",
@@ -154,4 +178,81 @@ export const changePassword = (data: any, onSuccess?: any, onError?: any) => {
 
     }
   };
+};
+
+// ============== DANG NHAP VOI GOOGLE    ==============
+export const loginWithGoogle = (
+  data: LoginResponse,
+  onSuccess?: (res: LoginResponse) => void,
+  onError?: (err: string) => void
+) => {
+  return async (dispatch: any) => {
+    try {
+      dispatch({ type: LOGIN_GOOGLE_REQUEST });
+      
+      dispatch({ type: LOGIN_GOOGLE_SUCCESS, payload: data });
+      onSuccess?.(data);
+    } catch (error: any) {
+      dispatch({ type: LOGIN_GOOGLE_FAILURE, payload: error.message });
+      onError?.(error.message);
+    }
+  };
+};
+
+
+
+export const forgotPassword = (data : EmailForgetPassword, onSuccess : any , onError : any) => async (dispatch) => {
+  dispatch({ type: FORGOT_PASSWORD_REQUEST });
+  try {
+    const res = await fetch(`${BASE_API_URL}/api/auth/forgot-password`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+    const resData = await res.json();
+    if (!res.ok ) throw new Error(resData.status.message);
+    dispatch({ type: FORGOT_PASSWORD_SUCCESS, payload: resData });
+    onSuccess?.(resData);
+  } catch (error) {
+    dispatch({ type: FORGOT_PASSWORD_FAILURE, payload: error.message });
+    onError?.(error.message);
+  }
+};
+
+
+
+export const verifyOtp = (data :VerifyOtp , onSuccess : any , onError : any ) => async (dispatch) => {
+  dispatch({ type: VERIFY_OTP_REQUEST });
+  try {
+    const res = await fetch(`${BASE_API_URL}/api/auth/verify-otp`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+    const resData = await res.json();
+    if (!res.ok) throw new Error(resData.status.message);
+    dispatch({ type: VERIFY_OTP_SUCCESS, payload: resData });
+    onSuccess?.(resData);
+  } catch (error) {
+    dispatch({ type: VERIFY_OTP_FAILURE, payload: error.message });
+    onError?.(error.message);
+  }
+};
+
+export const resetPassword = (data: ResetForgetPassword, onSuccess: any , onError : any) => async (dispatch) => {
+  dispatch({ type: RESET_PASSWORD_REQUEST });
+  try {
+    const res = await fetch(`${BASE_API_URL}/api/auth/reset-password`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+    const resData = await res.json();
+    if (!res.ok) throw new Error(resData.message);
+    dispatch({ type: RESET_PASSWORD_SUCCESS, payload: resData });
+    onSuccess?.(resData);
+  } catch (error) {
+    dispatch({ type: RESET_PASSWORD_FAILURE, payload: error.message });
+    onError?.(error.message);
+  }
 };

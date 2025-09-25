@@ -1,3 +1,4 @@
+// TRANG HIỂN THỊ SẢN  PHẨM NHANH 
 "use client";
 import React, { useEffect, useState } from "react";
 
@@ -11,20 +12,15 @@ const QuickViewModal = () => {
   const { openPreviewModal } = usePreviewSlider();
   const [quantity, setQuantity] = useState(1);
 
-
-  // get the product data
   const product = []
 
   const [activePreview, setActivePreview] = useState(0);
 
-  // preview modal
   const handlePreviewSlider = () => {
-  
-
     openPreviewModal();
   };
 
-  // add to cart
+
   const handleAddToCart = () => {
   
 
@@ -32,7 +28,6 @@ const QuickViewModal = () => {
   };
 
   useEffect(() => {
-    // closing modal while clicking outside
     function handleClickOutside(event) {
       if (!event.target.closest(".modal-content")) {
         closeModal();

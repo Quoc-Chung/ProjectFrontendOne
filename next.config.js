@@ -6,11 +6,15 @@ const nextConfig = {
         protocol: "https",
         hostname: "images.pexels.com",
       },
+      {
+        protocol: "https",
+        hostname: "**.googleusercontent.com",
+      },
     ],
     domains: [
-      "images.unsplash.com", 
-      "picsum.photos", 
-      "cdn.example.com"
+      "images.unsplash.com",
+      "picsum.photos",
+      "cdn.example.com",
     ],
   },
 };

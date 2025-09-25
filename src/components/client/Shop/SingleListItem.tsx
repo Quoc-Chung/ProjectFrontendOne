@@ -3,7 +3,6 @@ import React from "react";
 
 import { Product } from "@/types/product";
 import { useModalContext } from "@/app/context/QuickViewModalContext";
-import { useDispatch } from "react-redux";
 import Link from "next/link";
 import Image from "next/image";
 

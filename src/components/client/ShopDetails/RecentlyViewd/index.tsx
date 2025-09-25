@@ -1,13 +1,14 @@
 "use client";
 import React from "react";
-import shopData from "@/components/Shop/shopData";
-import ProductItem from "@/components/Common/ProductItem";
 import Image from "next/image";
 
 import { Swiper, SwiperSlide } from "swiper/react";
 import { useCallback, useRef } from "react";
 import "swiper/css/navigation";
 import "swiper/css";
+import shopData from "../../Shop/shopData";
+import ProductItem from "../../Common/ProductItem";
+
 
 const RecentlyViewdItems = () => {
   const sliderRef = useRef(null);
