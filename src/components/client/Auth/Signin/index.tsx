@@ -53,18 +53,20 @@ const Signin = () => {
         formData,
         () => {
           toast.success("🎉 Đăng nhập thành công");
-          if (formData.account === "admin") {
-            router.push("/admin-app");
-          } else {
-             const redirectUrl = localStorage.getItem("redirectUrl");
-            if (redirectUrl) {
-              localStorage.removeItem("redirectUrl");
-              router.replace(redirectUrl);
-            }
-            else{
-              router.push("/");
-            }
-          }
+          // if (formData.account === "admin") {
+          //   router.push("/admin-app");
+          // } else {
+          //    const redirectUrl = localStorage.getItem("redirectUrl");
+          //   if (redirectUrl) {
+          //     localStorage.removeItem("redirectUrl");
+          //     router.replace(redirectUrl);
+          //   }
+          //   else{
+          //     router.push("/");
+          //   }
+          // }
+
+          router.replace("/")
         },
         (error: any) => {
           console.error("Đăng nhập thất bại:", error);
@@ -74,8 +76,11 @@ const Signin = () => {
   };
   return (
     <>
-      <Breadcrumb title={"Signin"} pages={["Signin"]} />
-      <section className="overflow-hidden py-20 bg-gray-2">
+      {/* <Breadcrumb title={"Signin"} pages={["Signin"]} /> */}
+      <div className="h-[200px]">
+      </div>
+
+      <section className="overflow-hidden py-20 bg-gray-2 ">
         <div className="max-w-[1170px] w-full mx-auto px-4 sm:px-8 xl:px-0">
           <div className="max-w-[570px] w-full mx-auto rounded-xl bg-white shadow-1 p-4 sm:p-7.5 xl:p-11">
             <div className="text-center mb-11">

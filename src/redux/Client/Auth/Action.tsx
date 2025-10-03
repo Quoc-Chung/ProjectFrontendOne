@@ -52,8 +52,6 @@ export const register = (data: Register, onSuccess?: any, onError?: any) => {
       if (resData.status?.code !== "200") {
         throw new Error(resData.status?.message || "Đăng ký thất bại");
       }
-
-
       /*- Gửi mỗi phần data lên trên store -*/
       dispatch({ type: REGISTER_SUCCESS, payload: resData.data });
       onSuccess?.(resData);
@@ -76,7 +74,7 @@ export const login = (data: LoginRequest, onSuccess?: any, onError?: any) => {
       });
 
       const resData = await res.json();
-
+      console.log(resData)
       if (resData.status?.code !== "200") {
         throw new Error(resData.status?.message || "Đăng nhập thất bại");
       }

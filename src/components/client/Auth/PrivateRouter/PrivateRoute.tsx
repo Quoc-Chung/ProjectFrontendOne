@@ -16,7 +16,6 @@ const PrivateRoute = ({ children }: PrivateRouteProps) => {
 
   useEffect(() => {
     if (!token) {
-      // Lưu lại đường dẫn user đang đứng
       localStorage.setItem("redirectUrl", pathname);
 
       // Hiện dialog

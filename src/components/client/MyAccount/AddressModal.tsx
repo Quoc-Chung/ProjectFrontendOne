@@ -2,17 +2,14 @@ import React, { useEffect } from "react";
 
 const AddressModal = ({ isOpen, closeModal }: any) => {
   useEffect(() => {
-    // closing modal while clicking outside
     function handleClickOutside(event) {
       if (!event.target.closest(".modal-content")) {
         closeModal();
       }
     }
-
     if (isOpen) {
       document.addEventListener("mousedown", handleClickOutside);
     }
-
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
@@ -34,7 +31,7 @@ const AddressModal = ({ isOpen, closeModal }: any) => {
             aria-label="button for close modal"
             className="absolute top-0 right-0 sm:top-3 sm:right-3 flex items-center justify-center w-10 h-10 rounded-full ease-in duration-150 bg-meta text-body hover:text-dark"
           >
-            <svg
+            <svg 
               className="fill-current"
               width="26"
               height="26"

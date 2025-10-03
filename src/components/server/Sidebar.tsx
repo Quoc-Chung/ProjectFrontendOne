@@ -11,10 +11,15 @@ import {
   LogOut,
   User,
 } from "lucide-react";
+import { useSelector } from "react-redux";
+import { RootState } from "../../redux/store";
 
 const Sidebar: React.FC = () => {
   const pathname = usePathname();
-
+   
+  const { user, token, isLogin } = useSelector((state: RootState) => state.auth);
+  console.log(user, token, isLogin)
+  
   const menuItems = [
     { href: "/admin-app/dashboard", icon: BarChart3, label: "Dashboard Tổng Quan" },
     { href: "/admin-app/products/management", icon: Package, label: "Quản Lý Sản Phẩm" },
