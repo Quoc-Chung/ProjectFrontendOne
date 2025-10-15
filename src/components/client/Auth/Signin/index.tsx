@@ -2,7 +2,7 @@
 
 import Breadcrumb from "@/components/client/Common/Breadcrumb";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import React, { useEffect, useState } from "react";
 import { login } from "../../../../redux/Client/Auth/Action";
 import { LoginRequest } from "../../../../types/Client/Auth/LoginRequest";
@@ -17,12 +17,11 @@ const Signin = () => {
 
   const dispatch = useAppDispatch();
   const router = useRouter();
+  const searchParams = useSearchParams();
 
  const handleLoginGoogle = () => {
   window.location.href = "http://localhost:8081/oauth2/authorization/google";
  };
-
-
   useEffect(() => {
     const savedAccount = localStorage.getItem("account");
     const savedPassword = localStorage.getItem("password");
@@ -35,6 +34,37 @@ const Signin = () => {
     localStorage.removeItem("account");
     localStorage.removeItem("password");
   }, []);
+
+  // Hiển thị toast khi được redirect từ protected route
+  useEffect(() => {
+    const showToast = searchParams.get('showToast');
+    const redirect = searchParams.get('redirect');
+    
+    console.log('Signin useEffect - showToast:', showToast, 'redirect:', redirect);
+    
+    if (showToast === 'true') {
+      console.log('Showing toast warning...');
+      
+      // Đợi một chút để đảm bảo ToastContainer đã load
+      setTimeout(() => {
+        toast.warning("Bạn chưa đăng nhập. Vui lòng đăng nhập để tiếp tục!", {
+          position: "top-right",
+          autoClose: 5000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+        });
+        console.log('Toast warning displayed');
+      }, 500);
+      
+      // Lưu redirect URL để sau khi đăng nhập sẽ redirect về
+      if (redirect) {
+        localStorage.setItem("redirectUrl", redirect);
+        console.log('Saved redirect URL:', redirect);
+      }
+    }
+  }, [searchParams]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -53,20 +83,18 @@ const Signin = () => {
         formData,
         () => {
           toast.success("🎉 Đăng nhập thành công");
-          // if (formData.account === "admin") {
-          //   router.push("/admin-app");
-          // } else {
-          //    const redirectUrl = localStorage.getItem("redirectUrl");
-          //   if (redirectUrl) {
-          //     localStorage.removeItem("redirectUrl");
-          //     router.replace(redirectUrl);
-          //   }
-          //   else{
-          //     router.push("/");
-          //   }
-          // }
-
-          router.replace("/")
+          
+          if (formData.account === "admin") {
+            router.push("/admin-app");
+          } else {
+            const redirectUrl = localStorage.getItem("redirectUrl");
+            if (redirectUrl) {
+              localStorage.removeItem("redirectUrl");
+              router.replace(redirectUrl);
+            } else {
+              router.push("/");
+            }
+          }
         },
         (error: any) => {
           console.error("Đăng nhập thất bại:", error);
@@ -76,7 +104,6 @@ const Signin = () => {
   };
   return (
     <>
-      {/* <Breadcrumb title={"Signin"} pages={["Signin"]} /> */}
       <div className="h-[200px]">
       </div>
 

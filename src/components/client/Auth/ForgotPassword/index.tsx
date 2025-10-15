@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
 import { forgotPassword, login } from "../../../../redux/Client/Auth/Action";
-import { LoginRequest } from "../../../../types/Client/Auth/LoginRequest";
 import { useAppDispatch } from "../../../../redux/store";
 import { toast } from "react-toastify";
 
@@ -30,22 +29,33 @@ const ForgetPassword = () => {
 
 
   function handleClickSendEmail(e): void {
-    toast.success("🎉 Da gui ma OTP");      
-    router.replace(`/verifyotp?email=${encodeURIComponent(formData.email)}`);
     e.preventDefault();
-      dispatch(
-          forgotPassword(
-            formData,
-            () => {
-                      
-            },
-            (error: any) => {
-              console.error("Đăng nhập thất bại:", error);
-              toast.error("Gửi email thất bại ")
-            }
-          )
-        );
     
+    // Validate email trước khi gửi
+    if (!formData.email || !formData.email.includes('@')) {
+      toast.error("Vui lòng nhập email hợp lệ");
+      return;
+    }
+
+    dispatch(
+      forgotPassword(
+        formData,
+        (response: any) => {
+          // Chỉ chuyển hướng khi API trả về thành công
+          toast.success("🎉 Đã gửi mã OTP thành công!");
+          router.replace(`/verifyotp?email=${encodeURIComponent(formData.email)}`);
+        },
+        (error: any) => {
+          console.error("Gửi email thất bại:", error);
+          // Hiển thị thông báo lỗi cụ thể
+          if (error.includes("không tồn tại") || error.includes("Entity does not exist")) {
+            toast.error("Email không tồn tại trong hệ thống. Vui lòng kiểm tra lại!");
+          } else {
+            toast.error("Gửi email thất bại. Vui lòng thử lại sau!");
+          }
+        }
+      )
+    );
   }
 
   return (

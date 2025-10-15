@@ -17,8 +17,7 @@ import { RootState } from "../../redux/store";
 const Sidebar: React.FC = () => {
   const pathname = usePathname();
    
-  const { user, token, isLogin } = useSelector((state: RootState) => state.auth);
-  console.log(user, token, isLogin)
+  const { user, token, isLogin, roleNames } = useSelector((state: RootState) => state.auth);
   
   const menuItems = [
     { href: "/admin-app/dashboard", icon: BarChart3, label: "Dashboard Tổng Quan" },
@@ -42,11 +41,11 @@ const Sidebar: React.FC = () => {
           </div>
           <div className="flex-1 min-w-0">
             <h3 className="text-sm font-semibold text-gray-900 truncate">
-              Hoàng Minh Quân
+              {user?.fullName || 'Admin User'}
             </h3>
-            <p className="text-xs text-gray-500 truncate">admin@company.com</p>
+            <p className="text-xs text-gray-500 truncate">{user?.email || 'admin@company.com'}</p>
             <span className="inline-block mt-1 px-3 py-1 text-[11px] font-medium rounded-full bg-purple-100 text-purple-700 transition-colors duration-200">
-              Administrator
+              {roleNames?.includes('ADMIN') ? 'Administrator' : roleNames?.join(', ') || 'User'}
             </span>
           </div>
           <button className="p-2 text-gray-400 transition-all duration-200 hover:text-red-500 hover:scale-110">

@@ -67,6 +67,26 @@ export const login = (data: LoginRequest, onSuccess?: any, onError?: any) => {
   return async (dispatch) => {
     dispatch({ type: LOGIN_REQUEST });
     try {
+      // Mock data cho testing - sẽ được thay thế khi có backend thực
+      if (data.account === "admin" && data.password === "admin") {
+        const mockResponse = {
+          token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhY2NvdW50IjoiYWRtaW4iLCJmdWxsTmFtZSI6IkFkbWluIFVzZXIiLCJlbWFpbCI6ImFkbWluQGNvbXBhbnkuY29tIiwicm9sZU5hbWVzIjpbIkFETUlOIl0sImlhdCI6MTcwMzAwMDAwMCwiZXhwIjoxNzAzNjA0ODAwfQ.mock_signature",
+          code: "200",
+          account: "admin",
+          phone: null,
+          fullName: "Admin User",
+          email: "admin@company.com",
+          avatarUrl: null,
+          firstLogin: false,
+          roleNames: ["ADMIN"]
+        };
+        
+        dispatch({ type: LOGIN_SUCCESS, payload: mockResponse });
+        onSuccess?.({ data: mockResponse });
+        return;
+      }
+
+      // Gọi API thực
       const res = await fetch(`${BASE_API_URL}/api/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -86,12 +106,12 @@ export const login = (data: LoginRequest, onSuccess?: any, onError?: any) => {
         throw new Error("Tài khoản hoặc mật khẩu sai");
       }
     } catch (error: any) {
+      console.error("Login error:", error);
       dispatch({ type: LOGIN_FAILURE, payload: error.message });
       onError?.(error.message);
     }
   };
 };
-// ============== LOGIN WITH GOOGLE ==============
 export const loginWithGoogleCallback = (data: any, onSuccess?: any, onErrror?: any) => {
   return async (dispatch) => {
     dispatch({ type: LOGIN_GOOGLE_REQUEST });
@@ -145,7 +165,6 @@ export const logoutAction = (logoutRequest: LogoutRequest, onSuccess?: any, onEr
   }
 };
 
-// ============== CHANGE PASSWORD ==============
 export const changePassword = (data: ChangePassword, onSuccess?: any, onError?: any) => {
   return async (dispatch) => {
 
@@ -178,7 +197,6 @@ export const changePassword = (data: ChangePassword, onSuccess?: any, onError?: 
   };
 };
 
-// ============== DANG NHAP VOI GOOGLE    ==============
 export const loginWithGoogle = (
   data: LoginResponse,
   onSuccess?: (res: LoginResponse) => void,
@@ -208,7 +226,11 @@ export const forgotPassword = (data : EmailForgetPassword, onSuccess : any , onE
       body: JSON.stringify(data),
     });
     const resData = await res.json();
-    if (!res.ok ) throw new Error(resData.status.message);
+    
+    if (resData.status && resData.status.code !== "200") {
+      throw new Error(resData.status.message);
+    }
+    
     dispatch({ type: FORGOT_PASSWORD_SUCCESS, payload: resData });
     onSuccess?.(resData);
   } catch (error) {

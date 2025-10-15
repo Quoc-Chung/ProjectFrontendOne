@@ -1,8 +1,11 @@
 "use client"
 import { ReactNode, useEffect, useState } from "react";
-import { useRouter, usePathname } from "next/navigation"; 
+import { useRouter, usePathname, useSearchParams } from "next/navigation"; 
 import { RootState } from "../../../../redux/store";
 import { useSelector } from "react-redux";
+import { toast } from "react-toastify";
+
+let globalToastShown = false;
 
 interface PrivateRouteProps {
   children: ReactNode;
@@ -10,64 +13,37 @@ interface PrivateRouteProps {
 
 const PrivateRoute = ({ children }: PrivateRouteProps) => {
   const router = useRouter();
-  const pathname = usePathname(); 
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { token } = useSelector((state: RootState) => state.auth);
-  const [showDialog, setShowDialog] = useState(false);
+  const [isChecking, setIsChecking] = useState(true);
 
   useEffect(() => {
-    if (!token) {
+    if (!token && !globalToastShown) {
       localStorage.setItem("redirectUrl", pathname);
-
-      // Hiện dialog
-      setShowDialog(true);
+      globalToastShown = true;
+      toast.warning("Bạn chưa đăng nhập. Vui lòng đăng nhập!");
+      router.replace("/signin");
+      return;
     }
-  }, [token, pathname]);
-
-  if (!token) {
+    if (token) {
+      setIsChecking(false);
+      globalToastShown = false;
+    }
+  }, [token, pathname, router]);
+  if (isChecking) {
     return (
-      <>
-        {showDialog && (
-          <div className="fixed inset-0 z-99999 flex items-center justify-center">
-            {/* Overlay mờ */}
-      <div 
-              className="absolute inset-0 backdrop-blur-md bg-gradient-to-br from-slate-900/60 via-purple-900/40 to-slate-900/60 animate-fade-in"
-              style={{
-                animation: 'fadeIn 0.3s ease-out forwards'
-              }}
-            ></div>
-
-            {/* Dialog */}
-            <div className="relative bg-white rounded-xl shadow-lg p-6 max-w-sm w-full text-center z-10 animate-fade-in">
-              <h2 className="text-lg font-bold text-red-600 mb-3">
-                Bạn chưa đăng nhập
-              </h2>
-              <p className="text-gray-600 mb-6">
-                Vui lòng đăng nhập để tiếp tục truy cập trang này.
-              </p>
-              <div className="flex justify-center gap-4">
-                <button
-                  onClick={() => router.back()}
-                  className="px-4 py-2 rounded-lg bg-gray-300 text-gray-800 hover:bg-gray-400 transition"
-                >
-                  Quay lại
-                </button>
-                <button
-                  onClick={() => {
-                    setShowDialog(false);
-                    router.replace("/signin");
-                  }}
-                  className="px-4 py-2 rounded-lg bg-red-500 text-white hover:bg-red-600 transition"
-                >
-                  Đăng nhập
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-      </>
+      <div className="fixed inset-0 z-99999 flex items-center justify-center bg-white">
+        <div className="flex flex-col items-center">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-solid border-blue border-t-transparent"></div>
+          <p className="mt-4 text-gray-600">Đang kiểm tra quyền truy cập...</p>
+        </div>
+      </div>
     );
   }
-
+  if (!token) {
+    return null;
+  }
   return <>{children}</>;
 };
 

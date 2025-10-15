@@ -21,19 +21,12 @@ export const menuData: Menu[] = [
   },
   {
     id: 4,
-    title: "Wishlist",
-    newTab: false,
-    path: "/wishlist",
-  },
-
-  {
-    id: 5,
     title: "Contact",
     newTab: false,
     path: "/contact",
   },
   {
-    id: 6,
+    id: 5,
     title: "Blog",
     newTab: false,
     path: "/blogs/blog-grid-with-sidebar",
