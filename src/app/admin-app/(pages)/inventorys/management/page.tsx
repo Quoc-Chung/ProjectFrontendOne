@@ -1,7 +1,6 @@
 
 import { Metadata } from "next";
 import { InventoryManagement } from "../../../../../components/server/InventoryManagement";
-import { useState } from "react";
 import { Product } from "../../../../../types/Admin";
 import { mockProducts } from "../../../../../utils/mockData";
 

@@ -3,7 +3,7 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { useAppDispatch } from "../../../../../redux/store";
 import { useEffect } from "react";
 import { LoginResponse } from "../../../../../types/Client/Auth/LoginResponse";
-import { loginWithGoogle } from "../../../../../redux/Client/Auth/Action";
+import { loginWithGoogleCallback } from "../../../../../redux/Client/Auth/Action";
 
 
 const OAuth2Callback = () => {
@@ -22,8 +22,11 @@ const OAuth2Callback = () => {
                 const loginResponse: LoginResponse = JSON.parse(decoded)
 
                 dispatch(
-                    loginWithGoogle(loginResponse, (res) => {
-                        if (res.account === "admin") {
+                    loginWithGoogleCallback(loginResponse, (res) => {
+                        // Kiểm tra role để quyết định redirect
+                        const userRoleNames = res?.data?.roleNames || res?.roleNames || [];
+                        
+                        if (userRoleNames && userRoleNames.includes('Administrator')) {
                             router.push("/admin-app");
                         } else {
                             router.push("/");

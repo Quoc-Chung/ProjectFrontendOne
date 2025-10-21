@@ -87,7 +87,6 @@ const PasswordReset = () => {
                     />
                 </div>
 
-
                 {/* Submit button */}
                 <button
                     type="submit"

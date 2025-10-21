@@ -1,27 +1,37 @@
-import React, { useState } from "react";
-import { useDispatch } from "react-redux";
-
-
+import React, { useState, useEffect } from "react";
+import { useAppDispatch } from "../../../redux/store";
 import Image from "next/image";
+import { CartOrderResponse } from "../../../types/Client/CartOrder/cartorder";
+import { updateProductQuantityAction } from "../../../redux/Client/CartOrder/Action";
 
-const SingleItem = ({ item }) => {
+interface SingleItemProps {
+  item: CartOrderResponse;
+}
+
+const SingleItem = ({ item }: SingleItemProps) => {
   const [quantity, setQuantity] = useState(item.quantity);
+  const dispatch = useAppDispatch();
 
-  
+  // Sync local state với Redux state khi item thay đổi
+  useEffect(() => {
+    setQuantity(item.quantity);
+  }, [item.quantity]);
 
   const handleRemoveFromCart = () => {
     
   };
 
   const handleIncreaseQuantity = () => {
-    setQuantity(quantity + 1);
-    
+    const newQuantity = quantity + 1;
+    setQuantity(newQuantity);
+    dispatch(updateProductQuantityAction(item.productId, newQuantity));
   };
 
   const handleDecreaseQuantity = () => {
     if (quantity > 1) {
-      setQuantity(quantity - 1);
-     
+      const newQuantity = quantity - 1;
+      setQuantity(newQuantity);
+      dispatch(updateProductQuantityAction(item.productId, newQuantity));
     } else {
       return;
     }
@@ -33,12 +43,12 @@ const SingleItem = ({ item }) => {
         <div className="flex items-center justify-between gap-5">
           <div className="w-full flex items-center gap-5.5">
             <div className="flex items-center justify-center rounded-[5px] bg-gray-2 max-w-[80px] w-full h-17.5">
-              <Image width={200} height={200} src={item.imgs?.thumbnails[0]} alt="product" />
+              <Image width={200} height={200} src="/images/products/product-11-1.PNG" alt="product" />
             </div>
 
             <div>
               <h3 className="text-dark ease-out duration-200 hover:text-blue">
-                <a href="#"> {item.title} </a>
+                <a href="#"> {item.productName} </a>
               </h3>
             </div>
           </div>
@@ -46,7 +56,7 @@ const SingleItem = ({ item }) => {
       </div>
 
       <div className="min-w-[180px]">
-        <p className="text-dark">${item.discountedPrice}</p>
+        <p className="text-dark">${item.productPrice?.toLocaleString()}</p>
       </div>
 
       <div className="min-w-[275px]">
@@ -102,7 +112,7 @@ const SingleItem = ({ item }) => {
       </div>
 
       <div className="min-w-[200px]">
-        <p className="text-dark">${item.discountedPrice * quantity}</p>
+        <p className="text-dark">${(item.productPrice * quantity)?.toLocaleString()}</p>
       </div>
 
       <div className="min-w-[50px] flex justify-end">

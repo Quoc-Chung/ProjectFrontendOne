@@ -52,8 +52,6 @@ export const register = (data: Register, onSuccess?: any, onError?: any) => {
       if (resData.status?.code !== "200") {
         throw new Error(resData.status?.message || "Đăng ký thất bại");
       }
-
-
       /*- Gửi mỗi phần data lên trên store -*/
       dispatch({ type: REGISTER_SUCCESS, payload: resData.data });
       onSuccess?.(resData);
@@ -69,6 +67,7 @@ export const login = (data: LoginRequest, onSuccess?: any, onError?: any) => {
   return async (dispatch) => {
     dispatch({ type: LOGIN_REQUEST });
     try {
+      // Gọi API thực
       const res = await fetch(`${BASE_API_URL}/api/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -76,7 +75,7 @@ export const login = (data: LoginRequest, onSuccess?: any, onError?: any) => {
       });
 
       const resData = await res.json();
-
+      console.log(resData)
       if (resData.status?.code !== "200") {
         throw new Error(resData.status?.message || "Đăng nhập thất bại");
       }
@@ -88,17 +87,43 @@ export const login = (data: LoginRequest, onSuccess?: any, onError?: any) => {
         throw new Error("Tài khoản hoặc mật khẩu sai");
       }
     } catch (error: any) {
+      console.error("Login error:", error);
       dispatch({ type: LOGIN_FAILURE, payload: error.message });
       onError?.(error.message);
     }
   };
 };
-// ============== LOGIN WITH GOOGLE ==============
-export const loginWithGoogleCallback = (data: any, onSuccess?: any, onErrror?: any) => {
+export const loginWithGoogleCallback = (data: any, onSuccess?: any, onError?: any) => {
   return async (dispatch) => {
     dispatch({ type: LOGIN_GOOGLE_REQUEST });
-  }
-}
+    try {
+      // Gọi API backend để xử lý Google OAuth callback
+      const res = await fetch(`${BASE_API_URL}/api/auth/google/callback`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+
+      const resData = await res.json();
+      console.log('Google OAuth callback response:', resData);
+
+      if (resData.status?.code !== "200") {
+        throw new Error(resData.status?.message || "Đăng nhập Google thất bại");
+      }
+
+      if (resData.data?.token) {
+        dispatch({ type: LOGIN_GOOGLE_SUCCESS, payload: resData.data });
+        onSuccess?.(resData);
+      } else {
+        throw new Error("Không nhận được token từ Google OAuth");
+      }
+    } catch (error: any) {
+      console.error("Google OAuth error:", error);
+      dispatch({ type: LOGIN_GOOGLE_FAILURE, payload: error.message });
+      onError?.(error.message);
+    }
+  };
+};
 
 
 export const updateUser = (formData: FormData, onSuccess?: any, onError?: any) => {
@@ -147,7 +172,6 @@ export const logoutAction = (logoutRequest: LogoutRequest, onSuccess?: any, onEr
   }
 };
 
-// ============== CHANGE PASSWORD ==============
 export const changePassword = (data: ChangePassword, onSuccess?: any, onError?: any) => {
   return async (dispatch) => {
 
@@ -180,7 +204,6 @@ export const changePassword = (data: ChangePassword, onSuccess?: any, onError?: 
   };
 };
 
-// ============== DANG NHAP VOI GOOGLE    ==============
 export const loginWithGoogle = (
   data: LoginResponse,
   onSuccess?: (res: LoginResponse) => void,
@@ -210,7 +233,11 @@ export const forgotPassword = (data : EmailForgetPassword, onSuccess : any , onE
       body: JSON.stringify(data),
     });
     const resData = await res.json();
-    if (!res.ok ) throw new Error(resData.status.message);
+    
+    if (resData.status && resData.status.code !== "200") {
+      throw new Error(resData.status.message);
+    }
+    
     dispatch({ type: FORGOT_PASSWORD_SUCCESS, payload: resData });
     onSuccess?.(resData);
   } catch (error) {

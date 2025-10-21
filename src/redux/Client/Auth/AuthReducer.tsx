@@ -28,11 +28,13 @@ import {
   RESET_PASSWORD_FAILURE,
 } from "./ActionType";
 
+// Initial state đơn giản - Redux Persist sẽ xử lý việc khôi phục state
 const initialState = {
   loading: false,
   user: null,
   isLogin: false,
-  token: typeof window !== "undefined" ? localStorage.getItem("token") : null,
+  token: null,
+  roleNames: [],
   error: null,
 
   forgotPassword: {
@@ -73,7 +75,8 @@ export const authReducer = (state = initialState, action: any) => {
         loading: false,
         user: action.payload,
         token: action.payload.token,
-        isLogin: true
+        isLogin: true,
+        roleNames: action.payload.roleNames
       };
     case LOGIN_FAILURE:
       return { ...state, loading: false, error: action.payload };
@@ -93,6 +96,7 @@ export const authReducer = (state = initialState, action: any) => {
         user: action.payload,
         token: action.payload.token,
         isLogin: true,
+        roleNames: action.payload.roleNames || []
       }
 
     case LOGIN_GOOGLE_FAILURE:
@@ -111,7 +115,7 @@ export const authReducer = (state = initialState, action: any) => {
     case LOGOUT_REQUEST:
       return { ...state, loading: true, error: null };
     case LOGOUT_SUCCESS:
-      return { ...state, loading: false, user: null, token: null, isLogin: false };
+      return { ...state, loading: false, user: null, token: null, isLogin: false, roleNames: [] };
     case LOGOUT_FAILURE:
       return { ...state, loading: false, error: action.payload };
 
