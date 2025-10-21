@@ -1,7 +1,7 @@
 "use client";
 import { Swiper, SwiperSlide } from "swiper/react";
-import { useCallback, useRef, useEffect } from "react";
-import data from "./categoryData";
+import { useCallback, useRef, useEffect, useState } from "react";
+import { Category, CategoriesResponse } from "@/types/Client/Category/Category";
 import Image from "next/image";
 
 // Import Swiper styles
@@ -11,6 +11,9 @@ import SingleItem from "./SingleItem";
 
 const Categories = () => {
   const sliderRef = useRef(null);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const handlePrev = useCallback(() => {
     if (!sliderRef.current) return;
@@ -22,11 +25,84 @@ const Categories = () => {
     sliderRef.current.swiper.slideNext();
   }, []);
 
+  // Fetch categories from API
+  const fetchCategories = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await fetch('http://localhost:8080/services/product-service/api/categories');
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data: CategoriesResponse = await response.json();
+      
+      if (data.status.code === "200") {
+        setCategories(data.data);
+      } else {
+        throw new Error(data.status.message);
+      }
+    } catch (err: any) {
+      console.error("Error fetching categories:", err);
+      setError(err.message);
+      // Fallback to static data if API fails
+      setCategories([
+        {
+          id: "1",
+          name: "Televisions",
+          slug: "televisions",
+          parentId: null,
+          parentName: null,
+          parentSlug: null,
+          childrenCount: 0,
+          hasChildren: false,
+          children: null,
+          hierarchyLevel: 1,
+          categoryType: "ROOT",
+          productCount: null,
+          isActive: null,
+          imageUrl: "/images/categories/categories-01.png",
+          displayName: "Televisions",
+          fullPath: "Televisions",
+          rootCategory: true,
+          leafCategory: true
+        },
+        {
+          id: "2",
+          name: "Laptop & PC",
+          slug: "laptop-pc",
+          parentId: null,
+          parentName: null,
+          parentSlug: null,
+          childrenCount: 0,
+          hasChildren: false,
+          children: null,
+          hierarchyLevel: 1,
+          categoryType: "ROOT",
+          productCount: null,
+          isActive: null,
+          imageUrl: "/images/categories/categories-02.png",
+          displayName: "Laptop & PC",
+          fullPath: "Laptop & PC",
+          rootCategory: true,
+          leafCategory: true
+        }
+      ]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    if (sliderRef.current) {
+    fetchCategories();
+  }, []);
+
+  useEffect(() => {
+    if (sliderRef.current && categories.length > 0) {
       sliderRef.current.swiper.init();
     }
-  }, []);
+  }, [categories]);
 
   return (
     <section className="overflow-hidden pt-17.5">
@@ -116,30 +192,41 @@ const Categories = () => {
             </div>
           </div>
 
-          <Swiper
-            ref={sliderRef}
-            slidesPerView={6}
-            breakpoints={{
-              // when window width is >= 640px
-              0: {
-                slidesPerView: 2,
-              },
-              1000: {
-                slidesPerView: 4,
-                // spaceBetween: 4,
-              },
-              // when window width is >= 768px
-              1200: {
-                slidesPerView: 6,
-              },
-            }}
-          >
-            {data.map((item, key) => (
-              <SwiperSlide key={key}>
-                <SingleItem item={item} />
-              </SwiperSlide>
-            ))}
-          </Swiper>
+          {error ? (
+            <div className="text-center py-20">
+              <div className="text-red-600 text-lg font-medium mb-4">
+                Lỗi tải danh mục: {error}
+              </div>
+              <button 
+                onClick={fetchCategories}
+                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Thử lại
+              </button>
+            </div>
+          ) : (
+            <Swiper
+              ref={sliderRef}
+              slidesPerView={6}
+              breakpoints={{
+                0: {
+                  slidesPerView: 2,
+                },
+                1000: {
+                  slidesPerView: 4,
+                },
+                1200: {
+                  slidesPerView: 6,
+                },
+              }}
+            >
+              {categories.map((item, key) => (
+                <SwiperSlide key={item.id}>
+                  <SingleItem item={item} />
+                </SwiperSlide>
+              ))}
+            </Swiper>
+          )}
         </div>
       </div>
     </section>

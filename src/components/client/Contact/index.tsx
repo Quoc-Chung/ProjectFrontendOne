@@ -33,7 +33,7 @@ const Contact = () => {
                         fill="#3C50E0"
                       />
                     </svg>
-                    Name: James Septimus
+                    Name: Nhóm 3 Dự Án ProShop 
                   </p>
 
                   <p className="flex items-center gap-4">
@@ -61,7 +61,7 @@ const Contact = () => {
                         fill="#3C50E0"
                       />
                     </svg>
-                    Phone: 1234 567890
+                    Phone: 0365419076
                   </p>
 
                   <p className="flex gap-4">
@@ -80,7 +80,7 @@ const Contact = () => {
                         fill="#3C50E0"
                       />
                     </svg>
-                    Address: 7398 Smoke Ranch RoadLas Vegas, Nevada 89128
+                    Address:Trường Đại Học Giao Thông Vận Tải
                   </p>
                 </div>
               </div>
@@ -100,6 +100,7 @@ const Contact = () => {
                       id="firstName"
                       placeholder="Jhon"
                       className="rounded-md border border-gray-3 bg-gray-1 placeholder:text-dark-5 w-full py-2.5 px-5 outline-none duration-200 focus:border-transparent focus:shadow-input focus:ring-2 focus:ring-blue/20"
+                      suppressHydrationWarning
                     />
                   </div>
 
@@ -114,6 +115,7 @@ const Contact = () => {
                       id="lastName"
                       placeholder="Deo"
                       className="rounded-md border border-gray-3 bg-gray-1 placeholder:text-dark-5 w-full py-2.5 px-5 outline-none duration-200 focus:border-transparent focus:shadow-input focus:ring-2 focus:ring-blue/20"
+                      suppressHydrationWarning
                     />
                   </div>
                 </div>
@@ -130,6 +132,7 @@ const Contact = () => {
                       id="subject"
                       placeholder="Type your subject"
                       className="rounded-md border border-gray-3 bg-gray-1 placeholder:text-dark-5 w-full py-2.5 px-5 outline-none duration-200 focus:border-transparent focus:shadow-input focus:ring-2 focus:ring-blue/20"
+                      suppressHydrationWarning
                     />
                   </div>
 
@@ -144,6 +147,7 @@ const Contact = () => {
                       id="phone"
                       placeholder="Enter your phone"
                       className="rounded-md border border-gray-3 bg-gray-1 placeholder:text-dark-5 w-full py-2.5 px-5 outline-none duration-200 focus:border-transparent focus:shadow-input focus:ring-2 focus:ring-blue/20"
+                      suppressHydrationWarning
                     />
                   </div>
                 </div>

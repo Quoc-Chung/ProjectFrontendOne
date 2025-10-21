@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";   
 import Breadcrumb from "@/components/client/Common/Breadcrumb";
@@ -19,6 +19,11 @@ const Signup: React.FC = () => {
     email: "",
     fullname: "",
   });
+  const [isHydrated, setIsHydrated] = useState(false);
+
+  useEffect(() => {
+    setIsHydrated(true);
+  }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -33,15 +38,23 @@ const Signup: React.FC = () => {
       register(
         formData,
         () => {
-           localStorage.setItem("account", formData.account); 
-           localStorage.setItem("password", formData.password)
-          toast.success("🎉 Đăng kí thành công");
+          if (isHydrated) {
+            localStorage.setItem("account", formData.account); 
+            localStorage.setItem("password", formData.password)
+          }
+          toast.success("🎉 Đăng kí thành công", {
+            autoClose: 1500,
+            position: "top-right"
+          });
           setTimeout(() => {
             router.push("/signin");
-          }, 2000);
+          }, 1500);
         },
         (err) => {
-          toast.error(`Đăng ký thất bại: ${err}`);
+          toast.error(`Đăng ký thất bại: ${err}`, {
+            autoClose: 2000,
+            position: "top-right"
+          });
         }
       )
     );
@@ -79,6 +92,7 @@ const Signup: React.FC = () => {
                   placeholder="Enter your full name"
                   required
                   className="rounded-lg border border-gray-3 bg-gray-1 w-full py-3 px-5"
+                  suppressHydrationWarning
                 />
               </div>
 
@@ -96,6 +110,7 @@ const Signup: React.FC = () => {
                   placeholder="Enter your account"
                   required
                   className="rounded-lg border border-gray-3 bg-gray-1 w-full py-3 px-5"
+                  suppressHydrationWarning
                 />
               </div>
 
@@ -113,6 +128,7 @@ const Signup: React.FC = () => {
                   placeholder="Enter your email address"
                   required
                   className="rounded-lg border border-gray-3 bg-gray-1 w-full py-3 px-5"
+                  suppressHydrationWarning
                 />
               </div>
 
@@ -130,6 +146,7 @@ const Signup: React.FC = () => {
                   placeholder="Enter your password"
                   required
                   className="rounded-lg border border-gray-3 bg-gray-1 w-full py-3 px-5"
+                  suppressHydrationWarning
                 />
               </div>
 
@@ -137,6 +154,7 @@ const Signup: React.FC = () => {
               <button
                 type="submit"
                 className="w-full flex justify-center font-medium text-white bg-dark py-3 px-6 rounded-lg hover:bg-blue mt-7.5"
+                suppressHydrationWarning
               >
                 Create Account
               </button>
@@ -153,8 +171,6 @@ const Signup: React.FC = () => {
               <div className="flex  gap-4">
                 {/* Google Button */}
                 <button
-                  
-                
                   className={`
               group relative w-full flex items-center justify-center gap-3 
               bg-gradient-to-r from-red-500 to-orange-400 
@@ -167,6 +183,7 @@ const Signup: React.FC = () => {
               overflow-hidden
               
             `}
+                  suppressHydrationWarning
                 >
                   {/* Shimmer Effect */}
                   <div className="absolute inset-0 -top-2 -bottom-2 bg-gradient-to-r from-transparent via-white/20 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>

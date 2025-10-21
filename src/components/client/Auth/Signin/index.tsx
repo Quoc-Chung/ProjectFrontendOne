@@ -14,57 +14,67 @@ const Signin = () => {
     account: "",
     password: "",
   });
+  const [isHydrated, setIsHydrated] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   const dispatch = useAppDispatch();
   const router = useRouter();
   const searchParams = useSearchParams();
 
- const handleLoginGoogle = () => {
-  window.location.href = "http://localhost:8081/oauth2/authorization/google";
- };
   useEffect(() => {
-    const savedAccount = localStorage.getItem("account");
-    const savedPassword = localStorage.getItem("password");
-
-    setFormData({
-      account: savedAccount || "",
-      password: savedPassword || "",
-    });
-
-    localStorage.removeItem("account");
-    localStorage.removeItem("password");
+    setIsHydrated(true);
   }, []);
 
-  // Hiển thị toast khi được redirect từ protected route
+ const handleLoginGoogle = () => {
+  // Redirect đến backend OAuth endpoint với callback URL
+  const callbackUrl = encodeURIComponent(`${window.location.origin}/google-callback`);
+  window.location.href = `http://localhost:8081/oauth2/authorization/google?redirect_uri=${callbackUrl}`;
+ };
   useEffect(() => {
-    const showToast = searchParams.get('showToast');
-    const redirect = searchParams.get('redirect');
-    
-    console.log('Signin useEffect - showToast:', showToast, 'redirect:', redirect);
-    
-    if (showToast === 'true') {
-      console.log('Showing toast warning...');
+    if (isHydrated && typeof window !== 'undefined') {
+      const savedAccount = localStorage.getItem("account");
+      const savedPassword = localStorage.getItem("password");
+
+      setFormData({
+        account: savedAccount || "",
+        password: savedPassword || "",
+      });
+
+      localStorage.removeItem("account");
+      localStorage.removeItem("password");
+    }
+  }, [isHydrated]);
+
+  useEffect(() => {
+    if (isHydrated) {
+      const showToast = searchParams.get('showToast');
+      const redirect = searchParams.get('redirect');
       
-      // Đợi một chút để đảm bảo ToastContainer đã load
-      setTimeout(() => {
-        toast.warning("Bạn chưa đăng nhập. Vui lòng đăng nhập để tiếp tục!", {
-          position: "top-right",
-          autoClose: 5000,
-          hideProgressBar: false,
-          closeOnClick: true,
-          pauseOnHover: true,
-          draggable: true,
-        });
-        console.log('Toast warning displayed');
-      }, 500);
+      console.log('Signin useEffect - showToast:', showToast, 'redirect:', redirect);
       
-      // Lưu redirect URL để sau khi đăng nhập sẽ redirect về
-      if (redirect) {
-        localStorage.setItem("redirectUrl", redirect);
-        console.log('Saved redirect URL:', redirect);
+      if (showToast === 'true') {
+        console.log('Showing toast warning...');
+        
+        setTimeout(() => {
+          toast.warning("Bạn chưa đăng nhập. Vui lòng đăng nhập để tiếp tục!", {
+            position: "top-right",
+            autoClose: 1000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+          });
+          console.log('Toast warning displayed');
+        }, 500);
+        
+        // Lưu redirect URL để sau khi đăng nhập sẽ redirect về
+        if (redirect) {
+          localStorage.setItem("redirectUrl", redirect);
+          console.log('Saved redirect URL:', redirect);
+        }
       }
     }
-  }, [searchParams]);
+  }, [isHydrated, searchParams]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -77,18 +87,54 @@ const Signin = () => {
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    
+    // Kiểm tra validation cơ bản
+    if (!formData.account.trim()) {
+      toast.error("❌ Vui lòng nhập tài khoản!", {
+        position: "top-right",
+        autoClose: 2000,
+      });
+      return;
+    }
+    
+    if (!formData.password.trim()) {
+      toast.error("❌ Vui lòng nhập mật khẩu!", {
+        position: "top-right",
+        autoClose: 2000,
+      });
+      return;
+    }
+    
+    setIsLoading(true);
     console.log("Đăng nhập với:", formData);
+    
     dispatch(
       login(
         formData,
-        () => {
-          toast.success("🎉 Đăng nhập thành công");
+        (responseData) => {
+          setIsLoading(false);
+          toast.success("🎉 Đăng nhập thành công", {
+            autoClose: 1500,
+            position: "top-right"
+          });
           
-          if (formData.account === "admin") {
+          // Lấy roleNames từ response data
+          const userRoleNames = responseData?.data?.roleNames || responseData?.roleNames || [];
+          
+          console.log('Login success - Response data:', responseData);
+          
+          // Kiểm tra roleNames để quyết định redirect
+          if (userRoleNames && userRoleNames.includes('Administrator')) {
+            console.log('User has Administrator role, redirecting to admin-app');
             router.push("/admin-app");
           } else {
+            const redirectAfterLogin = localStorage.getItem("redirectAfterLogin");
             const redirectUrl = localStorage.getItem("redirectUrl");
-            if (redirectUrl) {
+            
+            if (redirectAfterLogin) {
+              localStorage.removeItem("redirectAfterLogin");
+              router.replace(redirectAfterLogin);
+            } else if (redirectUrl) {
               localStorage.removeItem("redirectUrl");
               router.replace(redirectUrl);
             } else {
@@ -97,7 +143,18 @@ const Signin = () => {
           }
         },
         (error: any) => {
+          setIsLoading(false);
           console.error("Đăng nhập thất bại:", error);
+          
+          // Hiển thị toast lỗi cho người dùng
+          toast.error("❌ Đăng nhập thất bại! Vui lòng kiểm tra lại tài khoản và mật khẩu.", {
+            position: "top-right",
+            autoClose: 3000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+          });
         }
       )
     );
@@ -129,7 +186,11 @@ const Signin = () => {
                   placeholder="Enter your account"
                   value={formData.account}
                   onChange={handleChange}
-                  className="rounded-lg border border-gray-3 bg-gray-1 w-full py-3 px-5"
+                  disabled={isLoading}
+                  className={`rounded-lg border border-gray-3 bg-gray-1 w-full py-3 px-5 ${
+                    isLoading ? 'opacity-50 cursor-not-allowed' : ''
+                  }`}
+                  suppressHydrationWarning
                 />
               </div>
 
@@ -145,21 +206,38 @@ const Signin = () => {
                   autoComplete="on"
                   value={formData.password}
                   onChange={handleChange}
-                  className="rounded-lg border border-gray-3 bg-gray-1 w-full py-3 px-5"
+                  disabled={isLoading}
+                  className={`rounded-lg border border-gray-3 bg-gray-1 w-full py-3 px-5 ${
+                    isLoading ? 'opacity-50 cursor-not-allowed' : ''
+                  }`}
+                  suppressHydrationWarning
                 />
               </div>
 
               <div className="flex justify-end">
-                <button type="button"  onClick={handleForgetPassword}>
+                <button type="button" onClick={handleForgetPassword} suppressHydrationWarning>
                   <p>Quên mật khẩu ?</p>
                 </button>
               </div>
 
               <button
                 type="submit"
-                className="w-full flex justify-center font-medium text-white bg-dark py-3 px-6 rounded-lg hover:bg-blue mt-7.5"
+                disabled={isLoading}
+                className={`w-full flex justify-center font-medium text-white py-3 px-6 rounded-lg mt-7.5 transition-all duration-200 ${
+                  isLoading 
+                    ? 'bg-gray-400 cursor-not-allowed' 
+                    : 'bg-dark hover:bg-blue'
+                }`}
+                suppressHydrationWarning
               >
-                Sign in to account
+                {isLoading ? (
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    Đang đăng nhập...
+                  </div>
+                ) : (
+                  'Sign in to account'
+                )}
               </button>
 
               <p className="text-center mt-6">
@@ -173,7 +251,6 @@ const Signin = () => {
               <div className="flex  gap-4">
                 {/* Google Button */}
                 <button
-
                   onClick={handleLoginGoogle}
                   className={`
               group relative w-full flex items-center justify-center gap-3 
@@ -187,6 +264,7 @@ const Signin = () => {
               overflow-hidden
               
             `}
+                  suppressHydrationWarning
                 >
                   {/* Shimmer Effect */}
                   <div className="absolute inset-0 -top-2 -bottom-2 bg-gradient-to-r from-transparent via-white/20 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>

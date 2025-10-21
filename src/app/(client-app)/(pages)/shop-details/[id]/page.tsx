@@ -1,0 +1,43 @@
+import React from "react";
+import ShopDetails from "@/components/client/ShopDetails";
+import { Metadata } from "next";
+import { productDetailService, ProductDetailResponse } from "@/services/productDetailService";
+
+interface ShopDetailsPageProps {
+  params: {
+    id: string;
+  };
+}
+
+export async function generateMetadata({ params }: ShopDetailsPageProps): Promise<Metadata> {
+  try {
+    const productData = await productDetailService.getProductDetail(params.id);
+    return {
+      title: `${productData.data.name} | NextCommerce`,
+      description: productData.data.description,
+    };
+  } catch (error) {
+    return {
+      title: "Shop Details Page | NextCommerce",
+      description: "This is Shop Details Page for NextCommerce Template",
+    };
+  }
+}
+
+const ShopDetailsPage = async ({ params }: ShopDetailsPageProps) => {
+  let productData: ProductDetailResponse | null = null;
+  
+  try {
+    productData = await productDetailService.getProductDetail(params.id);
+  } catch (error) {
+    console.error('Error fetching product data:', error);
+  }
+
+  return (
+    <main>
+      <ShopDetails productData={productData} />
+    </main>
+  );
+};
+
+export default ShopDetailsPage;

@@ -5,10 +5,15 @@ import OrderAccount from "./OrderAccount";
 import Breadcrumb from "../Common/Breadcrumb";
 import Image from "next/image";
 import PasswordReset from "./PasswordReset";
-import { RootState } from "../../../redux/store";
+import { RootState, useAppDispatch } from "../../../redux/store";
 import { useSelector } from "react-redux";
+import { logoutAction } from "../../../redux/Client/Auth/Action";
+import { toast } from "react-toastify";
+import { useRouter } from "next/navigation";
 
 const UserDashboard = () => {
+  const router = useRouter();
+  const dispatch = useAppDispatch();
   const [activeTab, setActiveTab] = useState("information");
   const [showAddressModal, setShowAddressModal] = useState(false);
   const [avatar, setAvatar] = useState("/avatar.jpg");
@@ -16,14 +21,32 @@ const UserDashboard = () => {
   const { user, token } = useSelector((state: RootState) => state.auth);
   
   useEffect(()=>{
-     if(user){
+     if(user && user.avatarUrl && user.avatarUrl.trim() !== ""){
        setAvatar(user.avatarUrl)
+     } else {
+       setAvatar("/avatar.jpg") 
      }
     
   },[user])
   
   const handleLogout = () => {
-    alert("Bạn đã đăng xuất!");
+    dispatch(
+      logoutAction(
+        { token },
+        () => {
+          toast.success("🎉Logout thành công");
+          setTimeout(() => {
+            router.push("/");
+          }, 2000);
+        },
+        (err) => {
+          toast.error(`Logout thất bại: ${err}`, {
+            autoClose: 3000,
+            position: "top-right"
+          });
+        }
+      )
+    );
   };
 
   const handleAvatarChange = (event) => {
@@ -31,11 +54,7 @@ const UserDashboard = () => {
     if (file) {
 
     }
-  };
-
-
-
-
+  }
   return (
     <>
       <Breadcrumb title={"Thông tin người dùng"} pages={["Thông tin người dùng"]} />
@@ -59,7 +78,7 @@ const UserDashboard = () => {
                   {/* Avatar đẹp hơn */}
                   <div className="relative w-20 h-20 rounded-full overflow-hidden border-4 border-white shadow-md z-0">
                     <Image
-                      src={avatar}
+                      src={avatar || "/avatar.jpg"}
                       alt="User avatar"
                       fill
                       className="object-cover z-0" 

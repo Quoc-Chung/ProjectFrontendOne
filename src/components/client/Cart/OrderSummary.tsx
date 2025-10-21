@@ -1,10 +1,14 @@
 
 import React from "react";
-import { useSelector } from "react-redux";
+import { useAppSelector } from "../../../redux/store";
 
 const OrderSummary = () => {
-  const cartItems = []    // = useAppSelector((state) => state.cartReducer.items);
-  const totalPrice = 0  // useSelector(selectTotalPrice);
+  const cartItems = useAppSelector((state) => state.cart.cart);
+  
+  // Tính tổng tiền
+  const totalPrice = cartItems.reduce((total, item) => {
+    return total + (item.productPrice * item.quantity);
+  }, 0);
 
   return (
     <div className="lg:max-w-[455px] w-full">
@@ -29,11 +33,11 @@ const OrderSummary = () => {
           {cartItems.map((item, key) => (
             <div key={key} className="flex items-center justify-between py-5 border-b border-gray-3">
               <div>
-                <p className="text-dark">{item.title}</p>
+                <p className="text-dark">{item.productName}</p>
               </div>
               <div>
                 <p className="text-dark text-right">
-                  ${item.discountedPrice * item.quantity}
+                  ${(item.productPrice * item.quantity).toLocaleString()}
                 </p>
               </div>
             </div>
@@ -46,7 +50,7 @@ const OrderSummary = () => {
             </div>
             <div>
               <p className="font-medium text-lg text-dark text-right">
-                ${totalPrice}
+                ${totalPrice.toLocaleString()}
               </p>
             </div>
           </div>

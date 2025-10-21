@@ -1,8 +1,12 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import Image from "next/image";
 
 const Footer = () => {
-  const year = new Date().getFullYear();
+  const [year, setYear] = useState<number>(2024);
+
+  useEffect(() => {
+    setYear(new Date().getFullYear());
+  }, []);
 
   return (
     <footer className="overflow-hidden">
@@ -335,7 +339,7 @@ const Footer = () => {
       <div className="py-5 xl:py-7.5 bg-gray-1">
         <div className="max-w-[1170px] mx-auto px-4 sm:px-8 xl:px-0">
           <div className="flex gap-5 flex-wrap items-center justify-between">
-            <p className="text-dark font-medium">
+            <p className="text-dark font-medium" suppressHydrationWarning>
               &copy; {year}. All rights reserved by PimjoLabs.
             </p>
 
@@ -371,8 +375,9 @@ const Footer = () => {
                   <Image
                     src="/images/payment/payment-04.svg"
                     alt="apple pay"
-                    width={52.94}
+                    width={53}
                     height={22}
+                    style={{ width: "auto", height: "auto" }}
                   />
                 </a>
                 <a href="#" aria-label="payment system with google pay">

@@ -67,25 +67,6 @@ export const login = (data: LoginRequest, onSuccess?: any, onError?: any) => {
   return async (dispatch) => {
     dispatch({ type: LOGIN_REQUEST });
     try {
-      // Mock data cho testing - sẽ được thay thế khi có backend thực
-      if (data.account === "admin" && data.password === "admin") {
-        const mockResponse = {
-          token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhY2NvdW50IjoiYWRtaW4iLCJmdWxsTmFtZSI6IkFkbWluIFVzZXIiLCJlbWFpbCI6ImFkbWluQGNvbXBhbnkuY29tIiwicm9sZU5hbWVzIjpbIkFETUlOIl0sImlhdCI6MTcwMzAwMDAwMCwiZXhwIjoxNzAzNjA0ODAwfQ.mock_signature",
-          code: "200",
-          account: "admin",
-          phone: null,
-          fullName: "Admin User",
-          email: "admin@company.com",
-          avatarUrl: null,
-          firstLogin: false,
-          roleNames: ["ADMIN"]
-        };
-        
-        dispatch({ type: LOGIN_SUCCESS, payload: mockResponse });
-        onSuccess?.({ data: mockResponse });
-        return;
-      }
-
       // Gọi API thực
       const res = await fetch(`${BASE_API_URL}/api/auth/login`, {
         method: "POST",
@@ -112,11 +93,37 @@ export const login = (data: LoginRequest, onSuccess?: any, onError?: any) => {
     }
   };
 };
-export const loginWithGoogleCallback = (data: any, onSuccess?: any, onErrror?: any) => {
+export const loginWithGoogleCallback = (data: any, onSuccess?: any, onError?: any) => {
   return async (dispatch) => {
     dispatch({ type: LOGIN_GOOGLE_REQUEST });
-  }
-}
+    try {
+      // Gọi API backend để xử lý Google OAuth callback
+      const res = await fetch(`${BASE_API_URL}/api/auth/google/callback`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+
+      const resData = await res.json();
+      console.log('Google OAuth callback response:', resData);
+
+      if (resData.status?.code !== "200") {
+        throw new Error(resData.status?.message || "Đăng nhập Google thất bại");
+      }
+
+      if (resData.data?.token) {
+        dispatch({ type: LOGIN_GOOGLE_SUCCESS, payload: resData.data });
+        onSuccess?.(resData);
+      } else {
+        throw new Error("Không nhận được token từ Google OAuth");
+      }
+    } catch (error: any) {
+      console.error("Google OAuth error:", error);
+      dispatch({ type: LOGIN_GOOGLE_FAILURE, payload: error.message });
+      onError?.(error.message);
+    }
+  };
+};
 
 
 export const updateUser = (formData: FormData, onSuccess?: any, onError?: any) => {

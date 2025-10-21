@@ -13,18 +13,23 @@ const AdminRoute: React.FC<AdminRouteProps> = ({ children }) => {
   const router = useRouter()
   const { isLogin, roleNames, loading } = useSelector((state: RootState) => state.auth)
   const [isChecking, setIsChecking] = useState(true)
+  const [isHydrated, setIsHydrated] = useState(false)
 
   useEffect(() => {
-    // Đợi một chút để Redux store được khởi tạo hoàn toàn
+    setIsHydrated(true);
+  }, []);
+
+  useEffect(() => {
+    // Giảm thời gian checking
     const timer = setTimeout(() => {
       setIsChecking(false)
-    }, 100)
+    }, 50) // Giảm từ 100ms xuống 50ms
 
     return () => clearTimeout(timer)
   }, [])
 
   useEffect(() => {
-    if (isChecking) return
+    if (isChecking || !isHydrated) return
 
     // Kiểm tra nếu user chưa đăng nhập
     if (!isLogin) {
@@ -34,30 +39,29 @@ const AdminRoute: React.FC<AdminRouteProps> = ({ children }) => {
     }
 
     // Kiểm tra nếu user không có quyền admin
-    if (!roleNames || !Array.isArray(roleNames) || !roleNames.includes('ADMIN')) {
-      console.log('User does not have ADMIN role, redirecting to 403. Current roles:', roleNames)
+    if (!roleNames || !Array.isArray(roleNames) || !roleNames.includes('Administrator')) {
+      console.log('User does not have Administrator role, redirecting to 403. Current roles:', roleNames)
       router.push('/403')
       return
     }
 
-    console.log('User has ADMIN access, allowing access')
-  }, [isLogin, roleNames, router, isChecking])
+    console.log('User has Administrator access, allowing access')
+  }, [isHydrated, isLogin, roleNames, router, isChecking])
 
-  // Hiển thị loading khi đang kiểm tra hoặc đang loading
-  if (isChecking || loading) {
+  // Hiển thị loading khi đang kiểm tra hoặc đang loading hoặc chưa hydrate
+  if (isChecking || loading || !isHydrated) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+      <div className="flex items-center justify-center min-h-[200px] bg-gray-50">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600 text-lg">Đang kiểm tra quyền truy cập...</p>
-          <p className="mt-2 text-gray-500 text-sm">Vui lòng đợi trong giây lát</p>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-2 text-gray-600 text-sm">Đang kiểm tra quyền...</p>
         </div>
       </div>
     )
   }
 
   // Nếu đã kiểm tra xong và có quyền admin, hiển thị children
-  if (isLogin && roleNames && Array.isArray(roleNames) && roleNames.includes('ADMIN')) {
+  if (isLogin && roleNames && Array.isArray(roleNames) && roleNames.includes('Administrator')) {
     return <>{children}</>
   }
 

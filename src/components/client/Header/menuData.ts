@@ -24,11 +24,5 @@ export const menuData: Menu[] = [
     title: "Contact",
     newTab: false,
     path: "/contact",
-  },
-  {
-    id: 5,
-    title: "Blog",
-    newTab: false,
-    path: "/blogs/blog-grid-with-sidebar",
   }
 ]

@@ -1,17 +1,14 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Performance optimizations
   experimental: {
     optimizeCss: true,
     optimizePackageImports: ['lucide-react', '@radix-ui/react-icons'],
   },
-  
-  // Compiler optimizations
+
   compiler: {
     removeConsole: process.env.NODE_ENV === 'production',
   },
   
-  // Image optimizations
   images: {
     remotePatterns: [
       {
@@ -46,15 +43,30 @@ const nextConfig = {
     if (!dev && !isServer) {
       config.optimization.splitChunks = {
         chunks: 'all',
+        minSize: 20000,
+        maxSize: 244000,
         cacheGroups: {
           vendor: {
             test: /[\\/]node_modules[\\/]/,
             name: 'vendors',
             chunks: 'all',
+            priority: 10,
+            reuseExistingChunk: true,
+          },
+          common: {
+            name: 'common',
+            minChunks: 2,
+            chunks: 'all',
+            priority: 5,
+            reuseExistingChunk: true,
           },
         },
       };
     }
+    
+    // Add chunk loading error handling
+    config.output.chunkLoadingGlobal = 'webpackChunkNextCommerce';
+    
     return config;
   },
   

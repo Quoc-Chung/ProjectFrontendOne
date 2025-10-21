@@ -1,12 +1,17 @@
 'use client'
 
 import Link from 'next/link'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useSelector } from 'react-redux'
-import { RootState } from '../../../redux/store'
+import { RootState } from '../../../../redux/store'
 
 export default function ForbiddenPage() {
   const { isLogin, roleNames } = useSelector((state: RootState) => state.auth)
+  const [isHydrated, setIsHydrated] = useState(false)
+
+  useEffect(() => {
+    setIsHydrated(true);
+  }, []);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -36,13 +41,14 @@ export default function ForbiddenPage() {
         {/* Description */}
         <p className="text-gray-600 mb-6">
           Xin lỗi, bạn không có quyền truy cập vào trang này. 
-          {!isLogin ? ' Vui lòng đăng nhập để tiếp tục.' : 
-           !roleNames.includes('ADMIN') ? ' Chỉ quản trị viên mới có thể truy cập.' : 
+          {!isHydrated ? ' Vui lòng đăng nhập để tiếp tục.' :
+           !isLogin ? ' Vui lòng đăng nhập để tiếp tục.' : 
+           !roleNames.includes('Administrator') ? ' Chỉ quản trị viên mới có thể truy cập.' : 
            ' Vui lòng liên hệ quản trị viên để được hỗ trợ.'}
         </p>
 
         {/* User info */}
-        {isLogin && (
+        {isHydrated && isLogin && (
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
             <p className="text-sm text-blue-800">
               <strong>Thông tin tài khoản:</strong>
@@ -55,7 +61,11 @@ export default function ForbiddenPage() {
 
         {/* Actions */}
         <div className="space-y-3">
-          {!isLogin ? (
+          {!isHydrated ? (
+            <div className="w-full bg-gray-200 text-gray-700 py-2 px-4 rounded-lg inline-block">
+              Đang tải...
+            </div>
+          ) : !isLogin ? (
             <Link
               href="/signin"
               className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors duration-200 inline-block"

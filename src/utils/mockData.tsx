@@ -379,17 +379,6 @@ export const mockCustomers: Customer[] = [
 
 export const mockEmployees: Employee[] = [
   { 
-    id: "EMP001", 
-    name: "Hoàng Minh Quân", 
-    email: "admin@company.com", 
-    role: "Admin", 
-    department: "IT", 
-    joinDate: "2023-01-15",
-    salary: 25000000,
-    isActive: true,
-    permissions: ["all"]
-  },
-  { 
     id: "EMP002", 
     name: "Lê Thị Mai", 
     email: "sales@company.com", 

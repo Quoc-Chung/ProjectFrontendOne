@@ -1,14 +1,43 @@
 "use client";
-import React from "react";
+import React, { useEffect } from "react";
 import Discount from "./Discount";
 import OrderSummary from "./OrderSummary";
 import SingleItem from "./SingleItem";
 import Breadcrumb from "../Common/Breadcrumb";
 import Link from "next/link";
+import { useAppDispatch, useAppSelector } from "../../../redux/store";
+import { getAllCartAction } from "../../../redux/Client/CartOrder/Action";
+import { useRouter } from "next/navigation";
+import { toast } from "react-toastify";
 
 const Cart = () => {
-   const cartItems  = [] // = useAppSelector((state) => state.cartReducer.items);
-
+   const dispatch = useAppDispatch();
+   const token = useAppSelector((state) => state.auth.token);
+   const router = useRouter();
+  useEffect(() => {
+    if(token) {
+      dispatch(getAllCartAction(
+        token,
+        (res) => {
+          // Success callback - không cần làm gì
+        },
+        (err) => {
+          if (err === "Token hết hạn") {
+            dispatch({ type: "LOGOUT" });
+            toast.warning("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại!", {
+              autoClose: 3000,
+              position: "top-right"
+            });
+            router.push('/signin');
+          } else {
+            toast.error("Lỗi khi tải giỏ hàng: " + err);
+          }
+        }
+      ));
+    }
+  }, [token, dispatch, router]);
+   const cartItems = useAppSelector((state) => state.cart.cart);
+   console.log("GIO HANG DAY ", cartItems);
   return (
     <>
       {/* <!-- ===== Breadcrumb Section Start ===== --> */}

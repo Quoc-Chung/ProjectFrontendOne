@@ -3,25 +3,30 @@ import React from "react";
 import Image from "next/image";
 import { Product } from "@/types/product";
 import { useModalContext } from "@/app/context/QuickViewModalContext";
-
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 
 const ProductItem = ({ item }: { item: Product }) => {
   const { openModal } = useModalContext();
+  const router = useRouter();
+
+  const handleProductClick = () => {
+    router.push(`/shop-details/${item.id}`);
+  };
 
 
 
 
   return (
-    <div className="group">
+    <div className="group cursor-pointer" onClick={handleProductClick}>
       <div className="relative overflow-hidden flex items-center justify-center rounded-lg bg-[#F6F7FB] min-h-[270px] mb-4">
         <Image src={item.imgs.previews[0]} alt="" width={250} height={250} />
 
         <div className="absolute left-0 bottom-0 translate-y-full w-full flex items-center justify-center gap-2.5 pb-5 ease-linear duration-200 group-hover:translate-y-0">
           <button
-            onClick={() => {
+            onClick={(e) => {
+              e.stopPropagation(); // Ngăn event bubbling
               openModal();
-             
             }}
             id="newOne"
             aria-label="button for quick view"
@@ -53,14 +58,20 @@ const ProductItem = ({ item }: { item: Product }) => {
           
 
           <button
-          
+            onClick={(e) => {
+              e.stopPropagation(); // Ngăn event bubbling
+              // Add to cart logic here
+            }}
             className="inline-flex font-medium text-custom-sm py-[7px] px-5 rounded-[5px] bg-blue text-white ease-out duration-200 hover:bg-blue-dark"
           >
             Add to cart
           </button>
 
           <button
-           
+            onClick={(e) => {
+              e.stopPropagation(); // Ngăn event bubbling
+              // Add to favorite logic here
+            }}
             aria-label="button for favorite select"
             id="favOne"
             className="flex items-center justify-center w-9 h-9 rounded-[5px] shadow-1 ease-out duration-200 text-dark bg-white hover:text-blue"
@@ -125,7 +136,9 @@ const ProductItem = ({ item }: { item: Product }) => {
         className="font-medium text-dark ease-out duration-200 hover:text-blue mb-1.5"
         
       >
-        <Link href="/shop-details"> {item.title} </Link>
+        <Link href={`/shop-details/${item.id}`} onClick={(e) => e.stopPropagation()}>
+          {item.title}
+        </Link>
       </h3>
 
       <span className="flex items-center gap-2 font-medium text-lg">

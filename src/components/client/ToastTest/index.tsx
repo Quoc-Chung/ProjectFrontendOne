@@ -1,24 +1,32 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { toast } from 'react-toastify'
 
 const ToastTest = () => {
+  const [isHydrated, setIsHydrated] = useState(false);
+
   useEffect(() => {
-    // Test toast ngay khi component mount
-    console.log('Testing toast...')
-    setTimeout(() => {
-      toast.warning("Test toast - Bạn chưa đăng nhập!", {
-        position: "top-right",
-        autoClose: 5000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-      })
-      console.log('Test toast displayed')
-    }, 1000)
-  }, [])
+    setIsHydrated(true);
+  }, []);
+
+  useEffect(() => {
+    if (isHydrated) {
+      // Test toast ngay khi component mount
+      console.log('Testing toast...')
+      setTimeout(() => {
+        toast.warning("Test toast - Bạn chưa đăng nhập!", {
+          position: "top-right",
+          autoClose: 1500,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+        })
+        console.log('Test toast displayed')
+      }, 1000)
+    }
+  }, [isHydrated])
 
   return (
     <div className="p-8 text-center">

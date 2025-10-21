@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense } from "react";
 import dynamic from "next/dynamic";
 import "../css/euclid-circular-a-font.css";
 import "../css/style.css";
+import "../css/hydration-fix.css";
 import Header from "@/components/client/Header";
 import Footer from "@/components/client/Footer";
 import { ModalProvider } from "../context/QuickViewModalContext";
@@ -11,48 +12,71 @@ import { CartModalProvider } from "../context/CartSidebarModalContext";
 import { ChatAIModalProvider } from "../context/ChatAIModalContext";
 import { PreviewSliderProvider } from "../context/PreviewSliderContext";
 import ScrollToTop from "@/components/client/Common/ScrollToTop";
-import PreLoader from "@/components/client/Common/PreLoader";
+import RouterLoading from "@/components/client/Common/RouterLoading";
+import PagePreloader from "@/components/client/Common/PagePreloader";
 import ReduxProvider from "../../utils/Provider/ReduxProvider";
+import ChunkErrorBoundary from "@/components/client/Common/ChunkErrorBoundary";
+import { ChunkLoader } from "../../utils/chunkLoader";
 
-// Lazy load CSS and heavy components
-const ToastContainer = dynamic(() => import("react-toastify").then(mod => ({ default: mod.ToastContainer })), {
-  ssr: false,
-  loading: () => null,
-});
+const ToastContainer = dynamic(() => 
+  ChunkLoader.loadChunk(() => import("react-toastify").then(mod => ({ default: mod.ToastContainer })), 'toastify')
+    .catch(() => ({ default: () => null })), 
+  {
+    ssr: false,
+    loading: () => null,
+  }
+);
 
-// Lazy load heavy components
-const QuickViewModal = dynamic(() => import("@/components/client/Common/QuickViewModal"), {
-  ssr: false,
-  loading: () => null,
-});
+const QuickViewModal = dynamic(() => 
+  ChunkLoader.loadChunk(() => import("@/components/client/Common/QuickViewModal"), 'quickview')
+    .catch(() => ({ default: () => null })), 
+  {
+    ssr: false,
+    loading: () => null,
+  }
+);
 
-const CartSidebarModal = dynamic(() => import("@/components/client/Common/CartSidebarModal"), {
-  ssr: false,
-  loading: () => null,
-});
+const CartSidebarModal = dynamic(() => 
+  ChunkLoader.loadChunk(() => import("@/components/client/Common/CartSidebarModal"), 'cartsidebar')
+    .catch(() => ({ default: () => null })), 
+  {
+    ssr: false,
+    loading: () => null,
+  }
+);
 
-const ChatAIModal = dynamic(() => import("@/components/client/ChatAIModal"), {
-  ssr: false,
-  loading: () => null,
-});
+const ChatAIModal = dynamic(() => 
+  ChunkLoader.loadChunk(() => import("@/components/client/ChatAIModal"), 'chatai')
+    .catch(() => ({ default: () => null })),
+  {
+    ssr: false,
+    loading: () => null,
+  }
+);
 
-const FloatingChatButton = dynamic(() => import("@/components/client/ChatAIModal/FloatingButton"), {
-  ssr: false,
-  loading: () => null,
-});
+const FloatingChatButton = dynamic(() => 
+  ChunkLoader.loadChunk(() => import("@/components/client/ChatAIModal/FloatingButton"), 'floatingchat')
+    .catch(() => ({ default: () => null })), 
+  {
+    ssr: false,
+    loading: () => null,
+  }
+);
 
-const PreviewSliderModal = dynamic(() => import("@/components/client/Common/PreviewSlider"), {
-  ssr: false,
-  loading: () => null,
-});
+const PreviewSliderModal = dynamic(() => 
+  ChunkLoader.loadChunk(() => import("@/components/client/Common/PreviewSlider"), 'previewslider')
+    .catch(() => ({ default: () => null })), // Fallback component
+  {
+    ssr: false,
+    loading: () => null,
+  }
+);
 
 export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const [loading, setLoading] = useState<boolean>(true);
-
   useEffect(() => {
     // Load react-toastify CSS dynamically
     const loadToastifyCSS = () => {
@@ -65,60 +89,66 @@ export default function RootLayout({
     // Load CSS after initial render
     setTimeout(() => {
       loadToastifyCSS();
-      setLoading(false);
     }, 300);
   }, []);
 
   return (
     <html lang="en" suppressHydrationWarning={true}>
+      <head>
+        <script src="/chunk-error-handler.js" async></script>
+      </head>
       <body>
-        <ReduxProvider>
-          {loading ? (
-            <PreLoader />
-          ) : (
-            <>
-              <CartModalProvider>
-                <ChatAIModalProvider>
-                  <ModalProvider>
-                    <PreviewSliderProvider>
-                      <Header />
-                      <Suspense fallback={<div>Loading...</div>}>
+        <ChunkErrorBoundary>
+          <ReduxProvider>
+            <CartModalProvider>
+              <ChatAIModalProvider>
+                <ModalProvider>
+                  <PreviewSliderProvider>
+                    <Header />
+                    <RouterLoading />
+                    <PagePreloader />
+                    <Suspense fallback={<div></div>}>
+                      <ChunkErrorBoundary>
                         {children}
-                      </Suspense>
-                      
-                      {/* Lazy loaded modals */}
-                      <Suspense fallback={null}>
+                      </ChunkErrorBoundary>
+                    </Suspense>
+                    
+                    {/* Lazy loaded modals with error boundaries */}
+                    <Suspense fallback={null}>
+                      <ChunkErrorBoundary fallback={null}>
                         <QuickViewModal />
                         <CartSidebarModal />
                         <ChatAIModal />
                         <FloatingChatButton />
                         <PreviewSliderModal />
-                      </Suspense>
-                    </PreviewSliderProvider>
-                  </ModalProvider>
-                </ChatAIModalProvider>
-              </CartModalProvider>
-              <ScrollToTop />
-              <Footer />
-            </>
-          )}
+                      </ChunkErrorBoundary>
+                    </Suspense>
+                  </PreviewSliderProvider>
+                </ModalProvider>
+              </ChatAIModalProvider>
+            </CartModalProvider>
+            <ScrollToTop />
+            <Footer />
 
-          {/* ToastContainer - lazy loaded */}
-          <Suspense fallback={null}>
-            <ToastContainer
-              position="top-right"
-              autoClose={1000}
-              hideProgressBar={false}
-              newestOnTop={false}
-              closeOnClick
-              rtl={false}
-              pauseOnFocusLoss
-              draggable
-              pauseOnHover
-              theme="colored"
-            />
-          </Suspense>
-        </ReduxProvider>
+            {/* ToastContainer - lazy loaded with error boundary */}
+            <Suspense fallback={null}>
+              <ChunkErrorBoundary fallback={null}>
+                <ToastContainer
+                  position="top-right"
+                  autoClose={2000}
+                  hideProgressBar={false}
+                  newestOnTop={false}
+                  closeOnClick
+                  rtl={false}
+                  pauseOnFocusLoss
+                  draggable
+                  pauseOnHover
+                  theme="colored"
+                />
+              </ChunkErrorBoundary>
+            </Suspense>
+          </ReduxProvider>
+        </ChunkErrorBoundary>
       </body>
     </html>
   );

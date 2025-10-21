@@ -2,23 +2,73 @@
 import React from "react";
 import { Product } from "@/types/product";
 import { useModalContext } from "@/app/context/QuickViewModalContext";
-
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
+import { useAppDispatch, useAppSelector } from "../../../redux/store";
+import { addProductToCartAction } from "../../../redux/Client/CartOrder/Action";
+import { toast } from "react-toastify";
 
 const SingleGridItem = ({ item }: { item: Product }) => {
   const { openModal } = useModalContext();
+  const router = useRouter();
+  const dispatch = useAppDispatch();
+  const user = useAppSelector((state) => state.auth.user);
+  const token = useAppSelector((state) => state.auth.token);
+
+  const handleProductClick = () => {
+    router.push(`/shop-details/${item.id}`);
+  };
+
+  const handleAddToCart = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    
+    // Kiểm tra đăng nhập
+    if (!user || !token) {
+      toast.warning("Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng!", {
+        autoClose: 2000,
+        position: "top-right"
+      });
+      router.push('/signin');
+      return;
+    }
+
+    // Thêm sản phẩm vào giỏ hàng với số lượng mặc định là 1
+    dispatch(
+      addProductToCartAction(
+        { productId: item.id.toString(), quantity: 1 },
+        token,
+        (res) => toast.success(`Đã thêm sản phẩm "${item.title}" vào giỏ hàng!`, {
+          autoClose: 1500,
+          position: "top-right"
+        }),
+        (err) => {
+          if (err === "Token hết hạn") {
+            // Clear token và redirect về trang đăng nhập
+            dispatch({ type: "LOGOUT" });
+            toast.warning("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại!", {
+              autoClose: 3000,
+              position: "top-right"
+            });
+            router.push('/signin');
+          } else {
+            toast.error("Thêm sản phẩm thất bại: " + err);
+          }
+        }
+      )
+    );
+  };
 
   return (
-    <div className="group">
+    <div className="group cursor-pointer" onClick={handleProductClick}>
       <div className="relative overflow-hidden flex items-center justify-center rounded-lg bg-white shadow-1 min-h-[270px] mb-4">
         <Image src={item.imgs.previews[0]} alt="" width={250} height={250} />
 
         <div className="absolute left-0 bottom-0 translate-y-full w-full flex items-center justify-center gap-2.5 pb-5 ease-linear duration-200 group-hover:translate-y-0">
           <button
-            onClick={() => {
+            onClick={(e) => {
+              e.stopPropagation(); 
               openModal();
-            
             }}
             id="newOne"
             aria-label="button for quick view"
@@ -48,14 +98,17 @@ const SingleGridItem = ({ item }: { item: Product }) => {
           </button>
 
           <button
-         
+            onClick={handleAddToCart}
             className="inline-flex font-medium text-custom-sm py-[7px] px-5 rounded-[5px] bg-blue text-white ease-out duration-200 hover:bg-blue-dark"
           >
             Add to cart
           </button>
 
           <button
-          
+            onClick={(e) => {
+              e.stopPropagation(); // Ngăn event bubbling
+              // Add to favorite logic here
+            }}
             aria-label="button for favorite select"
             id="favOne"
             className="flex items-center justify-center w-9 h-9 rounded-[5px] shadow-1 ease-out duration-200 text-dark bg-white hover:text-blue"
@@ -117,7 +170,9 @@ const SingleGridItem = ({ item }: { item: Product }) => {
       </div>
 
       <h3 className="font-medium text-dark ease-out duration-200 hover:text-blue mb-1.5">
-        <Link href="/shop-details"> {item.title} </Link>
+        <Link href={`/shop-details/${item.id}`} onClick={(e) => e.stopPropagation()}>
+          {item.title}
+        </Link>
       </h3>
 
       <span className="flex items-center gap-2 font-medium text-lg">

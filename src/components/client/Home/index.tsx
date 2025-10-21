@@ -23,14 +23,6 @@ const CounDown = dynamic(() => import("./Countdown"), {
   loading: () => <div className="h-64 bg-gray-100 animate-pulse rounded-lg"></div>,
 });
 
-const Testimonials = dynamic(() => import("./Testimonials"), {
-  loading: () => <div className="h-64 bg-gray-100 animate-pulse rounded-lg"></div>,
-});
-
-const Newsletter = dynamic(() => import("../Common/Newsletter"), {
-  loading: () => <div className="h-32 bg-gray-100 animate-pulse rounded-lg"></div>,
-});
-
 const Home = () => {
   return (
     <main>
@@ -56,14 +48,6 @@ const Home = () => {
       
       <Suspense fallback={<div className="h-64 bg-gray-100 animate-pulse rounded-lg"></div>}>
         <CounDown />
-      </Suspense>
-      
-      <Suspense fallback={<div className="h-64 bg-gray-100 animate-pulse rounded-lg"></div>}>
-        <Testimonials />
-      </Suspense>
-      
-      <Suspense fallback={<div className="h-32 bg-gray-100 animate-pulse rounded-lg"></div>}>
-        <Newsletter />
       </Suspense>
     </main>
   );

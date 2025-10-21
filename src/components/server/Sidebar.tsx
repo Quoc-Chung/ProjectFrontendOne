@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -16,8 +16,13 @@ import { RootState } from "../../redux/store";
 
 const Sidebar: React.FC = () => {
   const pathname = usePathname();
+  const [isHydrated, setIsHydrated] = useState(false);
    
   const { user, token, isLogin, roleNames } = useSelector((state: RootState) => state.auth);
+  
+  useEffect(() => {
+    setIsHydrated(true);
+  }, []);
   
   const menuItems = [
     { href: "/admin-app/dashboard", icon: BarChart3, label: "Dashboard Tổng Quan" },
@@ -41,11 +46,13 @@ const Sidebar: React.FC = () => {
           </div>
           <div className="flex-1 min-w-0">
             <h3 className="text-sm font-semibold text-gray-900 truncate">
-              {user?.fullName || 'Admin User'}
+              {isHydrated ? (user?.fullName || 'Admin User') : 'Admin User'}
             </h3>
-            <p className="text-xs text-gray-500 truncate">{user?.email || 'admin@company.com'}</p>
+            <p className="text-xs text-gray-500 truncate">
+              {isHydrated ? (user?.email || 'admin@company.com') : 'admin@company.com'}
+            </p>
             <span className="inline-block mt-1 px-3 py-1 text-[11px] font-medium rounded-full bg-purple-100 text-purple-700 transition-colors duration-200">
-              {roleNames?.includes('ADMIN') ? 'Administrator' : roleNames?.join(', ') || 'User'}
+              {isHydrated ? (roleNames?.includes('Administrator') ? 'Administrator' : roleNames?.join(', ') || 'User') : 'User'}
             </span>
           </div>
           <button className="p-2 text-gray-400 transition-all duration-200 hover:text-red-500 hover:scale-110">
@@ -58,7 +65,7 @@ const Sidebar: React.FC = () => {
       <nav className="relative z-10 flex-1 p-4">
         <ul className="pb-6 space-y-2">
           {menuItems.map((item) => {
-            const isActive = pathname === item.href;
+            const isActive = isHydrated ? pathname === item.href : false;
 
             return (
               <li key={item.href} className="group">

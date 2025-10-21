@@ -27,41 +27,34 @@ import {
   RESET_PASSWORD_SUCCESS,
   RESET_PASSWORD_FAILURE,
 } from "./ActionType";
-import { setCookie, deleteCookie, getUserFromToken } from "../../../utils/cookies";
 
-// Khôi phục state từ cookie khi khởi tạo
-const getInitialState = () => {
-  const userFromToken = getUserFromToken();
-  
-  return {
+// Initial state đơn giản - Redux Persist sẽ xử lý việc khôi phục state
+const initialState = {
+  loading: false,
+  user: null,
+  isLogin: false,
+  token: null,
+  roleNames: [],
+  error: null,
+
+  forgotPassword: {
     loading: false,
-    user: userFromToken?.user || null,
-    isLogin: userFromToken?.isLogin || false,
-    token: userFromToken?.token || null,
-    roleNames: userFromToken?.roleNames || [],
+    data: null,
     error: null,
+  },
 
-    forgotPassword: {
-      loading: false,
-      data: null,
-      error: null,
-    },
+  verifyOtp: {
+    loading: false,
+    data: null,
+    error: null,
+  },
 
-    verifyOtp: {
-      loading: false,
-      data: null,
-      error: null,
-    },
-
-    resetPassword: {
-      loading: false,
-      data: null,
-      error: null,
-    },
-  };
+  resetPassword: {
+    loading: false,
+    data: null,
+    error: null,
+  },
 };
-
-const initialState = getInitialState();
 
 export const authReducer = (state = initialState, action: any) => {
   switch (action.type) {
@@ -77,10 +70,6 @@ export const authReducer = (state = initialState, action: any) => {
     case LOGIN_REQUEST:
       return { ...state, loading: true, error: null };
     case LOGIN_SUCCESS:
-      // Lưu token vào cookie
-      if (action.payload.token) {
-        setCookie('token', action.payload.token, 7);
-      }
       return {
         ...state,
         loading: false,
@@ -101,10 +90,6 @@ export const authReducer = (state = initialState, action: any) => {
       }
 
     case LOGIN_GOOGLE_SUCCESS:
-      // Lưu token vào cookie
-      if (action.payload.token) {
-        setCookie('token', action.payload.token, 7);
-      }
       return {
         ...state,
         loading: false,
@@ -130,8 +115,6 @@ export const authReducer = (state = initialState, action: any) => {
     case LOGOUT_REQUEST:
       return { ...state, loading: true, error: null };
     case LOGOUT_SUCCESS:
-      // Xóa token khỏi cookie
-      deleteCookie('token');
       return { ...state, loading: false, user: null, token: null, isLogin: false, roleNames: [] };
     case LOGOUT_FAILURE:
       return { ...state, loading: false, error: action.payload };

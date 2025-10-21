@@ -71,7 +71,7 @@ export function middleware(request: NextRequest) {
     }
     
     // Kiểm tra quyền admin
-    if (!user.roleNames.includes('ADMIN')) {
+    if (!user.roleNames.includes('Administrator')) {
       return NextResponse.redirect(new URL('/403', request.url))
     }
   }
