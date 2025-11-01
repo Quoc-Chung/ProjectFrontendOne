@@ -2,23 +2,22 @@
 
 import { useState } from "react";
 
-const CategoryItem = ({ category }) => {
-  const [selected, setSelected] = useState(false);
+const CategoryItem = ({ category, isSelected, onToggle }) => {
   return (
     <button
       className={`${
-        selected && "text-blue"
+        isSelected && "text-blue"
       } group flex items-center justify-between ease-out duration-200 hover:text-blue `}
-      onClick={() => setSelected(!selected)}
+      onClick={() => onToggle(category.id)}
     >
       <div className="flex items-center gap-2">
         <div
           className={`cursor-pointer flex items-center justify-center rounded w-4 h-4 border ${
-            selected ? "border-blue bg-blue" : "bg-white border-gray-3"
+            isSelected ? "border-blue bg-blue" : "bg-white border-gray-3"
           }`}
         >
           <svg
-            className={selected ? "block" : "hidden"}
+            className={isSelected ? "block" : "hidden"}
             width="10"
             height="10"
             viewBox="0 0 10 10"
@@ -40,7 +39,7 @@ const CategoryItem = ({ category }) => {
 
       <span
         className={`${
-          selected ? "text-white bg-blue" : "bg-gray-2"
+          isSelected ? "text-white bg-blue" : "bg-gray-2"
         } inline-flex rounded-[30px] text-custom-xs px-2 ease-out duration-200 group-hover:text-white group-hover:bg-blue`}
       >
         {category.products}
@@ -49,8 +48,15 @@ const CategoryItem = ({ category }) => {
   );
 };
 
-const CategoryDropdown = ({ categories }) => {
+const CategoryDropdown = ({ categories, loading = false, selectedCategory = null, onCategoryChange }) => {
   const [toggleDropdown, setToggleDropdown] = useState(true);
+
+  const handleCategoryToggle = (categoryId: string) => {
+    if (!categoryId) return;
+    // Radio button behavior: if clicking the same category, deselect it; otherwise select the new one
+    const newSelected = selectedCategory === categoryId ? null : categoryId;
+    onCategoryChange?.(newSelected);
+  };
 
   return (
     <div className="bg-white shadow-1 rounded-lg">
@@ -95,9 +101,24 @@ const CategoryDropdown = ({ categories }) => {
           toggleDropdown ? "flex" : "hidden"
         }`}
       >
-        {categories.map((category, key) => (
-          <CategoryItem key={key} category={category} />
-        ))}
+        {loading ? (
+          <div className="text-center py-4 text-gray-500 text-sm">
+            Đang tải categories...
+          </div>
+        ) : categories.length === 0 ? (
+          <div className="text-center py-4 text-gray-500 text-sm">
+            Không có category nào
+          </div>
+        ) : (
+          categories.map((category, key) => (
+            <CategoryItem 
+              key={category.id || key} 
+              category={category}
+              isSelected={category.id ? selectedCategory === category.id : false}
+              onToggle={handleCategoryToggle}
+            />
+          ))
+        )}
       </div>
     </div>
   );

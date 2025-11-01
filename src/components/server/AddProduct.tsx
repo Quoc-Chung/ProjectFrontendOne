@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
 import { Category } from "../../types/Client/Category/Category";
 import { Branch } from "../../types/Client/Branch/Branch";
+import { BASE_API_PRODUCT_URL } from "@/utils/configAPI";
 
 
 const AddProduct = () => {
@@ -33,13 +34,13 @@ const AddProduct = () => {
     const fetchData = async () => {
       try {
         const resCategory = await fetch(
-          "http://localhost:8080/services/product-service/api/categories"
+          `${BASE_API_PRODUCT_URL}/api/categories`
         );
         const dataCategory = await resCategory.json();
         setListCategory(dataCategory.data || []);
 
         const resBrand = await fetch(
-          "http://localhost:8080/services/product-service/api/brands"
+          `${BASE_API_PRODUCT_URL}/api/brands`
         );
         const dataBrand = await resBrand.json();
         setListBrand(dataBrand.data?.content || []);

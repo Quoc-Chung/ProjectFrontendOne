@@ -6,7 +6,7 @@ import shopData from "@/components/client/Shop/shopData";
 
 const BestSeller = () => {
   return (
-    <section className="overflow-hidden">
+    <section className="overflow-hidden py-6 bg-gray-50">
       <div className="max-w-[1170px] w-full mx-auto px-4 sm:px-8 xl:px-0">
         {/* <!-- section title --> */}
         <div className="mb-10 flex items-center justify-between">

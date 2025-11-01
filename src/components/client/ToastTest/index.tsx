@@ -12,7 +12,6 @@ const ToastTest = () => {
 
   useEffect(() => {
     if (isHydrated) {
-      // Test toast ngay khi component mount
       console.log('Testing toast...')
       setTimeout(() => {
         toast.warning("Test toast - Bạn chưa đăng nhập!", {

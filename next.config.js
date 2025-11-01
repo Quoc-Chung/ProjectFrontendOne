@@ -3,6 +3,17 @@ const nextConfig = {
   experimental: {
     optimizeCss: true,
     optimizePackageImports: ['lucide-react', '@radix-ui/react-icons'],
+    // Tối ưu navigation
+    scrollRestoration: true,
+  },
+  
+  // Tối ưu prefetch cho navigation
+  reactStrictMode: true,
+
+  // Tắt Next.js development indicator overlay
+  devIndicators: {
+    buildActivity: false,
+    buildActivityPosition: 'bottom-right',
   },
 
   compiler: {

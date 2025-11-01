@@ -3,6 +3,7 @@ import { Swiper, SwiperSlide } from "swiper/react";
 import { useCallback, useRef, useEffect, useState } from "react";
 import { Category, CategoriesResponse } from "@/types/Client/Category/Category";
 import Image from "next/image";
+import { BASE_API_PRODUCT_URL } from "@/utils/configAPI";
 
 // Import Swiper styles
 import "swiper/css/navigation";
@@ -30,7 +31,7 @@ const Categories = () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await fetch('http://localhost:8080/services/product-service/api/categories');
+      const response = await fetch(`${BASE_API_PRODUCT_URL}/api/categories`);
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -105,8 +106,8 @@ const Categories = () => {
   }, [categories]);
 
   return (
-    <section className="overflow-hidden pt-17.5">
-      <div className="max-w-[1170px] w-full mx-auto px-4 sm:px-8 xl:px-0 pb-15 border-b border-gray-3">
+    <section className="overflow-hidden py-6 bg-white">
+      <div className="max-w-[1170px] w-full mx-auto px-4 sm:px-8 xl:px-0 border-b border-gray-3 pb-6">
         <div className="swiper categories-carousel common-carousel">
           {/* <!-- section title --> */}
           <div className="mb-10 flex items-center justify-between">

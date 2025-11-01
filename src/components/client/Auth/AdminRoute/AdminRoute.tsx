@@ -17,21 +17,15 @@ const AdminRoute: React.FC<AdminRouteProps> = ({ children }) => {
 
   useEffect(() => {
     setIsHydrated(true);
+    // Đặt isChecking = false ngay sau khi hydrate
+    setIsChecking(false);
   }, []);
 
   useEffect(() => {
-    // Giảm thời gian checking
-    const timer = setTimeout(() => {
-      setIsChecking(false)
-    }, 50) // Giảm từ 100ms xuống 50ms
+    // Chỉ kiểm tra khi đã hydrate và không đang checking
+    if (!isHydrated || isChecking) return;
 
-    return () => clearTimeout(timer)
-  }, [])
 
-  useEffect(() => {
-    if (isChecking || !isHydrated) return
-
-    // Kiểm tra nếu user chưa đăng nhập
     if (!isLogin) {
       console.log('User not logged in, redirecting to signin')
       router.push('/signin')
@@ -49,7 +43,8 @@ const AdminRoute: React.FC<AdminRouteProps> = ({ children }) => {
   }, [isHydrated, isLogin, roleNames, router, isChecking])
 
   // Hiển thị loading khi đang kiểm tra hoặc đang loading hoặc chưa hydrate
-  if (isChecking || loading || !isHydrated) {
+  // Chỉ show loading nếu thực sự cần thiết
+  if ((isChecking || !isHydrated) && !isLogin) {
     return (
       <div className="flex items-center justify-center min-h-[200px] bg-gray-50">
         <div className="text-center">

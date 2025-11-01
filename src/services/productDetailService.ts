@@ -1,5 +1,6 @@
 // API service for product details
-const API_BASE_URL = 'http://localhost:8080/services/product-service/api';
+import { BASE_API_PRODUCT_URL } from '@/utils/configAPI';
+const API_BASE_URL = `${BASE_API_PRODUCT_URL}/api`;
 
 export interface ProductDetailResponse {
   status: {
