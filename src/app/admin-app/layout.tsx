@@ -1,10 +1,16 @@
+"use client";
 
-import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import dynamic from "next/dynamic";
 import Sidebar from "../../components/server/Sidebar";
 import AdminRoute from "../../components/client/Auth/AdminRoute";
 import "../css/globals.css"
 import ReduxProvider from "../../utils/Provider/ReduxProvider";
+import "react-toastify/dist/ReactToastify.css";
+
+const ToastContainer = dynamic(() => import("react-toastify").then(mod => ({ default: mod.ToastContainer })), {
+  ssr: false,
+});
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -15,11 +21,6 @@ const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
 });
-
-export const metadata: Metadata = {
-  title: "NextCommerce | Admin",
-  description: "Admin dashboard for NextCommerce template",
-};
 
 export default function RootLayout({
   children,
@@ -41,6 +42,19 @@ export default function RootLayout({
                 <div className="p-8 h-full overflow-y-auto">{children}</div>
               </div>
             </div>
+            {/* ToastContainer for notifications */}
+            <ToastContainer
+              position="top-right"
+              autoClose={3000}
+              hideProgressBar={false}
+              newestOnTop={false}
+              closeOnClick
+              rtl={false}
+              pauseOnFocusLoss
+              draggable
+              pauseOnHover
+              theme="light"
+            />
           </AdminRoute>
         </ReduxProvider>
       </body>

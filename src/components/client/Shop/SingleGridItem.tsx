@@ -170,7 +170,7 @@ const SingleGridItem = ({ item }: { item: Product }) => {
       </div>
 
       <h3 className="font-medium text-dark ease-out duration-200 hover:text-blue mb-1.5">
-        <Link href={`/shop-details/${item.id}`} onClick={(e) => e.stopPropagation()}>
+        <Link href={`/shop-details/${item.id}`} prefetch={true} onClick={(e) => e.stopPropagation()}>
           {item.title}
         </Link>
       </h3>

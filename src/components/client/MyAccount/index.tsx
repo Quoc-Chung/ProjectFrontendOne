@@ -5,7 +5,7 @@ import OrderAccount from "./OrderAccount";
 import Breadcrumb from "../Common/Breadcrumb";
 import Image from "next/image";
 import PasswordReset from "./PasswordReset";
-import { RootState, useAppDispatch } from "../../../redux/store";
+import { RootState, useAppDispatch, persistor } from "../../../redux/store";
 import { useSelector } from "react-redux";
 import { logoutAction } from "../../../redux/Client/Auth/Action";
 import { toast } from "react-toastify";
@@ -33,7 +33,26 @@ const UserDashboard = () => {
     dispatch(
       logoutAction(
         { token },
-        () => {
+        async () => {
+          // Purge redux-persist để xóa sạch dữ liệu đã persist
+          try {
+            await persistor.purge();
+          } catch (error) {
+            console.error('Error purging persistor:', error);
+          }
+          
+          // Đảm bảo xóa hết localStorage liên quan đến auth
+          if (typeof window !== 'undefined') {
+            localStorage.removeItem('persist:auth');
+            localStorage.removeItem('persist:root');
+            // Xóa thêm các key có thể có
+            Object.keys(localStorage).forEach(key => {
+              if (key.startsWith('persist:')) {
+                localStorage.removeItem(key);
+              }
+            });
+          }
+          
           toast.success("🎉Logout thành công");
           setTimeout(() => {
             router.push("/");

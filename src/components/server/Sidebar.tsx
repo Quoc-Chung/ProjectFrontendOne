@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   BarChart3,
   Package,
@@ -12,10 +12,14 @@ import {
   User,
 } from "lucide-react";
 import { useSelector } from "react-redux";
-import { RootState } from "../../redux/store";
+import { RootState, useAppDispatch, persistor } from "../../redux/store";
+import { logoutAction } from "../../redux/Client/Auth/Action";
+import { toast } from "react-toastify";
 
 const Sidebar: React.FC = () => {
   const pathname = usePathname();
+  const router = useRouter();
+  const dispatch = useAppDispatch();
   const [isHydrated, setIsHydrated] = useState(false);
    
   const { user, token, isLogin, roleNames } = useSelector((state: RootState) => state.auth);
@@ -23,6 +27,66 @@ const Sidebar: React.FC = () => {
   useEffect(() => {
     setIsHydrated(true);
   }, []);
+
+  const handleLogout = () => {
+    if (!token) {
+      toast.error("Bạn chưa đăng nhập!", {
+        autoClose: 2000,
+        position: "top-right"
+      });
+      router.push("/signin");
+      return;
+    }
+
+    dispatch(
+      logoutAction(
+        { token },
+        async () => {
+          // Purge redux-persist để xóa sạch dữ liệu đã persist
+          try {
+            await persistor.purge();
+          } catch (error) {
+            console.error('Error purging persistor:', error);
+          }
+          
+          // Đảm bảo xóa hết localStorage liên quan đến auth
+          if (typeof window !== 'undefined') {
+            localStorage.removeItem('persist:auth');
+            localStorage.removeItem('persist:root');
+            // Xóa thêm các key có thể có
+            Object.keys(localStorage).forEach(key => {
+              if (key.startsWith('persist:')) {
+                localStorage.removeItem(key);
+              }
+            });
+          }
+          
+          toast.success("🎉 Đăng xuất thành công!", {
+            autoClose: 2000,
+            position: "top-right",
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+          });
+          
+          setTimeout(() => {
+            router.push("/signin");
+          }, 2000);
+        },
+        (err) => {
+          toast.error(`Đăng xuất thất bại: ${err}`, {
+            autoClose: 3000,
+            position: "top-right",
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+          });
+        }
+      )
+    );
+  };
   
   const menuItems = [
     { href: "/admin-app/dashboard", icon: BarChart3, label: "Dashboard Tổng Quan" },
@@ -36,7 +100,7 @@ const Sidebar: React.FC = () => {
   return (
     <div className="w-72 mt-5 h-[730px] bg-gradient-to-b from-gray-50 to-white shadow-xl flex flex-col relative overflow-hidden transition-all duration-500">
       {/* Background gradient */}
-      <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-purple-500/10 animate-pulse-slow" />
+      <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-purple-500/10 animate-pulse-slow pointer-events-none" />
 
       {/* User Profile */}
       <div className="relative z-10 p-4 border-b border-gray-200/30">
@@ -55,31 +119,38 @@ const Sidebar: React.FC = () => {
               {isHydrated ? (roleNames?.includes('Administrator') ? 'Administrator' : roleNames?.join(', ') || 'User') : 'User'}
             </span>
           </div>
-          <button className="p-2 text-gray-400 transition-all duration-200 hover:text-red-500 hover:scale-110">
+          <button 
+            onClick={handleLogout}
+            className="p-2 text-gray-400 transition-all duration-200 hover:text-red-500 hover:scale-110 hover:bg-red-50 rounded-lg cursor-pointer"
+            title="Đăng xuất"
+          >
             <LogOut size={18} />
           </button>
         </div>
       </div>
 
       {/* Navigation */}
-      <nav className="relative z-10 flex-1 p-4">
+      <nav className="relative z-20 flex-1 p-4 overflow-y-auto">
         <ul className="pb-6 space-y-2">
           {menuItems.map((item) => {
             const isActive = isHydrated ? pathname === item.href : false;
 
             return (
-              <li key={item.href} className="group">
+              <li key={item.href} className="group relative">
                 <Link
                   href={item.href}
-                  className={`w-full  px-4 py-2.5 rounded-xl flex items-center space-x-3 transition-all duration-300 group-hover:translate-x-1 ${isActive
+                  prefetch={true}
+                  scroll={true}
+                  className={`w-full px-4 py-2.5 rounded-xl flex items-center space-x-3 transition-all duration-200 cursor-pointer select-none relative z-10 ${isActive
                     ? "bg-blue-600 text-white shadow-lg border-r-4 border-blue-400"
-                    : "text-gray-600 hover:bg-gray-100/70 hover:text-gray-900"
+                    : "text-gray-600 hover:bg-gray-100/70 hover:text-gray-900 active:bg-gray-200/70"
                     }`}
+                  style={{ WebkitTapHighlightColor: 'transparent' }}
                 >
-                  <div className="transition-transform duration-200 group-hover:scale-110">
+                  <div className="transition-transform duration-150 group-hover:scale-110 flex-shrink-0 pointer-events-none">
                     <item.icon size={20} />
                   </div>
-                  <span className="text-sm font-medium tracking-tight">
+                  <span className="text-sm font-medium tracking-tight flex-1 pointer-events-none">
                     {item.label}
                   </span>
                 </Link>

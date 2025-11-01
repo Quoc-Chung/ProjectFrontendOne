@@ -140,6 +140,20 @@ input[type='search']::-webkit-search-results-decoration {
   @apply xl:!bottom-5;
 }
 
+/* Main Banner Swiper Styles */
+.main-banner-swiper .swiper-pagination-bullet {
+  @apply h-1.5 w-6 rounded-full bg-white/50;
+  transition: all 0.3s ease;
+}
+
+.main-banner-swiper .swiper-pagination-bullet-active {
+  @apply w-8 bg-white;
+}
+
+.main-banner-swiper .swiper-pagination {
+  @apply bottom-6;
+}
+
 .common-carousel .swiper-button-next:after,
 .common-carousel .swiper-button-prev:after {
   @apply hidden;
@@ -208,4 +222,16 @@ input[type='search']::-webkit-search-results-decoration {
 
 .range-slider__range {
   @apply !bg-blue;
+}
+
+/* Ẩn Next.js development indicator overlay vĩnh viễn */
+#__next-build-indicator,
+[data-nextjs-dialog],
+[data-nextjs-dialog-overlay],
+nextjs-portal,
+__next-build-indicator {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
 }

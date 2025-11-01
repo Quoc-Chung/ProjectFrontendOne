@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from "react";
-import { useAppDispatch } from "../../../redux/store";
+import { useAppDispatch, useAppSelector } from "../../../redux/store";
 import Image from "next/image";
 import { CartOrderResponse } from "../../../types/Client/CartOrder/cartorder";
-import { updateProductQuantityAction } from "../../../redux/Client/CartOrder/Action";
+import { updateProductQuantityAction, removeProductFromCartAction } from "../../../redux/Client/CartOrder/Action";
+import { toast } from "react-toastify";
+import { useRouter } from "next/navigation";
 
 interface SingleItemProps {
   item: CartOrderResponse;
@@ -10,7 +12,10 @@ interface SingleItemProps {
 
 const SingleItem = ({ item }: SingleItemProps) => {
   const [quantity, setQuantity] = useState(item.quantity);
+  const [isRemoving, setIsRemoving] = useState(false);
   const dispatch = useAppDispatch();
+  const token = useAppSelector((state) => state.auth.token);
+  const router = useRouter();
 
   // Sync local state với Redux state khi item thay đổi
   useEffect(() => {
@@ -18,7 +23,47 @@ const SingleItem = ({ item }: SingleItemProps) => {
   }, [item.quantity]);
 
   const handleRemoveFromCart = () => {
-    
+    if (!token) {
+      toast.warning("Vui lòng đăng nhập để tiếp tục!", {
+        autoClose: 2000,
+        position: "top-right"
+      });
+      router.push('/signin');
+      return;
+    }
+
+    if (isRemoving) return;
+
+    setIsRemoving(true);
+    dispatch(
+      removeProductFromCartAction(
+        item.id,
+        token,
+        (res) => {
+          toast.success("Đã xóa sản phẩm khỏi giỏ hàng!", {
+            autoClose: 1500,
+            position: "top-right"
+          });
+          setIsRemoving(false);
+        },
+        (err) => {
+          if (err === "Token hết hạn") {
+            dispatch({ type: "LOGOUT" });
+            toast.warning("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại!", {
+              autoClose: 3000,
+              position: "top-right"
+            });
+            router.push('/signin');
+          } else {
+            toast.error("Xóa sản phẩm thất bại: " + err, {
+              autoClose: 2000,
+              position: "top-right"
+            });
+          }
+          setIsRemoving(false);
+        }
+      )
+    );
   };
 
   const handleIncreaseQuantity = () => {
@@ -118,8 +163,9 @@ const SingleItem = ({ item }: SingleItemProps) => {
       <div className="min-w-[50px] flex justify-end">
         <button
           onClick={() => handleRemoveFromCart()}
+          disabled={isRemoving}
           aria-label="button for remove product from cart"
-          className="flex items-center justify-center rounded-lg max-w-[38px] w-full h-9.5 bg-gray-2 border border-gray-3 text-dark ease-out duration-200 hover:bg-red-light-6 hover:border-red-light-4 hover:text-red"
+          className={`flex items-center justify-center rounded-lg max-w-[38px] w-full h-9.5 bg-gray-2 border border-gray-3 text-dark ease-out duration-200 hover:bg-red-light-6 hover:border-red-light-4 hover:text-red ${isRemoving ? 'opacity-50 cursor-not-allowed' : ''}`}
         >
           <svg
             className="fill-current"

@@ -1,7 +1,7 @@
 import { Dispatch } from "react";
 import { CartOrderRequest, CartOrderResponse } from "../../../types/Client/CartOrder/cartorder";
-import { ADD_PRODUCT_TO_CART, ADD_PRODUCT_TO_CART_FAILURE, ADD_PRODUCT_TO_CART_SUCCESS, UPDATE_PRODUCT_IN_CART } from "./ActionType";
-import { BASE_API_URL } from "../../../utils/configAPI";
+import { ADD_PRODUCT_TO_CART, ADD_PRODUCT_TO_CART_FAILURE, ADD_PRODUCT_TO_CART_SUCCESS, UPDATE_PRODUCT_IN_CART, DELETE_PRODUCT_FROM_CART, DELETE_PRODUCT_FROM_CART_SUCCESS, DELETE_PRODUCT_FROM_CART_FAILURE } from "./ActionType";
+import { BASE_API_CART_URL } from "../../../utils/configAPI";
 import { ApiResponse } from "../../../types/Common/common";
 import { GET_ALL_CART } from "./ActionType";
 import { GET_ALL_CART_SUCCESS } from "./ActionType";
@@ -16,7 +16,7 @@ export const addProductToCartAction = (
     dispatch({ type: ADD_PRODUCT_TO_CART });
   
     try {
-      const res = await fetch(`http://localhost:8080/services/order-service/api/carts/add`, {
+      const res = await fetch(`${BASE_API_CART_URL}/api/cart/add`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -58,7 +58,7 @@ export const addProductToCartAction = (
     dispatch({ type: GET_ALL_CART });
   
     try {
-      const res = await fetch(`http://localhost:8080/services/order-service/api/carts/my-cart`, {
+      const res = await fetch(`${BASE_API_CART_URL}/api/cart/my-cart`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -99,5 +99,65 @@ export const addProductToCartAction = (
       type: UPDATE_PRODUCT_IN_CART, 
       payload: { productId, quantity: newQuantity } 
     });
+  };
+
+  // Xóa sản phẩm khỏi giỏ hàng
+  export const removeProductFromCartAction = (
+    cartItemId: string,
+    token: string,
+    onSuccess?: (res: ApiResponse<any>) => void,
+    onError?: (error: string) => void
+  ) => async (dispatch: Dispatch<any>) => {
+    dispatch({ type: DELETE_PRODUCT_FROM_CART });
+
+    try {
+      const res = await fetch(`${BASE_API_CART_URL}/api/cart/remove/${cartItemId}`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (res.status === 403) {
+        dispatch({ type: DELETE_PRODUCT_FROM_CART_FAILURE, payload: "Token hết hạn" });
+        onError?.("Token hết hạn");
+        return;
+      }
+
+      if (res.status === 404) {
+        dispatch({ type: DELETE_PRODUCT_FROM_CART_FAILURE, payload: "Không tìm thấy sản phẩm trong giỏ hàng" });
+        onError?.("Không tìm thấy sản phẩm trong giỏ hàng");
+        return;
+      }
+
+      if (!res.ok) {
+        const errorText = await res.text();
+        dispatch({ type: DELETE_PRODUCT_FROM_CART_FAILURE, payload: errorText || "Lỗi khi xóa sản phẩm" });
+        onError?.(errorText || "Lỗi khi xóa sản phẩm");
+        return;
+      }
+
+      const resData: ApiResponse<any> = await res.json();
+
+      if (resData.status?.code === "200") {
+        dispatch({ type: DELETE_PRODUCT_FROM_CART_SUCCESS, payload: cartItemId });
+        // Refresh lại danh sách giỏ hàng sau khi xóa thành công
+        dispatch(getAllCartAction(
+          token,
+          () => {},
+          (err) => {
+            console.warn("Failed to refresh cart after deletion:", err);
+          }
+        ));
+        onSuccess?.(resData);
+      } else {
+        dispatch({ type: DELETE_PRODUCT_FROM_CART_FAILURE, payload: resData.status?.message || "Lỗi khi xóa sản phẩm" });
+        onError?.(resData.status?.message || "Lỗi khi xóa sản phẩm");
+      }
+    } catch (error: any) {
+      dispatch({ type: DELETE_PRODUCT_FROM_CART_FAILURE, payload: error.message });
+      onError?.(error.message);
+    }
   };
 

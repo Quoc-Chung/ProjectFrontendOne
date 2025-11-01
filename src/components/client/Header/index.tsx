@@ -6,7 +6,7 @@ import Dropdown from "./Dropdown";
 import { useCartModalContext } from "@/app/context/CartSidebarModalContext";
 import Image from "next/image";
 import { useSelector } from "react-redux";
-import { RootState, useAppDispatch } from "../../../redux/store";
+import { RootState, useAppDispatch, persistor } from "../../../redux/store";
 import { logoutAction } from "../../../redux/Client/Auth/Action";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
@@ -34,7 +34,7 @@ const Header = () => {
 
   const getFilteredMenuData = () => {
     return menuData.filter(item => {
-      if (item.title === "Cart") {
+      if (item.title === "Cart" || item.title === "Q&A") {
         return isHydrated && isLogin;
       }
 
@@ -56,7 +56,26 @@ const Header = () => {
     dispatch(
       logoutAction(
         { token },
-        () => {
+        async () => {
+          // Purge redux-persist để xóa sạch dữ liệu đã persist
+          try {
+            await persistor.purge();
+          } catch (error) {
+            console.error('Error purging persistor:', error);
+          }
+          
+          // Đảm bảo xóa hết localStorage liên quan đến auth
+          if (typeof window !== 'undefined') {
+            localStorage.removeItem('persist:auth');
+            localStorage.removeItem('persist:root');
+            // Xóa thêm các key có thể có
+            Object.keys(localStorage).forEach(key => {
+              if (key.startsWith('persist:')) {
+                localStorage.removeItem(key);
+              }
+            });
+          }
+          
           toast.success("🎉Logout thành công", {
             autoClose: 1500,
             position: "top-right"
@@ -116,7 +135,7 @@ const Header = () => {
             }`}
         >
           <div className="xl:w-auto flex-col sm:flex-row w-full flex sm:justify-between sm:items-center gap-5 sm:gap-10">
-            <Link className="flex-shrink-0" href="/">
+            <Link className="flex-shrink-0" href="/" prefetch={true}>
               <div className="flex relative">
                 <Image
                   src="/images/logo/image.png"
@@ -139,7 +158,7 @@ const Header = () => {
 
             <div className="flex w-full lg:w-auto justify-between items-center gap-5">
               <div className="flex items-center gap-5">
-                <Link href={isHydrated ? (isLogin ? "/my-account" : "/signin") : "/signin"}
+                <Link href={isHydrated ? (isLogin ? "/my-account" : "/signin") : "/signin"} prefetch={true}
                   className="flex items-center gap-2.5"
                   onClick={handleAccountClick}
                   suppressHydrationWarning
@@ -286,6 +305,7 @@ const Header = () => {
                       >
                         <Link
                           href={menuItem.path}
+                          prefetch={true}
                           className={`hover:text-blue text-custom-sm font-medium text-dark flex ${stickyMenu ? "xl:py-4" : "xl:py-6"
                             }`}
                         >

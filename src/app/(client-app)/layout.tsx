@@ -2,6 +2,7 @@
 
 import { useState, useEffect, Suspense } from "react";
 import dynamic from "next/dynamic";
+import { usePreloadImportantPages } from "@/hooks/usePreloadImportantPages";
 import "../css/euclid-circular-a-font.css";
 import "../css/style.css";
 import "../css/hydration-fix.css";
@@ -77,7 +78,13 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
+  // Preload các trang quan trọng
+  usePreloadImportantPages();
+
   useEffect(() => {
+    // Chỉ chạy trên client side để tránh hydration mismatch
+    if (typeof window === 'undefined') return;
+
     // Load react-toastify CSS dynamically
     const loadToastifyCSS = () => {
       const link = document.createElement('link');
@@ -90,6 +97,33 @@ export default function RootLayout({
     setTimeout(() => {
       loadToastifyCSS();
     }, 300);
+
+    // Ẩn Next.js development indicator overlay - chỉ trên client
+    const hideDevIndicator = () => {
+      // Kiểm tra xem đã có style này chưa
+      const existingStyle = document.getElementById('hide-nextjs-indicator');
+      if (existingStyle) return;
+
+      const style = document.createElement('style');
+      style.id = 'hide-nextjs-indicator';
+      style.textContent = `
+        /* Ẩn Next.js development indicator overlay */
+        #__next-build-indicator,
+        [data-nextjs-dialog],
+        [data-nextjs-dialog-overlay],
+        nextjs-portal,
+        __next-build-indicator {
+          display: none !important;
+          visibility: hidden !important;
+          opacity: 0 !important;
+          pointer-events: none !important;
+        }
+      `;
+      document.head.appendChild(style);
+    };
+    
+    // Chạy sau khi DOM đã sẵn sàng
+    setTimeout(hideDevIndicator, 100);
   }, []);
 
   return (

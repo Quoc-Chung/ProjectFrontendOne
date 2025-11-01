@@ -1,14 +1,25 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import RangeSlider from 'react-range-slider-input';
 import 'react-range-slider-input/dist/style.css';
 
-const PriceDropdown = () => {
+const PriceDropdown = ({ priceRange, onPriceChange }) => {
   const [toggleDropdown, setToggleDropdown] = useState(true);
 
+  // Default max price for Vietnamese products (100 triệu VNĐ)
+  const MAX_PRICE = 100000000;
+  
   const [selectedPrice, setSelectedPrice] = useState({
-    from: 0,
-    to: 100,
+    from: priceRange?.min ?? 0,
+    to: priceRange?.max ?? MAX_PRICE,
   });
+
+  // Sync with parent priceRange prop
+  useEffect(() => {
+    setSelectedPrice({
+      from: priceRange?.min ?? 0,
+      to: priceRange?.max ?? MAX_PRICE,
+    });
+  }, [priceRange]);
 
   return (
     <div className="bg-white shadow-1 rounded-lg">
@@ -50,31 +61,40 @@ const PriceDropdown = () => {
             <RangeSlider
               id="range-slider-gradient"
               className="margin-lg"
-              step={'any'}
-              onInput={(e) =>
-                setSelectedPrice({
+              step={10000}
+              min={0}
+              max={MAX_PRICE}
+              value={[selectedPrice.from, selectedPrice.to]}
+              onInput={(e) => {
+                const newPrice = {
                   from: Math.floor(e[0]),
                   to: Math.ceil(e[1]),
-                })
-              }
+                };
+                setSelectedPrice(newPrice);
+                // Call parent callback
+                onPriceChange?.(
+                  newPrice.from > 0 ? newPrice.from : null,
+                  newPrice.to < MAX_PRICE ? newPrice.to : null
+                );
+              }}
             />
 
             <div className="price-amount flex items-center justify-between pt-4">
               <div className="text-custom-xs text-dark-4 flex rounded border border-gray-3/80">
                 <span className="block border-r border-gray-3/80 px-2.5 py-1.5">
-                  $
+                  VNĐ
                 </span>
                 <span id="minAmount" className="block px-3 py-1.5">
-                  {selectedPrice.from}
+                  {selectedPrice.from.toLocaleString('vi-VN')}
                 </span>
               </div>
 
               <div className="text-custom-xs text-dark-4 flex rounded border border-gray-3/80">
                 <span className="block border-r border-gray-3/80 px-2.5 py-1.5">
-                  $
+                  VNĐ
                 </span>
                 <span id="maxAmount" className="block px-3 py-1.5">
-                  {selectedPrice.to}
+                  {selectedPrice.to.toLocaleString('vi-VN')}
                 </span>
               </div>
             </div>

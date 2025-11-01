@@ -121,25 +121,31 @@ const Signin = () => {
           // Lấy roleNames từ response data
           const userRoleNames = responseData?.data?.roleNames || responseData?.roleNames || [];
           
-          console.log('Login success - Response data:', responseData);
+          console.log('Login success - Full response:', responseData);
+          console.log('User roleNames:', userRoleNames);
+          console.log('Is array?', Array.isArray(userRoleNames));
           
           // Kiểm tra roleNames để quyết định redirect
-          if (userRoleNames && userRoleNames.includes('Administrator')) {
-            console.log('User has Administrator role, redirecting to admin-app');
+          if (Array.isArray(userRoleNames) && userRoleNames.length > 0 && userRoleNames.includes('Administrator')) {
+            console.log('✓ User has Administrator role, redirecting to /admin-app');
+            // Redirect ngay lập tức cho admin, không cần đợi toast
             router.push("/admin-app");
           } else {
+            console.log('✓ User is regular user, redirecting to home');
             const redirectAfterLogin = localStorage.getItem("redirectAfterLogin");
             const redirectUrl = localStorage.getItem("redirectUrl");
             
-            if (redirectAfterLogin) {
-              localStorage.removeItem("redirectAfterLogin");
-              router.replace(redirectAfterLogin);
-            } else if (redirectUrl) {
-              localStorage.removeItem("redirectUrl");
-              router.replace(redirectUrl);
-            } else {
-              router.push("/");
-            }
+            setTimeout(() => {
+              if (redirectAfterLogin) {
+                localStorage.removeItem("redirectAfterLogin");
+                router.replace(redirectAfterLogin);
+              } else if (redirectUrl) {
+                localStorage.removeItem("redirectUrl");
+                router.replace(redirectUrl);
+              } else {
+                router.push("/");
+              }
+            }, 100);
           }
         },
         (error: any) => {

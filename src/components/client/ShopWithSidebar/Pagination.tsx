@@ -62,49 +62,57 @@ const Pagination: React.FC<PaginationProps> = ({
   const pageNumbers = getPageNumbers();
 
   return (
-    <div className="flex justify-center items-center gap-2 mt-8">
-      <button
-        onClick={() => onPageChange(currentPage - 1)}
-        disabled={!hasPrevious}
-        className={`px-4 py-2 rounded-lg border transition-all duration-200 ${
-          !hasPrevious
-            ? "bg-gray-200 text-gray-500 cursor-not-allowed"
-            : "bg-white text-blue-600 border-blue-600 hover:bg-blue-600 hover:text-white"
-        }`}
-      >
-        Previous
-      </button>
+    <div className="flex flex-col items-center gap-4 w-full">
+      {/* Hiển thị số trang */}
+      <div className="text-sm text-gray-600">
+        Trang <span className="font-semibold text-blue-600">{currentPage}</span> / <span className="font-semibold">{totalPages}</span>
+      </div>
 
-      {pageNumbers.map((page, index) => (
-        <React.Fragment key={index}>
-          {typeof page === "string" ? (
-            <span className="px-4 py-2 text-gray-600">...</span>
-          ) : (
-            <button
-              onClick={() => onPageChange(page)}
-              className={`px-4 py-2 rounded-lg border transition-all duration-200 ${
-                page === currentPage
-                  ? "bg-blue-600 text-white border-blue-600"
-                  : "bg-white text-gray-700 border-gray-300 hover:bg-gray-100"
-              }`}
-            >
-              {page}
-            </button>
-          )}
-        </React.Fragment>
-      ))}
+      {/* Nút phân trang */}
+      <div className="flex justify-center items-center gap-2 w-full">
+        <button
+          onClick={() => onPageChange(currentPage - 1)}
+          disabled={!hasPrevious}
+          className={`px-4 py-2 rounded-lg border transition-all duration-200 min-w-[100px] ${
+            !hasPrevious
+              ? "bg-gray-200 text-gray-500 cursor-not-allowed"
+              : "bg-white text-blue-600 border-blue-600 hover:bg-blue-600 hover:text-white"
+          }`}
+        >
+          ← Trước
+        </button>
 
-      <button
-        onClick={() => onPageChange(currentPage + 1)}
-        disabled={!hasNext}
-        className={`px-4 py-2 rounded-lg border transition-all duration-200 ${
-          !hasNext
-            ? "bg-gray-200 text-gray-500 cursor-not-allowed"
-            : "bg-white text-blue-600 border-blue-600 hover:bg-blue-600 hover:text-white"
-        }`}
-      >
-        Next
-      </button>
+        {pageNumbers.map((page, index) => (
+          <React.Fragment key={index}>
+            {typeof page === "string" ? (
+              <span className="px-3 py-2 text-gray-600">...</span>
+            ) : (
+              <button
+                onClick={() => onPageChange(page)}
+                className={`px-4 py-2 rounded-lg border transition-all duration-200 min-w-[44px] ${
+                  page === currentPage
+                    ? "bg-blue-600 text-white border-blue-600 font-semibold"
+                    : "bg-white text-gray-700 border-gray-300 hover:bg-blue-50 hover:border-blue-300"
+                }`}
+              >
+                {page}
+              </button>
+            )}
+          </React.Fragment>
+        ))}
+
+        <button
+          onClick={() => onPageChange(currentPage + 1)}
+          disabled={!hasNext}
+          className={`px-4 py-2 rounded-lg border transition-all duration-200 min-w-[100px] ${
+            !hasNext
+              ? "bg-gray-200 text-gray-500 cursor-not-allowed"
+              : "bg-white text-blue-600 border-blue-600 hover:bg-blue-600 hover:text-white"
+          }`}
+        >
+          Sau →
+        </button>
+      </div>
     </div>
   );
 };
