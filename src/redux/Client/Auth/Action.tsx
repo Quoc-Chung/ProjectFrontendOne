@@ -1,4 +1,5 @@
 import { BASE_API_URL } from "@/utils/configAPI";
+import { getAllCartAction } from "../CartOrder/Action";
 import {
   REGISTER_REQUEST,
   REGISTER_SUCCESS,
@@ -82,6 +83,21 @@ export const login = (data: LoginRequest, onSuccess?: any, onError?: any) => {
 
       if (resData.data?.token) {
         dispatch({ type: LOGIN_SUCCESS, payload: resData.data });
+        
+        // Tự động load giỏ hàng sau khi đăng nhập thành công
+        if (resData.data.token) {
+          dispatch(getAllCartAction(
+            resData.data.token,
+            () => {
+              // Cart loaded successfully - silent success
+            },
+            (err) => {
+              // Cart load failed - log but don't show error to user
+              console.warn("Failed to load cart after login:", err);
+            }
+          ));
+        }
+        
         onSuccess?.(resData);
       } else {
         throw new Error("Tài khoản hoặc mật khẩu sai");
@@ -113,6 +129,21 @@ export const loginWithGoogleCallback = (data: any, onSuccess?: any, onError?: an
 
       if (resData.data?.token) {
         dispatch({ type: LOGIN_GOOGLE_SUCCESS, payload: resData.data });
+        
+        // Tự động load giỏ hàng sau khi đăng nhập thành công
+        if (resData.data.token) {
+          dispatch(getAllCartAction(
+            resData.data.token,
+            () => {
+              // Cart loaded successfully - silent success
+            },
+            (err) => {
+              // Cart load failed - log but don't show error to user
+              console.warn("Failed to load cart after Google login:", err);
+            }
+          ));
+        }
+        
         onSuccess?.(resData);
       } else {
         throw new Error("Không nhận được token từ Google OAuth");
@@ -163,6 +194,11 @@ export const logoutAction = (logoutRequest: LogoutRequest, onSuccess?: any, onEr
     const resData = await res.json();
     if (resData.status.code === 200) {
       sessionStorage.clear();
+      // Xóa dữ liệu từ redux-persist localStorage
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('persist:auth');
+        localStorage.removeItem('persist:root');
+      }
     }
     dispatch({ type: LOGOUT_SUCCESS });
     onSuccess?.(resData);

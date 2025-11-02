@@ -23,13 +23,23 @@ const OAuth2Callback = () => {
 
                 dispatch(
                     loginWithGoogleCallback(loginResponse, (res) => {
+                        console.log("OAuth2 callback - Full response:", res);
+                        
                         // Kiểm tra role để quyết định redirect
                         const userRoleNames = res?.data?.roleNames || res?.roleNames || [];
+                        console.log('User roleNames:', userRoleNames);
+                        console.log('Is array?', Array.isArray(userRoleNames));
                         
-                        if (userRoleNames && userRoleNames.includes('Administrator')) {
-                            router.push("/admin-app");
+                        if (Array.isArray(userRoleNames) && userRoleNames.length > 0 && userRoleNames.includes('Administrator')) {
+                            console.log('✓ User has Administrator role, redirecting to /admin-app');
+                            setTimeout(() => {
+                                router.push("/admin-app");
+                            }, 100);
                         } else {
-                            router.push("/");
+                            console.log('✓ User is regular user, redirecting to home');
+                            setTimeout(() => {
+                                router.push("/");
+                            }, 100);
                         }
                     }, (err) => {
                         console.error("Google login error:", err);

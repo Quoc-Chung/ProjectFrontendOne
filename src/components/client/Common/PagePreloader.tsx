@@ -12,7 +12,7 @@ const PagePreloader = () => {
     const preloadPages = [
       '/signin',
       '/signup', 
-      '/shop',
+      '/shop-with-sidebar',
       '/cart',
       '/my-account'
     ];

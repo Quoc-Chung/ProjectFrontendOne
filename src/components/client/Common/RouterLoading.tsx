@@ -1,31 +1,67 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { usePathname } from "next/navigation";
+import { useEffect, useState, useRef } from "react";
+import { usePathname, useSearchParams } from "next/navigation";
 
+/**
+ * Component hiển thị loading indicator khi đang chuyển trang
+ * Tối ưu để navigation mượt mà hơn
+ */
 const RouterLoading = () => {
-  const [isLoading, setIsLoading] = useState(false);
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const [loading, setLoading] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    // Bắt đầu loading khi pathname thay đổi
-    setIsLoading(true);
-    
-    // Dừng loading sau một khoảng thời gian ngắn
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 300);
+    // Clear previous timers
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    if (intervalRef.current) clearInterval(intervalRef.current);
 
-    return () => clearTimeout(timer);
-  }, [pathname]);
+    // Reset và bắt đầu loading
+    setProgress(0);
+    setLoading(true);
 
-  if (!isLoading) return null;
+    // Progress animation nhanh hơn
+    let currentProgress = 0;
+    intervalRef.current = setInterval(() => {
+      currentProgress += 15; // Tăng nhanh hơn
+      if (currentProgress >= 85) {
+        if (intervalRef.current) clearInterval(intervalRef.current);
+        currentProgress = 85;
+      }
+      setProgress(currentProgress);
+    }, 20); // Update thường xuyên hơn
+
+    // Complete loading nhanh hơn - Next.js navigation thường rất nhanh
+    timeoutRef.current = setTimeout(() => {
+      setProgress(100);
+      setTimeout(() => {
+        setLoading(false);
+        setProgress(0);
+      }, 30); // Giảm delay
+    }, 50); // Giảm từ 100ms xuống 50ms
+
+    return () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, [pathname, searchParams]);
+
+  if (!loading) return null;
 
   return (
-    <div className="fixed top-0 left-0 right-0 z-50">
-      <div className="h-1 bg-blue-600 animate-pulse">
-        <div className="h-full bg-gradient-to-r from-blue-600 to-blue-400 animate-pulse"></div>
-      </div>
+    <div className="fixed top-0 left-0 w-full h-1 z-[9999] pointer-events-none">
+      <div 
+        className="h-full bg-gradient-to-r from-blue-500 via-purple-500 to-blue-500 transition-all duration-100 ease-linear"
+        style={{ 
+          width: `${progress}%`,
+          boxShadow: '0 0 10px rgba(59, 130, 246, 0.5)',
+          transition: 'width 0.1s linear'
+        }}
+      />
     </div>
   );
 };

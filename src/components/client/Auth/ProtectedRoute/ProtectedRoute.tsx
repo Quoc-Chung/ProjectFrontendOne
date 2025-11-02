@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useSelector } from 'react-redux'
 import { useRouter } from 'next/navigation'
+import { toast } from 'react-toastify'
 import { RootState } from '../../../../redux/store'
 
 interface ProtectedRouteProps {
@@ -11,25 +12,54 @@ interface ProtectedRouteProps {
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const router = useRouter()
-  const { isLogin, loading } = useSelector((state: RootState) => state.auth)
+  const { isLogin, loading, token } = useSelector((state: RootState) => state.auth)
   const [isHydrated, setIsHydrated] = useState(false)
 
   useEffect(() => {
-    // Hydration nhanh hơn
+    // Wait a bit for redux-persist to rehydrate
     const timer = setTimeout(() => {
       setIsHydrated(true);
-    }, 50); // Giảm từ immediate xuống 50ms
+    }, 100);
     
     return () => clearTimeout(timer);
   }, []);
 
   useEffect(() => {
-    if (isHydrated && !loading && !isLogin) {
-      router.push('/signin')
+    if (isHydrated && !loading) {
+      // Check both Redux state and localStorage as fallback
+      let hasAuth = token || isLogin;
+      
+      // Fallback: check localStorage directly if Redux state is not ready
+      if (!hasAuth && typeof window !== 'undefined') {
+        try {
+          const persistAuth = localStorage.getItem('persist:auth');
+          if (persistAuth) {
+            const parsed = JSON.parse(persistAuth);
+            const authState = typeof parsed === 'string' ? JSON.parse(parsed) : parsed;
+            // Check token or isLogin
+            hasAuth = !!(authState?.token || authState?.isLogin === true || authState?.isLogin === 'true');
+          }
+        } catch (e) {
+          // Ignore parsing errors, continue with Redux state
+          console.warn('Error checking localStorage for auth:', e);
+        }
+      }
+      
+      if (!hasAuth) {
+        // Store redirect URL
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('redirectAfterLogin', window.location.pathname);
+        }
+        toast.warning("Bạn chưa đăng nhập. Vui lòng đăng nhập!", {
+          autoClose: 2000,
+          position: "top-right"
+        });
+        router.push('/signin');
+      }
     }
-  }, [isHydrated, isLogin, loading, router])
+  }, [isHydrated, isLogin, loading, token, router])
 
-  // Loading state tối ưu hơn
+  // Loading state - wait for hydration and initial load
   if (loading || !isHydrated) {
     return (
       <div className="flex items-center justify-center min-h-[200px]">
@@ -41,8 +71,26 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
     )
   }
 
+  // Check both token and isLogin, with localStorage fallback
+  let hasAuth = token || isLogin;
+  
+  // Fallback: check localStorage directly if Redux state shows not logged in
+  if (!hasAuth && typeof window !== 'undefined') {
+    try {
+      const persistAuth = localStorage.getItem('persist:auth');
+      if (persistAuth) {
+        const parsed = JSON.parse(persistAuth);
+        const authState = typeof parsed === 'string' ? JSON.parse(parsed) : parsed;
+        hasAuth = !!(authState?.token || authState?.isLogin === true || authState?.isLogin === 'true');
+      }
+    } catch (e) {
+      // Ignore parsing errors, use Redux state
+      console.warn('Error checking localStorage for auth:', e);
+    }
+  }
+  
   // Nếu chưa đăng nhập, không hiển thị gì (sẽ redirect)
-  if (!isLogin) {
+  if (!hasAuth) {
     return null
   }
 

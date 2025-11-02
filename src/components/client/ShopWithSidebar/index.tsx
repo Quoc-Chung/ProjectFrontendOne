@@ -1,15 +1,48 @@
 "use client";
 import React, { useState, useEffect, useCallback } from "react";
+import dynamic from "next/dynamic";
 import Breadcrumb from "../Common/Breadcrumb";
 import CustomSelect from "./CustomSelect";
 import CategoryDropdown from "./CategoryDropdown";
 import GenderDropdown from "./GenderDropdown";
-import SizeDropdown from "./SizeDropdown";
 import ColorsDropdwon from "./ColorsDropdwon";
-import PriceDropdown from "./PriceDropdown";
 import ProductGrid from "./ProductGrid";
 import Pagination from "./Pagination";
+
+// Dynamic import PriceDropdown to avoid SSR issues with react-range-slider-input
+const PriceDropdown = dynamic(() => import("./PriceDropdown"), {
+  ssr: false,
+  loading: () => (
+    <div className="bg-white shadow-1 rounded-lg py-3 pl-6 pr-5.5">
+      <p className="text-dark">Price</p>
+    </div>
+  ),
+});
 import { Product, ProductsResponse } from "@/types/Client/Product/Product";
+import { BASE_API_PRODUCT_URL } from "@/utils/configAPI";
+import { Category, CategoriesResponse } from "@/types/Client/Category/Category";
+
+interface Brand {
+  id: string;
+  name: string;
+  logoUrl: string;
+  slug: string;
+}
+
+interface BrandsResponse {
+  status: {
+    code: string;
+    message: string;
+    label: string;
+  };
+  data: {
+    content: Brand[];
+    totalElements: number;
+    totalPages: number;
+    [key: string]: any;
+  };
+  extraData: any;
+}
 
 const ShopWithSidebar = () => {
   const [productStyle, setProductStyle] = useState<"grid" | "list">("grid");
@@ -25,63 +58,162 @@ const ShopWithSidebar = () => {
   const [hasNext, setHasNext] = useState(false);
   const [hasPrevious, setHasPrevious] = useState(false);
   
+  // Categories state
+  const [categories, setCategories] = useState<Array<{
+    name: string;
+    products: number;
+    isRefined: boolean;
+    id?: string;
+  }>>([]);
+  const [categoriesLoading, setCategoriesLoading] = useState(true);
+  
+  // Brands state
+  const [brands, setBrands] = useState<Array<{
+    name: string;
+    products: number;
+    id?: string;
+  }>>([]);
+  const [brandsLoading, setBrandsLoading] = useState(true);
+  
+  // Search and Filter states
+  const [searchTerm, setSearchTerm] = useState<string>("");
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null); // Single category only
+  const [selectedBrand, setSelectedBrand] = useState<string | null>(null); // Single brand only
+  const [priceRange, setPriceRange] = useState<{ min: number | null; max: number | null }>({
+    min: null,
+    max: null,
+  });
+  
   // Cache for products
-  const [productsCache, setProductsCache] = useState<{ [key: number]: Product[] }>({});
+  const [productsCache, setProductsCache] = useState<{ [key: string]: Product[] }>({});
 
-  // Fetch products from API with caching
+  // Build search API URL with filters (mapped to new API endpoint)
+  const buildSearchUrl = useCallback((page: number = 1, size: number = 6) => {
+    const params = new URLSearchParams();
+    params.append('page', String(page - 1));
+    params.append('size', String(size));
+    
+    // name parameter (search term) - only add if has value
+    if (searchTerm && searchTerm.trim()) {
+      params.append('name', searchTerm.trim());
+    }
+    
+    // category parameter (category name, not ID) - need to get category name from selectedCategory
+    // We'll need to find category name from categories array
+    if (selectedCategory) {
+      const category = categories.find(cat => cat.id === selectedCategory);
+      if (category?.name) {
+        params.append('category', category.name);
+      }
+    }
+    
+    // brand parameter (brand name, not ID) - need to get brand name from selectedBrand
+    // We'll need to find brand name from brands array
+    if (selectedBrand) {
+      const brand = brands.find(b => b.id === selectedBrand);
+      if (brand?.name) {
+        params.append('brand', brand.name);
+      }
+    }
+    
+    // Price range - only add if set
+    if (priceRange.min !== null && priceRange.min !== undefined) {
+      params.append('minPrice', String(priceRange.min));
+    }
+    if (priceRange.max !== null && priceRange.max !== undefined) {
+      params.append('maxPrice', String(priceRange.max));
+    }
+    
+    return `${BASE_API_PRODUCT_URL}/api/product/search?${params.toString()}`;
+  }, [searchTerm, selectedCategory, selectedBrand, priceRange, categories, brands]);
+
+  // Fetch products from API with search and filters
   const fetchProducts = useCallback(async (page: number = 1) => {
+    const cacheKey = `${page}-${searchTerm}-${selectedCategory || 'null'}-${selectedBrand || 'null'}-${priceRange.min}-${priceRange.max}`;
+    
     // Check cache first
-    if (productsCache[page]) {
-      setProducts(productsCache[page]);
+    if (productsCache[cacheKey]) {
+      setProducts(productsCache[cacheKey]);
       setCurrentPage(page);
       return;
     }
 
-    try {
-      setLoading(true);
-      const response = await fetch(`http://localhost:8080/services/product-service/api/product?page=${page - 1}&size=6`);
+      try {
+        setLoading(true);
+        const url = buildSearchUrl(page, 6); // 6 products per page
+        console.log("🔍 Fetching products from:", url);
+        
+        const response = await fetch(url, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error("❌ API Error Response:", {
+            status: response.status,
+            statusText: response.statusText,
+            body: errorText,
+            url: url
+          });
+          throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
+        }
+      
       const data: ProductsResponse = await response.json();
       
       if (data.status.code === "200") {
-        setProducts(data.data.content);
-        setCurrentPage(data.data.current_page);
-        setTotalPages(data.data.total_pages);
-        setTotalElements(data.data.total_elements);
-        setHasNext(data.data.has_next);
-        setHasPrevious(data.data.has_previous);
+        const productsList = data.data.content || [];
+        console.log("✅ Products found:", productsList.length);
         
-        // Cache the products
+        setProducts(productsList);
+        setCurrentPage(data.data.current_page || page);
+        setTotalPages(data.data.total_pages || 1);
+        setTotalElements(data.data.total_elements || 0);
+        setHasNext(data.data.has_next || false);
+        setHasPrevious(data.data.has_previous || false);
+        
+        // Cache the products with filter key
         setProductsCache(prev => ({
           ...prev,
-          [page]: data.data.content
+          [cacheKey]: productsList
         }));
+      } else {
+        console.error("❌ API returned error:", data.status);
+        setProducts([]);
       }
     } catch (error) {
-      console.error("Error fetching products:", error);
+      console.error("❌ Error fetching products:", error);
+      setProducts([]);
     } finally {
       setLoading(false);
     }
-  }, [productsCache]);
+  }, [buildSearchUrl, productsCache, searchTerm, selectedCategory, selectedBrand, priceRange]);
 
   // Prefetch next page
   const prefetchNextPage = useCallback(async (currentPage: number) => {
     const nextPage = currentPage + 1;
-    if (nextPage <= totalPages && !productsCache[nextPage]) {
-      try {
-        const response = await fetch(`http://localhost:8080/services/product-service/api/product?page=${nextPage - 1}&size=6`);
-        const data: ProductsResponse = await response.json();
-        
-        if (data.status.code === "200") {
-          setProductsCache(prev => ({
-            ...prev,
-            [nextPage]: data.data.content
-          }));
+    if (nextPage <= totalPages) {
+      const cacheKey = `${nextPage}-${searchTerm}-${selectedCategory || 'null'}-${selectedBrand || 'null'}-${priceRange.min}-${priceRange.max}`;
+      if (!productsCache[cacheKey]) {
+        try {
+          const url = buildSearchUrl(nextPage, 6); // 6 products per page
+          const response = await fetch(url);
+          const data: ProductsResponse = await response.json();
+          
+          if (data.status.code === "200") {
+            setProductsCache(prev => ({
+              ...prev,
+              [cacheKey]: data.data.content
+            }));
+          }
+        } catch (error) {
+          console.error("Error prefetching next page:", error);
         }
-      } catch (error) {
-        console.error("Error prefetching next page:", error);
       }
     }
-  }, [totalPages, productsCache]);
+  }, [totalPages, productsCache, buildSearchUrl, searchTerm, selectedCategory, selectedBrand, priceRange]);
 
   const handlePageChange = (page: number) => {
     if (page >= 1 && page <= totalPages) {
@@ -91,59 +223,164 @@ const ShopWithSidebar = () => {
     }
   };
 
+  // Track if component has mounted
+  const [hasMounted, setHasMounted] = useState(false);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
+
+  // Initial mount: fetch products, categories, and brands
+  useEffect(() => {
+    // Fetch data on mount
+    const initializeData = async () => {
+      try {
+        // Build URL manually for initial load to avoid dependency issues
+        // Only include parameters that have values, don't send "null" strings
+        const params = new URLSearchParams();
+        params.append('page', '0');
+        params.append('size', '6'); // 6 products per page
+        
+        // Don't add name, brand, category, minPrice, maxPrice if they are null
+        // Let the API use default values
+        
+        const url = `${BASE_API_PRODUCT_URL}/api/product/search?${params.toString()}`;
+        console.log("🔍 Initial fetch from:", url);
+        
+        setLoading(true);
+        
+        // Add error handling for 500 errors
+        let response;
+        try {
+          response = await fetch(url, {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          });
+        } catch (fetchError) {
+          console.error("❌ Network error:", fetchError);
+          throw fetchError;
+        }
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error("❌ API Error Response:", {
+            status: response.status,
+            statusText: response.statusText,
+            body: errorText
+          });
+          throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
+        }
+        
+        const data: ProductsResponse = await response.json();
+        console.log("📦 Initial products response:", data);
+        
+        if (data.status.code === "200") {
+          const productsList = data.data.content || [];
+          console.log("✅ Initial products found:", productsList.length);
+          
+          setProducts(productsList);
+          setCurrentPage(data.data.current_page || 1);
+          setTotalPages(data.data.total_pages || 1);
+          setTotalElements(data.data.total_elements || 0);
+          setHasNext(data.data.has_next || false);
+          setHasPrevious(data.data.has_previous || false);
+        } else {
+          console.error("❌ API returned error:", data.status);
+          setProducts([]);
+        }
+      } catch (error) {
+        console.error("❌ Error fetching initial products:", error);
+        setProducts([]);
+      } finally {
+        setLoading(false);
+      }
+      
+      await fetchCategories();
+      await fetchBrands();
+      setHasMounted(true);
+      setIsInitialLoad(false);
+    };
+    initializeData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only run on mount
+
+  // Reset to page 1 when filters change and refetch (after initial mount)
+  // Wait for categories and brands to be loaded before applying filters
+  useEffect(() => {
+    if (isInitialLoad || !hasMounted) return; // Skip on initial load
+    // Only refetch if categories and brands are loaded (when using their names)
+    if ((selectedCategory && categories.length === 0) || (selectedBrand && brands.length === 0)) {
+      return; // Wait for data to load
+    }
+    setCurrentPage(1);
+    fetchProducts(1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchTerm, selectedCategory, selectedBrand, priceRange.min, priceRange.max, hasMounted, isInitialLoad, categories, brands]);
+
+  // Fetch categories from API
+  const fetchCategories = useCallback(async () => {
+    try {
+      setCategoriesLoading(true);
+      const response = await fetch(`${BASE_API_PRODUCT_URL}/api/categories`);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data: CategoriesResponse = await response.json();
+      
+      if (data.status.code === "200" && data.data) {
+        // Transform API categories to match CategoryDropdown format
+        const transformedCategories = data.data.map((cat) => ({
+          name: cat.name || cat.displayName,
+          products: cat.productCount || 0,
+          isRefined: false,
+          id: cat.id,
+        }));
+        setCategories(transformedCategories);
+      }
+    } catch (error) {
+      console.error("Error fetching categories:", error);
+      // Fallback to empty array or keep existing data
+    } finally {
+      setCategoriesLoading(false);
+    }
+  }, []);
+
+  // Fetch brands from API
+  const fetchBrands = useCallback(async () => {
+    try {
+      setBrandsLoading(true);
+      const response = await fetch(`${BASE_API_PRODUCT_URL}/api/brand`);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data: BrandsResponse = await response.json();
+      
+      if (data.status.code === "200" && data.data?.content) {
+        // Transform API brands to match GenderDropdown format
+        const transformedBrands = data.data.content.map((brand) => ({
+          name: brand.name,
+          products: 0, 
+          id: brand.id,
+        }));
+        setBrands(transformedBrands);
+      }
+    } catch (error) {
+      console.error("Error fetching brands:", error);
+      // Fallback to empty array or keep existing data
+    } finally {
+      setBrandsLoading(false);
+    }
+  }, []);
+
   const options = [
     { label: "Latest Products", value: "0" },
     { label: "Best Selling", value: "1" },
     { label: "Old Products", value: "2" },
   ];
 
-  const categories = [
-    {
-      name: "Desktop",
-      products: 10,
-      isRefined: true,
-    },
-    {
-      name: "Laptop",
-      products: 12,
-      isRefined: false,
-    },
-    {
-      name: "Monitor",
-      products: 30,
-      isRefined: false,
-    },
-    {
-      name: "UPS",
-      products: 23,
-      isRefined: false,
-    },
-    {
-      name: "Phone",
-      products: 10,
-      isRefined: false,
-    },
-    {
-      name: "Watch",
-      products: 13,
-      isRefined: false,
-    },
-  ];
-
-  const genders = [
-    {
-      name: "Men",
-      products: 10,
-    },
-    {
-      name: "Women",
-      products: 23,
-    },
-    {
-      name: "Unisex",
-      products: 8,
-    },
-  ];
 
   const handleStickyMenu = () => {
     if (window.scrollY >= 80) {
@@ -153,13 +390,12 @@ const ShopWithSidebar = () => {
     }
   };
 
+  // Prefetch next page after products load
   useEffect(() => {
-    // Fetch initial products
-    fetchProducts(1);
-    
-    // Prefetch page 2 after initial load
-    setTimeout(() => prefetchNextPage(1), 500);
-  }, [fetchProducts, prefetchNextPage]);
+    if (currentPage === 1 && products.length > 0) {
+      setTimeout(() => prefetchNextPage(1), 500);
+    }
+  }, [currentPage, products.length, prefetchNextPage]);
 
   useEffect(() => {
     window.addEventListener("scroll", handleStickyMenu);
@@ -236,24 +472,44 @@ const ShopWithSidebar = () => {
                   <div className="bg-white shadow-1 rounded-lg py-4 px-5">
                     <div className="flex items-center justify-between">
                       <p>Filters:</p>
-                      <button className="text-blue">Clean All</button>
+                      <button 
+                        onClick={() => {
+                          setSearchTerm("");
+                          setSelectedCategory(null);
+                          setSelectedBrand(null);
+                          setPriceRange({ min: null, max: null });
+                        }}
+                        className="text-blue hover:text-blue-700 transition-colors"
+                      >
+                        Clean All
+                      </button>
                     </div>
                   </div>
 
                   {/* <!-- category box --> */}
-                  <CategoryDropdown categories={categories} />
+                  <CategoryDropdown 
+                    categories={categories} 
+                    loading={categoriesLoading}
+                    selectedCategory={selectedCategory}
+                    onCategoryChange={(categoryId: string | null) => setSelectedCategory(categoryId)}
+                  />
 
-                  {/* <!-- gender box --> */}
-                  <GenderDropdown genders={genders} />
-
-                  {/* // <!-- size box --> */}
-                  <SizeDropdown />
+                  {/* <!-- brand box (using GenderDropdown component) --> */}
+                  <GenderDropdown 
+                    genders={brands} 
+                    loading={brandsLoading}
+                    selectedBrand={selectedBrand}
+                    onBrandChange={(brandId: string | null) => setSelectedBrand(brandId)}
+                  />
 
                   {/* // <!-- color box --> */}
                   <ColorsDropdwon />
 
                   {/* // <!-- price range box --> */}
-                  <PriceDropdown />
+                  <PriceDropdown 
+                    priceRange={priceRange}
+                    onPriceChange={(min: number | null, max: number | null) => setPriceRange({ min, max })}
+                  />
                 </div>
               </form>
             </div>
@@ -261,6 +517,50 @@ const ShopWithSidebar = () => {
 
             {/* // <!-- Content Start --> */}
             <div className="xl:max-w-[870px] w-full">
+              {/* Search Bar */}
+              <div className="rounded-lg bg-white shadow-1 pl-4 pr-4 py-3 mb-4">
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder="Tìm kiếm sản phẩm..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full pl-10 pr-10 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                  />
+                  <svg
+                    className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  >
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <path d="m21 21-4.35-4.35"></path>
+                  </svg>
+                  {searchTerm && (
+                    <button
+                      onClick={() => setSearchTerm("")}
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                      aria-label="Clear search"
+                    >
+                      <svg
+                        width="20"
+                        height="20"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                      >
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                      </svg>
+                    </button>
+                  )}
+                </div>
+              </div>
+
               <div className="rounded-lg bg-white shadow-1 pl-3 pr-2.5 py-2.5 mb-6">
                 <div className="flex items-center justify-between">
                   {/* <!-- top bar left --> */}
@@ -268,8 +568,15 @@ const ShopWithSidebar = () => {
                     <CustomSelect options={options} />
 
                     <p>
-                      Showing <span className="text-dark">{products.length} of {totalElements}</span>{" "}
+                      Showing <span className="text-dark">
+                        {products.length} of {totalElements}
+                      </span>{" "}
                       Products
+                      {(searchTerm || selectedCategory || selectedBrand || priceRange.min !== null || priceRange.max !== null) && (
+                        <span className="text-gray-500 text-sm ml-2">
+                          (đã lọc)
+                        </span>
+                      )}
                     </p>
                   </div>
 
@@ -354,19 +661,60 @@ const ShopWithSidebar = () => {
                 </div>
               </div>
 
-              {/* <!-- Products Content Start --> */}
-              <ProductGrid products={products} productStyle={productStyle} />
-              
-              {/* <!-- Products Pagination Start --> */}
-              {totalPages > 1 && (
-                <Pagination
-                  currentPage={currentPage}
-                  totalPages={totalPages}
-                  hasNext={hasNext}
-                  hasPrevious={hasPrevious}
-                  onPageChange={handlePageChange}
-                />
-              )}
+              {/* <!-- Products Content Start - Fixed Layout --> */}
+              <div className="flex flex-col" style={{ minHeight: '970px' }}>
+                <div className="flex-1">
+                  {loading ? (
+                    <div className="text-center py-12">
+                      <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                      <p className="mt-4 text-gray-600">Đang tải sản phẩm...</p>
+                    </div>
+                  ) : !loading && products.length === 0 ? (
+                    <div className="text-center py-12">
+                      <svg
+                        className="mx-auto h-12 w-12 text-gray-400"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
+                      </svg>
+                      <p className="mt-4 text-gray-600">
+                        Không tìm thấy sản phẩm nào với bộ lọc hiện tại
+                      </p>
+                      <button
+                        onClick={() => {
+                          setSearchTerm("");
+                          setSelectedCategory(null);
+                          setSelectedBrand(null);
+                          setPriceRange({ min: null, max: null });
+                        }}
+                        className="mt-4 text-blue-600 hover:text-blue-800 underline"
+                      >
+                        Xóa tất cả bộ lọc
+                      </button>
+                    </div>
+                  ) : (
+                    <ProductGrid products={products} productStyle={productStyle} />
+                  )}
+                </div>
+                
+                {/* Pagination - Fixed at bottom */}
+                <div className="mt-8 h-[120px] flex items-center justify-center flex-shrink-0">
+                  <Pagination
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    hasNext={hasNext}
+                    hasPrevious={hasPrevious}
+                    onPageChange={handlePageChange}
+                  />
+                </div>
+              </div>
               {/* <!-- Products Content End --> */}
             </div>
             {/* // <!-- Content End --> */}

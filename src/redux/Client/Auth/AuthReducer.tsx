@@ -27,8 +27,9 @@ import {
   RESET_PASSWORD_SUCCESS,
   RESET_PASSWORD_FAILURE,
 } from "./ActionType";
+import { setCookie, deleteCookie, getCookie } from "../../../utils/cookies";
 
-// Initial state đơn giản - Redux Persist sẽ xử lý việc khôi phục state
+
 const initialState = {
   loading: false,
   user: null,
@@ -58,6 +59,21 @@ const initialState = {
 
 export const authReducer = (state = initialState, action: any) => {
   switch (action.type) {
+
+    case 'persist/REHYDRATE':
+      const rehydratedAuthState = action.payload?.auth || action.payload;
+      if (rehydratedAuthState?.token && typeof window !== 'undefined') {
+        const cookieToken = getCookie('token');
+        if (!cookieToken && rehydratedAuthState.token) {
+          setCookie('token', rehydratedAuthState.token, 7);
+        }
+      }
+      return {
+        ...state,
+        ...rehydratedAuthState,
+        isLogin: rehydratedAuthState?.token ? true : (rehydratedAuthState?.isLogin ?? false),
+      };
+    
     // ============== REGISTER ==============
     case REGISTER_REQUEST:
       return { ...state, loading: true, error: null };
@@ -70,6 +86,10 @@ export const authReducer = (state = initialState, action: any) => {
     case LOGIN_REQUEST:
       return { ...state, loading: true, error: null };
     case LOGIN_SUCCESS:
+      // Lưu token vào cookie để middleware có thể kiểm tra
+      if (action.payload?.token && typeof window !== 'undefined') {
+        setCookie('token', action.payload.token, 7); // Lưu 7 ngày
+      }
       return {
         ...state,
         loading: false,
@@ -90,6 +110,10 @@ export const authReducer = (state = initialState, action: any) => {
       }
 
     case LOGIN_GOOGLE_SUCCESS:
+      // Lưu token vào cookie để middleware có thể kiểm tra
+      if (action.payload?.token && typeof window !== 'undefined') {
+        setCookie('token', action.payload.token, 7); // Lưu 7 ngày
+      }
       return {
         ...state,
         loading: false,
@@ -115,6 +139,10 @@ export const authReducer = (state = initialState, action: any) => {
     case LOGOUT_REQUEST:
       return { ...state, loading: true, error: null };
     case LOGOUT_SUCCESS:
+      // Xóa token khỏi cookie khi logout
+      if (typeof window !== 'undefined') {
+        deleteCookie('token');
+      }
       return { ...state, loading: false, user: null, token: null, isLogin: false, roleNames: [] };
     case LOGOUT_FAILURE:
       return { ...state, loading: false, error: action.payload };

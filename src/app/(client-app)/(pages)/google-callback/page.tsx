@@ -47,22 +47,30 @@ const GoogleCallbackPage = () => {
           loginWithGoogleCallback(
             callbackData,
             (response) => {
-              console.log("Google login success:", response);
+              console.log("Google login success - Full response:", response);
               
               // Kiểm tra role để quyết định redirect
               const userRoleNames = response?.data?.roleNames || response?.roleNames || [];
+              console.log('User roleNames:', userRoleNames);
+              console.log('Is array?', Array.isArray(userRoleNames));
               
-              if (userRoleNames && userRoleNames.includes('Administrator')) {
-                router.push("/admin-app");
+              if (Array.isArray(userRoleNames) && userRoleNames.length > 0 && userRoleNames.includes('Administrator')) {
+                console.log('✓ User has Administrator role, redirecting to /admin-app');
+                setTimeout(() => {
+                  router.push("/admin-app");
+                }, 100);
               } else {
+                console.log('✓ User is regular user, redirecting to home');
                 // Redirect về trang trước đó hoặc trang chủ
                 const redirectAfterLogin = localStorage.getItem("redirectAfterLogin");
-                if (redirectAfterLogin) {
-                  localStorage.removeItem("redirectAfterLogin");
-                  router.replace(redirectAfterLogin);
-                } else {
-                  router.push("/");
-                }
+                setTimeout(() => {
+                  if (redirectAfterLogin) {
+                    localStorage.removeItem("redirectAfterLogin");
+                    router.replace(redirectAfterLogin);
+                  } else {
+                    router.push("/");
+                  }
+                }, 100);
               }
             },
             (error) => {

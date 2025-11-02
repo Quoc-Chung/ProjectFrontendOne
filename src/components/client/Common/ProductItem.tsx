@@ -10,15 +10,8 @@ const ProductItem = ({ item }: { item: Product }) => {
   const { openModal } = useModalContext();
   const router = useRouter();
 
-  const handleProductClick = () => {
-    router.push(`/shop-details/${item.id}`);
-  };
-
-
-
-
   return (
-    <div className="group cursor-pointer" onClick={handleProductClick}>
+    <Link href={`/shop-details/${item.id}`} prefetch={true} className="group cursor-pointer block">
       <div className="relative overflow-hidden flex items-center justify-center rounded-lg bg-[#F6F7FB] min-h-[270px] mb-4">
         <Image src={item.imgs.previews[0]} alt="" width={250} height={250} />
 
@@ -132,20 +125,15 @@ const ProductItem = ({ item }: { item: Product }) => {
         <p className="text-custom-sm">({item.reviews})</p>
       </div>
 
-      <h3
-        className="font-medium text-dark ease-out duration-200 hover:text-blue mb-1.5"
-        
-      >
-        <Link href={`/shop-details/${item.id}`} onClick={(e) => e.stopPropagation()}>
-          {item.title}
-        </Link>
+      <h3 className="font-medium text-dark ease-out duration-200 hover:text-blue mb-1.5">
+        {item.title}
       </h3>
 
       <span className="flex items-center gap-2 font-medium text-lg">
         <span className="text-dark">${item.discountedPrice}</span>
         <span className="text-dark-4 line-through">${item.price}</span>
       </span>
-    </div>
+    </Link>
   );
 };
 

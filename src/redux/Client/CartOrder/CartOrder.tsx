@@ -1,6 +1,6 @@
 // redux/cart/reducer.timport { CartOrderResponse } from "../../types/cart";
 import { CartOrderResponse } from "../../../types/Client/CartOrder/cartorder";
-import { ADD_PRODUCT_TO_CART, ADD_PRODUCT_TO_CART_SUCCESS, ADD_PRODUCT_TO_CART_FAILURE, GET_ALL_CART, GET_ALL_CART_FAILURE, GET_ALL_CART_SUCCESS, UPDATE_PRODUCT_IN_CART } from "./ActionType";
+import { ADD_PRODUCT_TO_CART, ADD_PRODUCT_TO_CART_SUCCESS, ADD_PRODUCT_TO_CART_FAILURE, GET_ALL_CART, GET_ALL_CART_FAILURE, GET_ALL_CART_SUCCESS, UPDATE_PRODUCT_IN_CART, DELETE_PRODUCT_FROM_CART, DELETE_PRODUCT_FROM_CART_SUCCESS, DELETE_PRODUCT_FROM_CART_FAILURE } from "./ActionType";
 
 interface CartState {
   loading: boolean;
@@ -40,6 +40,17 @@ export const cartReducer = (state = initialState, action: any): CartState => {
             : item
         )
       };
+
+    case DELETE_PRODUCT_FROM_CART:
+      return { ...state, loading: true, error: undefined };
+    case DELETE_PRODUCT_FROM_CART_SUCCESS:
+      return {
+        ...state,
+        loading: false,
+        cart: state.cart.filter(item => item.id !== action.payload)
+      };
+    case DELETE_PRODUCT_FROM_CART_FAILURE:
+      return { ...state, loading: false, error: action.payload };
 
     default:
       return state;
