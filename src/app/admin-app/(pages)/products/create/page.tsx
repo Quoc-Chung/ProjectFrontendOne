@@ -1,16 +1,10 @@
-import { Metadata } from 'next';
-import React from 'react'
-import AddProduct from '../../../../../components/server/AddProduct';
+"use client";
 
-export const metadata: Metadata = {
-  title: "NextCommerce | Orders",
-  description: "Add product in NextCommerce",
+import React from "react";
+import CreateProduct from "../../../../../components/admin/CreateProduct";
+
+const CreateProductPage = () => {
+  return <CreateProduct />;
 };
 
-const page = () => {
-  return (
-    <AddProduct />
-  )
-}
-
-export default page
+export default CreateProductPage;

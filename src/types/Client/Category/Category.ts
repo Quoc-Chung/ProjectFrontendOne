@@ -28,3 +28,13 @@ export interface CategoriesResponse {
   data: Category[];
   extraData: any;
 }
+
+export interface CategoryDetailResponse {
+  status: {
+    code: string;
+    message: string;
+    label: string;
+  };
+  data: Category;
+  extraData: any;
+}

@@ -1,5 +1,5 @@
 "use client"
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Search,
   Plus,
@@ -7,25 +7,30 @@ import {
   Eye,
   ArrowUpDown,
 } from "lucide-react";
-import { Product, ProductDetail, SortConfig } from "@/types/Admin";
+import { Product as AdminProduct, ProductDetail, SortConfig } from "@/types/Admin";
+import { Product } from "@/types/Admin/ProductAPI";
+import { ProductService } from "@/services/ProductService";
 import { formatPrice } from '../../utils/helpers';
 import Image from "next/image";
 import { ProductDetails } from "./ProductDetails"; 
 import { useRouter } from "next/navigation";
+import { toast } from "react-toastify";
 
-interface ProductManagementProps {
-  products: Product[];
-  onDeleteProduct: (id: string) => void;
-}
-
-const ProductManagement: React.FC<ProductManagementProps> = ({
-  products,
-  onDeleteProduct,
-}) => {
+const ProductManagement: React.FC = () => {
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [selectedCategory, setSelectedCategory] = useState<string>("");
   const [selectedBrand, setSelectedBrand] = useState<string>("");
-  const router = useRouter()
+  const router = useRouter();
+
+  // Phân trang từ API
+  const [currentPage, setCurrentPage] = useState<number>(0); // API sử dụng page bắt đầu từ 0
+  const [totalPages, setTotalPages] = useState<number>(1);
+  const [totalElements, setTotalElements] = useState<number>(0);
+  const [hasNext, setHasNext] = useState<boolean>(false);
+  const [hasPrevious, setHasPrevious] = useState<boolean>(false);
+  const itemsPerPage = 6;
 
   const [priceRange, setPriceRange] = useState<{ min: string; max: string }>({
     min: "",
@@ -35,17 +40,72 @@ const ProductManagement: React.FC<ProductManagementProps> = ({
     field: "",
     direction: "asc",
   });
-  const [currentPage, setCurrentPage] = useState<number>(1);
-
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null); 
-
-  const itemsPerPage = 5;
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [loadingDetail, setLoadingDetail] = useState<boolean>(false);
 
 
+  const loadProducts = async () => {
+    try {
+      setLoading(true);
+      const result = await ProductService.getAllProducts(currentPage, itemsPerPage);
+      setProducts(result.products);
+      setTotalPages(result.totalPages);
+      setTotalElements(result.totalElements);
+      setHasNext(result.hasNext);
+      setHasPrevious(result.hasPrevious);
+    } catch (error) {
+      toast.error("Không thể tải danh sách sản phẩm!", {
+        position: "top-right",
+        autoClose: 3000,
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Load products from API
+  useEffect(() => {
+    loadProducts();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPage]);
+
+  // Handle search
+  const handleSearch = async () => {
+    if (searchTerm.trim() === "") {
+      loadProducts();
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const result = await ProductService.searchProducts(
+        searchTerm,
+        currentPage,
+        itemsPerPage
+      );
+      setProducts(result.products);
+      setTotalPages(result.totalPages);
+      setTotalElements(result.totalElements);
+      setHasNext(result.hasNext);
+      setHasPrevious(result.hasPrevious);
+    } catch (error) {
+      toast.error("Không thể tìm kiếm sản phẩm!", {
+        position: "top-right",
+        autoClose: 3000,
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSearchKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      handleSearch();
+    }
+  };
+
+  // Client-side filtering (category, brand, price)
   const filteredProducts = products.filter((product) => {
-    const matchesSearch =
-      product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      product.brandName.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory =
       !selectedCategory || product.categoryName === selectedCategory;
     const matchesBrand = !selectedBrand || product.brandName === selectedBrand;
@@ -53,7 +113,7 @@ const ProductManagement: React.FC<ProductManagementProps> = ({
       (!priceRange.min || product.price >= parseInt(priceRange.min)) &&
       (!priceRange.max || product.price <= parseInt(priceRange.max));
 
-    return matchesSearch && matchesCategory && matchesBrand && matchesPrice;
+    return matchesCategory && matchesBrand && matchesPrice;
   });
 
   // --- Sắp xếp ---
@@ -71,12 +131,8 @@ const ProductManagement: React.FC<ProductManagementProps> = ({
     }
   });
 
-  // --- Phân trang ---
-  const totalPages = Math.ceil(sortedProducts.length / itemsPerPage);
-  const paginatedProducts = sortedProducts.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
+  // Display products (already paginated from API, but we show filtered/sorted results)
+  const displayProducts = sortedProducts;
 
   const handleSort = (field: string) => {
     setSortConfig((prev) => ({
@@ -92,24 +148,64 @@ const ProductManagement: React.FC<ProductManagementProps> = ({
     setSelectedBrand("");
     setPriceRange({ min: "", max: "" });
     setSortConfig({ field: "", direction: "asc" });
-    setCurrentPage(1);
+    setCurrentPage(0);
+    loadProducts();
   };
 
   // --- Hàm chuyển sang Product Detail ---
-  const handleViewProductDetails = (product: Product) => {
-    setSelectedProduct(product);
+  const handleViewProductDetails = async (product: Product) => {
+    try {
+      setLoadingDetail(true);
+      // Lấy chi tiết sản phẩm từ API
+      const productDetail = await ProductService.getProductById(product.id);
+      
+      // Lưu trực tiếp Product từ API
+      setSelectedProduct(productDetail);
+      toast.success("Đã tải chi tiết sản phẩm!", {
+        position: "top-right",
+        autoClose: 2000,
+      });
+    } catch (error) {
+      console.error("Error fetching product detail:", error);
+      toast.error("Không thể tải chi tiết sản phẩm!", {
+        position: "top-right",
+        autoClose: 3000,
+      });
+    } finally {
+      setLoadingDetail(false);
+    }
+  };
+
+  // --- Pagination handlers ---
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  const handlePreviousPage = () => {
+    if (hasPrevious) {
+      setCurrentPage(currentPage - 1);
+    }
+  };
+
+  const handleNextPage = () => {
+    if (hasNext) {
+      setCurrentPage(currentPage + 1);
+    }
   };
 
   // --- Pagination render ---
   const renderPagination = () => {
     const pages = [];
+    // API sử dụng page từ 0, nhưng UI hiển thị từ 1
+    const displayPage = currentPage + 1;
+    
     for (let i = 1; i <= totalPages; i++) {
       pages.push(
         <button
           key={i}
-          onClick={() => setCurrentPage(i)}
+          onClick={() => handlePageChange(i - 1)} // Convert to 0-based
           className={`px-3 py-1 border rounded-md text-sm ${
-            currentPage === i
+            displayPage === i
               ? "bg-blue-600 text-white"
               : "hover:bg-gray-100 text-gray-700"
           }`}
@@ -124,19 +220,24 @@ const ProductManagement: React.FC<ProductManagementProps> = ({
 
   // --- Nếu đang xem chi tiết sản phẩm ---
   if (selectedProduct) {
+    // Convert Product (from API) to ProductDetail (for ProductDetails component)
     const productDetail: ProductDetail = {
       id: selectedProduct.id,
       name: selectedProduct.name,
       description: selectedProduct.description || "",
-      brandId: selectedProduct.brandName || "",
-      categoryId: selectedProduct.categoryName || "",
-      specs: selectedProduct.specs || { ram: "", storage: "" },
+      brandId: selectedProduct.brandName || "", // Use brandName as brandId for display
+      categoryId: selectedProduct.categoryName || "", // Use categoryName as categoryId for display
+      specs: selectedProduct.specs || {},
     };
 
     
     return (
       <ProductDetails
         product={productDetail}
+        brandName={selectedProduct.brandName}
+        categoryName={selectedProduct.categoryName}
+        price={selectedProduct.price}
+        thumbnailUrl={selectedProduct.thumbnailUrl}
         brands={[
           { id: "1", name: "Apple" },
           { id: "2", name: "Dell" },
@@ -186,8 +287,16 @@ const ProductManagement: React.FC<ProductManagementProps> = ({
               className="pl-9 pr-3 py-2 w-full border border-gray-400 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm text-gray-800"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
+              onKeyPress={handleSearchKeyPress}
             />
           </div>
+          <button
+            onClick={handleSearch}
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center space-x-2"
+          >
+            <Search size={18} />
+            <span>Tìm kiếm</span>
+          </button>
 
           <select
             className="px-3 py-2 border border-gray-400 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm text-gray-800"
@@ -232,7 +341,7 @@ const ProductManagement: React.FC<ProductManagementProps> = ({
         </div>
 
         <div className="flex justify-between items-center mt-4 pt-4 border-t border-gray-300">
-          <span>Tìm thấy {filteredProducts.length} sản phẩm</span>
+          <span>Tìm thấy {displayProducts.length} sản phẩm / Tổng {totalElements} sản phẩm</span>
           <button
             onClick={clearFilters}
             className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-md text-sm"
@@ -244,135 +353,159 @@ const ProductManagement: React.FC<ProductManagementProps> = ({
 
       {/* Table */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 flex flex-col min-h-[495px]">
-        <div className="flex-1 overflow-auto">
-          <table className="w-full table-fixed">
-            <thead className="bg-gray-50 border-b border-gray-200">
-              <tr>
-                <th className="w-20 px-4 py-2 text-left text-xs font-semibold text-gray-600 uppercase">
-                  ID
-                </th>
-                <th className="w-24 px-4 py-2 text-left text-xs font-semibold text-gray-600 uppercase">
-                  Ảnh
-                </th>
-                <th
-                  className="w-1/4 px-4 py-2 text-left text-xs font-semibold text-gray-600 uppercase cursor-pointer"
-                  onClick={() => handleSort("name")}
-                >
-                  <div className="flex items-center space-x-1">
-                    <span>Tên</span>
-                    <ArrowUpDown size={14} />
-                  </div>
-                </th>
-                <th className="w-32 px-4 py-2 text-left text-xs font-semibold text-gray-600 uppercase">
-                  Thương Hiệu
-                </th>
-                <th className="w-32 px-4 py-2 text-left text-xs font-semibold text-gray-600 uppercase">
-                  Danh Mục
-                </th>
-                <th
-                  className="w-28 px-4 py-2 text-left text-xs font-semibold text-gray-600 uppercase cursor-pointer"
-                  onClick={() => handleSort("price")}
-                >
-                  <div className="flex items-center space-x-1">
-                    <span>Giá</span>
-                    <ArrowUpDown size={14} />
-                  </div>
-                </th>
-                <th className="w-28 px-4 py-2 text-left text-xs font-semibold text-gray-600 uppercase">
-                  Thao Tác
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {paginatedProducts.length > 0 ? (
-                paginatedProducts.map((product) => (
-                  <tr
-                    key={product.id}
-                    className="hover:bg-gray-50 transition-colors"
-                  >
-                    <td className="px-4 py-2 text-sm text-gray-900 truncate">
-                      {product.id}
-                    </td>
-                    <td className="px-4 py-2">
-                      <Image
-                        src={product.thumbnailUrl}
-                        alt={product.name}
-                        width={56}
-                        height={40}
-                        unoptimized
-                        className="object-cover rounded-md"
-                      />
-                    </td>
-                    <td className="px-4 py-2 text-sm text-gray-900 truncate">
-                      {product.name}
-                    </td>
-                    <td className="px-4 py-2 text-sm text-gray-600">
-                      {product.brandName}
-                    </td>
-                    <td className="px-4 py-2 text-sm text-gray-600">
-                      {product.categoryName}
-                    </td>
-                    <td className="px-4 py-2 text-sm font-semibold text-gray-900">
-                      {formatPrice(product.price)}
-                    </td>
-                    <td className="px-4 py-2 text-sm font-medium">
-                      <div className="flex items-center space-x-2">
-                        <button
-                          className="text-green-600 hover:text-green-900"
-                          title="Xem chi tiết"
-                          onClick={() => handleViewProductDetails(product)}
-                        >
-                          <Eye size={16} />
-                        </button>
-                        <button
-                          className="text-red-600 hover:text-red-900"
-                          onClick={() => onDeleteProduct(product.id)}
-                          title="Xóa"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td
-                    colSpan={7}
-                    className="px-4 py-6 text-center text-sm text-gray-500"
-                  >
-                    Không có sản phẩm nào
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Pagination */}
-        <div className="px-4 py-3 border-t border-gray-200 flex justify-between items-center">
-          <p className="text-sm text-gray-600">
-            Trang {currentPage}/{totalPages || 1} — Tổng{" "}
-            {sortedProducts.length} sản phẩm
-          </p>
-          <div className="flex space-x-2">
-            <button
-              onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-              disabled={currentPage === 1}
-              className="px-3 py-1 border rounded-md text-sm disabled:opacity-50 text-black"
-            >
-              Trước
-            </button>
-            {renderPagination()}
-            <button
-              onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-              disabled={currentPage === totalPages}
-              className="px-3 py-1 border rounded-md text-sm disabled:opacity-50 text-black"
-            >
-              Sau
-            </button>
+        {loading ? (
+          <div className="flex items-center justify-center min-h-[495px]">
+            <div className="text-center">
+              <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+              <p className="text-gray-600">Đang tải danh sách sản phẩm...</p>
+            </div>
           </div>
-        </div>
+        ) : (
+          <>
+            <div className="flex-1 overflow-auto">
+              <table className="w-full table-fixed">
+                <thead className="bg-gray-50 border-b border-gray-200">
+                  <tr>
+                    <th className="w-20 px-4 py-2 text-left text-xs font-semibold text-gray-600 uppercase">
+                      ID
+                    </th>
+                    <th className="w-24 px-4 py-2 text-left text-xs font-semibold text-gray-600 uppercase">
+                      Ảnh
+                    </th>
+                    <th
+                      className="w-1/4 px-4 py-2 text-left text-xs font-semibold text-gray-600 uppercase cursor-pointer"
+                      onClick={() => handleSort("name")}
+                    >
+                      <div className="flex items-center space-x-1">
+                        <span>Tên</span>
+                        <ArrowUpDown size={14} />
+                      </div>
+                    </th>
+                    <th className="w-32 px-4 py-2 text-left text-xs font-semibold text-gray-600 uppercase">
+                      Thương Hiệu
+                    </th>
+                    <th className="w-32 px-4 py-2 text-left text-xs font-semibold text-gray-600 uppercase">
+                      Danh Mục
+                    </th>
+                    <th
+                      className="w-28 px-4 py-2 text-left text-xs font-semibold text-gray-600 uppercase cursor-pointer"
+                      onClick={() => handleSort("price")}
+                    >
+                      <div className="flex items-center space-x-1">
+                        <span>Giá</span>
+                        <ArrowUpDown size={14} />
+                      </div>
+                    </th>
+                    <th className="w-28 px-4 py-2 text-left text-xs font-semibold text-gray-600 uppercase">
+                      Thao Tác
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {displayProducts.length > 0 ? (
+                    displayProducts.map((product) => (
+                      <tr
+                        key={product.id}
+                        className="hover:bg-gray-50 transition-colors"
+                      >
+                        <td className="px-4 py-2 text-sm text-gray-900 truncate">
+                          {product.id.substring(0, 8)}...
+                        </td>
+                        <td className="px-4 py-2">
+                          {product.thumbnailUrl ? (
+                            <Image
+                              src={product.thumbnailUrl}
+                              alt={product.name}
+                              width={56}
+                              height={40}
+                              unoptimized
+                              className="object-cover rounded-md"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).style.display = "none";
+                              }}
+                            />
+                          ) : (
+                            <div className="w-14 h-10 bg-gray-200 rounded-md flex items-center justify-center">
+                              <span className="text-xs text-gray-400">N/A</span>
+                            </div>
+                          )}
+                        </td>
+                        <td className="px-4 py-2 text-sm text-gray-900 truncate">
+                          {product.name}
+                        </td>
+                        <td className="px-4 py-2 text-sm text-gray-600">
+                          {product.brandName}
+                        </td>
+                        <td className="px-4 py-2 text-sm text-gray-600">
+                          {product.categoryName}
+                        </td>
+                        <td className="px-4 py-2 text-sm font-semibold text-gray-900">
+                          {formatPrice(product.price)}
+                        </td>
+                        <td className="px-4 py-2 text-sm font-medium">
+                          <div className="flex items-center space-x-2">
+                            <button
+                              className="text-green-600 hover:text-green-900 disabled:opacity-50"
+                              title="Xem chi tiết"
+                              onClick={() => handleViewProductDetails(product)}
+                              disabled={loadingDetail}
+                            >
+                              {loadingDetail ? (
+                                <div className="w-4 h-4 border-2 border-green-600 border-t-transparent rounded-full animate-spin"></div>
+                              ) : (
+                                <Eye size={16} />
+                              )}
+                            </button>
+                            <button
+                              className="text-red-600 hover:text-red-900"
+                              title="Xóa"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td
+                        colSpan={7}
+                        className="px-4 py-6 text-center text-sm text-gray-500"
+                      >
+                        Không có sản phẩm nào
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Pagination */}
+            <div className="px-4 py-3 border-t border-gray-200 flex justify-between items-center">
+              <p className="text-sm text-gray-600">
+                Trang {currentPage + 1}/{totalPages || 1} — Tổng{" "}
+                {totalElements} sản phẩm
+              </p>
+              <div className="flex space-x-2">
+                <button
+                  onClick={handlePreviousPage}
+                  disabled={!hasPrevious}
+                  className="px-3 py-1 border rounded-md text-sm disabled:opacity-50 disabled:cursor-not-allowed text-black"
+                >
+                  Trước
+                </button>
+                {renderPagination()}
+                <button
+                  onClick={handleNextPage}
+                  disabled={!hasNext}
+                  className="px-3 py-1 border rounded-md text-sm disabled:opacity-50 disabled:cursor-not-allowed text-black"
+                >
+                  Sau
+                </button>
+              </div>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

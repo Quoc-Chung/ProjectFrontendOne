@@ -32,7 +32,7 @@ export interface ProductDetail {
   description: string;
   brandId: string;
   categoryId: string;
-  specs:  ProductSpec;
+  specs: ProductSpec | { [key: string]: string | undefined };
 }
 
 // Customer Types

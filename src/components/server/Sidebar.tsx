@@ -10,6 +10,8 @@ import {
   Users,
   LogOut,
   User,
+  Tag,
+  Folder,
 } from "lucide-react";
 import { useSelector } from "react-redux";
 import { RootState } from "../../redux/store";
@@ -27,6 +29,8 @@ const Sidebar: React.FC = () => {
   const menuItems = [
     { href: "/admin-app/dashboard", icon: BarChart3, label: "Dashboard Tổng Quan" },
     { href: "/admin-app/products/management", icon: Package, label: "Quản Lý Sản Phẩm" },
+    { href: "/admin-app/brands/management", icon: Tag, label: "Quản Lý Thương Hiệu" },
+    { href: "/admin-app/categories/management", icon: Folder, label: "Quản Lý Danh Mục" },
     { href: "/admin-app/inventorys/management", icon: Package, label: "Quản Lý Kho Hàng" },
     { href: "/admin-app/orders", icon: ShoppingCart, label: "Quản Lý Đơn Hàng" },
     { href: "/admin-app/customers/management", icon: Users, label: "Quản Lý Khách Hàng" },
@@ -62,7 +66,7 @@ const Sidebar: React.FC = () => {
       </div>
 
       {/* Navigation */}
-      <nav className="relative z-10 flex-1 p-4">
+      <nav className="relative z-10 flex-1 p-4 overflow-y-auto">
         <ul className="pb-6 space-y-2">
           {menuItems.map((item) => {
             const isActive = isHydrated ? pathname === item.href : false;
