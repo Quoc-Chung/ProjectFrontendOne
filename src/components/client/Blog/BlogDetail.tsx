@@ -14,24 +14,21 @@ interface BlogDetailProps {
 
 const BlogDetail: React.FC<BlogDetailProps> = ({ blogId }) => {
   const router = useRouter();
-  const [blog, setBlog] = useState<BlogPost | null>(null);
-  const [relatedPosts, setRelatedPosts] = useState<BlogPost[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const id = parseInt(blogId);
-    const foundBlog = getBlogPostById(id);
-    
+  
+  // Load data ngay lập tức, không đợi useEffect
+  const id = parseInt(blogId);
+  const foundBlog = getBlogPostById(id);
+  const relatedPosts = foundBlog ? getRelatedPosts(foundBlog.category, id, 3) : [];
+  
+  // Redirect ngay nếu không tìm thấy blog
+  React.useEffect(() => {
     if (!foundBlog) {
-      router.push("/blog");
-      return;
+      router.replace("/blog");
     }
+  }, [foundBlog, router]);
 
-    setBlog(foundBlog);
-    const related = getRelatedPosts(foundBlog.category, id, 3);
-    setRelatedPosts(related);
-    setLoading(false);
-  }, [blogId, router]);
+  const blog = foundBlog;
+  const loading = !foundBlog;
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);

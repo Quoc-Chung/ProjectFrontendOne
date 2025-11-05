@@ -1,5 +1,6 @@
 "use client";
 import React, { useState } from "react";
+import { useRouter } from "next/navigation";
 import Breadcrumb from "../Common/Breadcrumb";
 import Image from "next/image";
 import Link from "next/link";
@@ -8,10 +9,16 @@ import { BlogPost } from "@/types/Client/Blog/BlogPost";
 import { getAllBlogPosts } from "@/services/BlogService";
 
 const Blog = () => {
+  const router = useRouter();
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
 
   // Lấy dữ liệu từ service
   const blogPosts: BlogPost[] = getAllBlogPosts();
+  
+  // Prefetch blog detail page khi hover
+  const handleBlogHover = (postId: number | string) => {
+    router.prefetch(`/blog/${postId}`);
+  };
 
   const categories = ["all", "CPU", "GPU", "RAM", "Storage", "Build", "Comparison"];
 
@@ -58,6 +65,7 @@ const Blog = () => {
               <article
                 key={post.id}
                 className="bg-white rounded-xl shadow-md hover:shadow-xl transition-shadow duration-300 overflow-hidden group"
+                onMouseEnter={() => handleBlogHover(post.id)}
               >
                 {/* Image */}
                 <div className="relative w-full h-48 bg-gray-100 overflow-hidden">
@@ -84,8 +92,13 @@ const Blog = () => {
                     <span>{post.views} lượt xem</span>
                   </div>
 
-                  <h2 className="font-semibold text-xl text-dark mb-3 group-hover:text-blue-600 transition-colors line-clamp-2">
-                    <Link href={`/blog/${post.id}`} prefetch={true}>
+                  <h2 className="font-semibold text-xl text-dark mb-3 group-hover:text-blue-600 transition-none line-clamp-2">
+                    <Link 
+                      href={`/blog/${post.id}`} 
+                      prefetch={true}
+                      scroll={false}
+                      className="block"
+                    >
                       {post.title}
                     </Link>
                   </h2>
@@ -103,8 +116,9 @@ const Blog = () => {
                     </div>
                     <Link
                       href={`/blog/${post.id}`}
-                      className="text-blue-600 hover:text-blue-800 font-medium text-sm"
+                      className="text-blue-600 hover:text-blue-800 font-medium text-sm transition-none"
                       prefetch={true}
+                      scroll={false}
                     >
                       Đọc thêm →
                     </Link>

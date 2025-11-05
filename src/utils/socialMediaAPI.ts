@@ -51,8 +51,6 @@ export const socialMediaAPI = {
       throw error;
     }
   },
-
-  // Create a new post
   createPost: async (postData: CreatePostRequest): Promise<Post> => {
     try {
       const formData = new FormData();

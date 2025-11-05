@@ -4,14 +4,15 @@ import { Metadata } from "next";
 import { productDetailService, ProductDetailResponse } from "@/services/productDetailService";
 
 interface ShopDetailsPageProps {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
 export async function generateMetadata({ params }: ShopDetailsPageProps): Promise<Metadata> {
   try {
-    const productData = await productDetailService.getProductDetail(params.id);
+    const { id } = await params;
+    const productData = await productDetailService.getProductDetail(id);
     return {
       title: `${productData.data.name} | NextCommerce`,
       description: productData.data.description,
@@ -25,10 +26,11 @@ export async function generateMetadata({ params }: ShopDetailsPageProps): Promis
 }
 
 const ShopDetailsPage = async ({ params }: ShopDetailsPageProps) => {
+  const { id } = await params;
   let productData: ProductDetailResponse | null = null;
   
   try {
-    productData = await productDetailService.getProductDetail(params.id);
+    productData = await productDetailService.getProductDetail(id);
   } catch (error) {
     console.error('Error fetching product data:', error);
   }
