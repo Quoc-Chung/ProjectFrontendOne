@@ -20,14 +20,10 @@ const Header = () => {
   const { openCartModal } = useCartModalContext();
 
 
-  const { user, token, isLogin, roleNames } = useSelector((state: RootState) => state.auth);
+  const { user, token, isLogin } = useSelector((state: RootState) => state.auth);
   const { cart: cartItems } = useSelector((state: RootState) => state.cart);
-
-  const isAdministrator = React.useMemo(() => {
-    if (!roleNames || !Array.isArray(roleNames)) return false;
-    return roleNames.includes('Administrator') || roleNames.includes('ADMIN') || roleNames.includes('admin');
-  }, [roleNames]);
-
+  
+  // Tính tổng tiền từ cart items - sử dụng useMemo để tối ưu performance
   const totalPrice = React.useMemo(() => {
     return cartItems?.reduce((total, item) => {
       return total + (item.productPrice * item.quantity);
@@ -49,6 +45,7 @@ const Header = () => {
       }
     };
     
+    // Đợi một chút để đảm bảo PersistGate đã rehydrate
     const timer = setTimeout(checkHydration, 150);
     
     return () => clearTimeout(timer);
@@ -183,33 +180,30 @@ const Header = () => {
 
             <div className="flex w-full lg:w-auto justify-between items-center gap-5">
               <div className="flex items-center gap-5">
-                {/* Chỉ hiển thị account/login nếu không phải Administrator */}
-                {!isAdministrator && (
-                  <Link href={isHydrated ? (isLogin ? "/my-account" : "/signin") : "/signin"} prefetch={true}
-                    className="flex items-center gap-2.5 transition-none"
-                    onClick={handleAccountClick}
-                    suppressHydrationWarning
-                  >
-                    <Image
-                      src={isHydrated ? (user?.avatarUrl ? user.avatarUrl : "/images/avatars/nologin.png") : "/images/avatars/nologin.png"}
-                      alt=""
-                      width={30}
-                      height={30}
-                      className="rounded-full"
-                    />
+                <Link href={isHydrated ? (isLogin ? "/my-account" : "/signin") : "/signin"} prefetch={true}
+                  className="flex items-center gap-2.5 transition-none"
+                  onClick={handleAccountClick}
+                  suppressHydrationWarning
+                >
+                  <Image
+                    src={isHydrated ? (user?.avatarUrl ? user.avatarUrl : "/images/avatars/nologin.png") : "/images/avatars/nologin.png"}
+                    alt=""
+                    width={30}
+                    height={30}
+                    className="rounded-full"
+                  />
 
 
-                    <div>
-                      <span className="block text-[12px] text-red-700 uppercase font-bold">
-                       {isHydrated ? (isLogin ? getDisplayName(user) : "account") : "account"}
-                      </span>
-                      <p className="font-medium text-custom-sm text-dark">
-                        {isHydrated ? (user && isLogin ?
-                          <button onClick={handleLogout}> Logout </button> : <button  >Login</button>) : <button>Login</button>}
-                      </p>
-                    </div>
-                  </Link>
-                )}
+                  <div>
+                    <span className="block text-[12px] text-red-700 uppercase font-bold">
+                     {isHydrated ? (isLogin ? getDisplayName(user) : "account") : "account"}
+                    </span>
+                    <p className="font-medium text-custom-sm text-dark">
+                      {isHydrated ? (user && isLogin ?
+                        <button onClick={handleLogout}> Logout </button> : <button  >Login</button>) : <button>Login</button>}
+                    </p>
+                  </div>
+                </Link>
 
                 {isHydrated && isLogin && (
                   <button
