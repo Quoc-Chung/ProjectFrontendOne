@@ -1,48 +1,40 @@
-# ========================
-# Stage 1: Build ứng dụng
-# ========================
+# ===============================
+# 1️⃣ Stage build
+# ===============================
 FROM node:20-alpine AS builder
 
+# Đặt thư mục làm việc
 WORKDIR /app
 
-# Cài các gói cần thiết để build (node-gyp,...)
-RUN apk add --no-cache python3 make g++
-
-# Sao chép file khai báo dependencies
+# Copy file cấu hình trước (tận dụng cache khi build)
 COPY package*.json ./
 
-# Cài dependencies
+# Cài đặt dependencies
 RUN npm ci
 
-# Sao chép toàn bộ source code
+# Copy toàn bộ source code vào container
 COPY . .
 
-# Build Next.js ở chế độ production
+# Build ứng dụng Next.js (output: .next)
 RUN npm run build
 
-# ========================
-# Stage 2: Chạy production
-# ========================
+# ===============================
+# 2️⃣ Stage chạy production
+# ===============================
 FROM node:20-alpine AS runner
 
 WORKDIR /app
 
-# Tạo user không có quyền root
-RUN addgroup --system --gid 1001 nodejs \
-  && adduser --system --uid 1001 nextjs
-
 ENV NODE_ENV=production
 
-# Copy các file build cần thiết
+# Copy file cần thiết từ stage builder
+COPY --from=builder /app/package*.json ./
+COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/public ./public
-COPY --from=builder /app/.next/standalone ./
-COPY --from=builder /app/.next/static ./.next/static
+COPY --from=builder /app/node_modules ./node_modules
 
-# Đổi quyền cho user
-RUN chown -R nextjs:nodejs /app
-
-USER nextjs
-
+# Expose cổng 3000 (Next.js default)
 EXPOSE 3000
 
-CMD ["node", "server.js"]
+# Chạy ứng dụng
+CMD ["npm", "start"]
