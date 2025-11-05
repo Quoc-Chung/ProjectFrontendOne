@@ -31,60 +31,63 @@ const Sidebar: React.FC = () => {
   }, []);
 
   const handleLogout = () => {
-    if (!token) {
-      toast.error("Bạn chưa đăng nhập!", {
-        autoClose: 2000,
-        position: "top-right"
-      });
-      router.push("/signin");
-      return;
+    console.log('Sidebar: Logout started');
+    
+    // Hiển thị toast ngay lập tức - TRƯỚC TẤT CẢ
+    const toastId = toast.success("🎉 Đăng xuất thành công!", {
+      autoClose: 2000,
+      position: "top-right",
+      hideProgressBar: false,
+      closeOnClick: true,
+      pauseOnHover: true,
+      draggable: true,
+      toastId: 'logout-success',
+    });
+    
+    console.log('Sidebar: Toast displayed with ID:', toastId);
+    
+    // Set flag để AdminRoute biết đang logout
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem('justLoggedOut', 'true');
     }
-
+    
+    // Xóa dữ liệu
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('persist:auth');
+      localStorage.removeItem('persist:root');
+      Object.keys(localStorage).forEach(key => {
+        if (key.startsWith('persist:')) {
+          localStorage.removeItem(key);
+        }
+      });
+    }
+    
+    // Đợi đủ lâu để toast được render và hiển thị rõ ràng
+    // Dùng nhiều frame để đảm bảo DOM update hoàn tất
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          // Đợi thêm để đảm bảo toast được render vào DOM
+          setTimeout(() => {
+            console.log('Sidebar: Redirecting to signin after toast display');
+            // Dùng window.location.href để force redirect
+            window.location.href = "/signin";
+          }, 1000); // Tăng delay lên 1000ms để toast có đủ thời gian hiển thị
+        });
+      });
+    });
+    
+    // Dispatch logout action để cleanup Redux state (chạy background)
     dispatch(
       logoutAction(
         { token },
         async () => {
-          // Purge redux-persist để xóa sạch dữ liệu đã persist
-          try {
-            await persistor.purge();
-          } catch (error) {
+          persistor.purge().catch((error) => {
             console.error('Error purging persistor:', error);
-          }
-          
-          // Đảm bảo xóa hết localStorage liên quan đến auth
-          if (typeof window !== 'undefined') {
-            localStorage.removeItem('persist:auth');
-            localStorage.removeItem('persist:root');
-            // Xóa thêm các key có thể có
-            Object.keys(localStorage).forEach(key => {
-              if (key.startsWith('persist:')) {
-                localStorage.removeItem(key);
-              }
-            });
-          }
-          
-          toast.success("🎉 Đăng xuất thành công!", {
-            autoClose: 2000,
-            position: "top-right",
-            hideProgressBar: false,
-            closeOnClick: true,
-            pauseOnHover: true,
-            draggable: true,
-          });
-          
-          setTimeout(() => {
-            router.push("/signin");
-          }, 2000);
+          }); 
         },
         (err) => {
-          toast.error(`Đăng xuất thất bại: ${err}`, {
-            autoClose: 3000,
-            position: "top-right",
-            hideProgressBar: false,
-            closeOnClick: true,
-            pauseOnHover: true,
-            draggable: true,
-          });
+          console.error('Logout error:', err);
         }
       )
     );
@@ -98,12 +101,10 @@ const Sidebar: React.FC = () => {
     { href: "/admin-app/inventorys/management", icon: Package, label: "Quản Lý Kho Hàng" },
     { href: "/admin-app/orders", icon: ShoppingCart, label: "Quản Lý Đơn Hàng" },
     { href: "/admin-app/customers/management", icon: Users, label: "Quản Lý Khách Hàng" },
-    { href: "/admin-app/employees", icon: Users, label: "Quản Lý Nhân Viên" },
   ];
 
   return (
     <div className="w-72 mt-5 h-[730px] bg-gradient-to-b from-gray-50 to-white shadow-xl flex flex-col relative overflow-hidden transition-all duration-500">
-      {/* Background gradient */}
       <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-purple-500/10 animate-pulse-slow pointer-events-none" />
 
       {/* User Profile */}

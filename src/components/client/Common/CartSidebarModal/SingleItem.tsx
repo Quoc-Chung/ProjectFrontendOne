@@ -1,23 +1,39 @@
 import React from "react";
-import { useDispatch } from "react-redux";
 import Image from "next/image";
+import { CartOrderResponse } from "@/types/Client/CartOrder/cartorder";
 
-const SingleItem = ({ item}) => {
+interface SingleItemProps {
+  item: CartOrderResponse;
+}
 
-
+const SingleItem = ({ item }: SingleItemProps) => {
+  // Sử dụng placeholder image nếu không có image URL hoặc là chuỗi rỗng
+  const rawImageSrc = (item as any).productImage || (item as any).thumbnailUrl || "";
+  const imageSrc = rawImageSrc && rawImageSrc.trim() !== "" 
+    ? rawImageSrc 
+    : "/images/products/product-1-1.png";
 
   return (
     <div className="flex items-center justify-between gap-5">
       <div className="w-full flex items-center gap-6">
         <div className="flex items-center justify-center rounded-[10px] bg-gray-3 max-w-[90px] w-full h-22.5">
-          <Image src={item.imgs?.thumbnails[0]} alt="product" width={100} height={100} />
+          <Image 
+            src={imageSrc} 
+            alt={item.productName || "product"} 
+            width={100} 
+            height={100}
+            onError={(e) => {
+              const target = e.target as HTMLImageElement;
+              target.src = "/images/products/product-1-1.png";
+            }}
+          />
         </div>
 
         <div>
           <h3 className="font-medium text-dark mb-1 ease-out duration-200 hover:text-blue">
-            <a href="#"> {item.title} </a>
+            <a href={`/shop-details/${item.productId}`}> {item.productName} </a>
           </h3>
-          <p className="text-custom-sm">Price: ${item.discountedPrice}</p>
+          <p className="text-custom-sm">Price: ${item.productPrice?.toLocaleString() || 0}</p>
         </div>
       </div>
 

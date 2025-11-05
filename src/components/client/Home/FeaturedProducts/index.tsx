@@ -45,7 +45,7 @@ const FeaturedProducts = () => {
               onHoverEnd={() => setHoveredId(null)}
               className="group relative"
             >
-              <Link href={`/shop-details/${product.id}`} prefetch={true}>
+              <Link href={`/shop-details/${product.id}`} prefetch={true} scroll={false}>
                 <div className="bg-white rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden h-full flex flex-col">
                   {/* Image Container */}
                   <div className="relative w-full h-[250px] sm:h-[280px] bg-gray-100 overflow-hidden">

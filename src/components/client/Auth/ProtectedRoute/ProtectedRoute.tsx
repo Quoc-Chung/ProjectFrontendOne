@@ -46,14 +46,22 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
       }
       
       if (!hasAuth) {
-        // Store redirect URL
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('redirectAfterLogin', window.location.pathname);
+        // Kiểm tra xem có phải vừa logout không
+        const justLoggedOut = typeof window !== 'undefined' ? sessionStorage.getItem('justLoggedOut') === 'true' : false;
+        
+        // Nếu vừa logout, không hiển thị toast "chưa đăng nhập"
+        if (!justLoggedOut) {
+          // Store redirect URL
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('redirectAfterLogin', window.location.pathname);
+          }      
+        } else {
+          // Xóa flag sau khi đã xử lý
+          if (typeof window !== 'undefined') {
+            sessionStorage.removeItem('justLoggedOut');
+          }
         }
-        toast.warning("Bạn chưa đăng nhập. Vui lòng đăng nhập!", {
-          autoClose: 2000,
-          position: "top-right"
-        });
+        
         router.push('/signin');
       }
     }

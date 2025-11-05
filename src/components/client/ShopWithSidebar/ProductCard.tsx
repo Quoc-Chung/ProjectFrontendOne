@@ -2,7 +2,6 @@
 import React from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
 import { Product } from "@/types/Client/Product/Product";
 
 interface ProductCardProps {
@@ -11,13 +10,6 @@ interface ProductCardProps {
 }
 
 const ProductCard: React.FC<ProductCardProps> = ({ product, style }) => {
-  const router = useRouter();
-
-  const handleProductClick = (e: React.MouseEvent) => {
-    e.preventDefault();
-    router.push(`/shop-details/${product.id}`);
-  };
-
   const getImageSrc = () => {
     if (product.thumbnailUrl && product.thumbnailUrl !== null) {
       // Map API image names to actual file names
@@ -35,11 +27,17 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, style }) => {
     return "/images/products/product-1-sm-1.png"; 
   };
 
+  const productUrl = `/shop-details/${product.id}`;
+
   if (style === "grid") {
     return (
-      <div 
-        className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 overflow-hidden cursor-pointer"
-        onClick={handleProductClick}
+      <Link 
+        href={productUrl}
+        prefetch={true}
+        className="block bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 overflow-hidden cursor-pointer group"
+        role="button"
+        tabIndex={0}
+        aria-label={`Xem chi tiết sản phẩm ${product.name}`}
       >
         {/* Image */}
         <div className="relative w-full h-64 bg-gray-100">
@@ -47,7 +45,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, style }) => {
             src={getImageSrc()}
             alt={product.name}
             fill
-            className="object-cover"
+            className="object-cover transition-transform duration-300 group-hover:scale-105"
             onError={(e) => {
               console.error('Image error:', getImageSrc());
               (e.target as HTMLImageElement).src = "/images/products/image 156.png";
@@ -57,7 +55,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, style }) => {
         
         {/* Content */}
         <div className="p-4">
-          <h3 className="font-semibold text-lg mb-2 line-clamp-2 hover:text-blue-600">
+          <h3 className="font-semibold text-lg mb-2 line-clamp-2 group-hover:text-blue-600 transition-colors">
             {product.name}
           </h3>
           <p className="text-gray-600 text-sm mb-2">{product.brandName}</p>
@@ -65,14 +63,19 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, style }) => {
             {product.price.toLocaleString('vi-VN')} VNĐ
           </p>
         </div>
-      </div>
+      </Link>
     );
   }
 
   return (
-    <div 
-      className="flex items-center gap-4 bg-white rounded-lg shadow-md p-4 hover:shadow-lg transition-shadow cursor-pointer"
-      onClick={handleProductClick}
+    <Link
+      href={productUrl}
+      prefetch={true}
+      scroll={false}
+      className="flex items-center gap-4 bg-white rounded-lg shadow-md p-4 hover:shadow-lg transition-shadow cursor-pointer group"
+      role="button"
+      tabIndex={0}
+      aria-label={`Xem chi tiết sản phẩm ${product.name}`}
     >
       {/* Image */}
       <div className="relative w-32 h-24 flex-shrink-0">
@@ -80,7 +83,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, style }) => {
           src={getImageSrc()}
           alt={product.name}
           fill
-          className="object-cover rounded"
+          className="object-cover rounded transition-transform duration-300 group-hover:scale-105"
           onError={(e) => {
             console.error('Image error:', getImageSrc());
             (e.target as HTMLImageElement).src = "/images/products/image 156.png";
@@ -90,7 +93,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, style }) => {
       
       {/* Content */}
       <div className="flex-1">
-        <h3 className="font-semibold text-lg mb-1 hover:text-blue-600">
+        <h3 className="font-semibold text-lg mb-1 group-hover:text-blue-600 transition-colors">
           {product.name}
         </h3>
         <p className="text-gray-600 text-sm mb-2 line-clamp-2">{product.description}</p>
@@ -98,7 +101,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, style }) => {
           {product.price.toLocaleString('vi-VN')} VNĐ
         </p>
       </div>
-    </div>
+    </Link>
   );
 };
 

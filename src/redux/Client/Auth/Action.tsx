@@ -1,5 +1,6 @@
 import { BASE_API_URL } from "@/utils/configAPI";
 import { getAllCartAction } from "../CartOrder/Action";
+import { persistor, store } from "../../store";
 import {
   REGISTER_REQUEST,
   REGISTER_SUCCESS,
@@ -82,23 +83,66 @@ export const login = (data: LoginRequest, onSuccess?: any, onError?: any) => {
       }
 
       if (resData.data?.token) {
+        console.log('Login Action: Dispatching LOGIN_SUCCESS with payload:', resData.data);
+        
         dispatch({ type: LOGIN_SUCCESS, payload: resData.data });
         
-        // Tự động load giỏ hàng sau khi đăng nhập thành công
-        if (resData.data.token) {
-          dispatch(getAllCartAction(
-            resData.data.token,
-            () => {
-              // Cart loaded successfully - silent success
-            },
-            (err) => {
-              // Cart load failed - log but don't show error to user
-              console.warn("Failed to load cart after login:", err);
-            }
-          ));
-        }
-        
-        onSuccess?.(resData);
+        // Đợi state được update và flush persistor để lưu ngay vào localStorage
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            // Kiểm tra state sau khi dispatch
+            const currentState = store.getState();
+            console.log('Login Action: Current Redux state after dispatch:', {
+              hasAuth: !!currentState.auth,
+              hasToken: !!currentState.auth?.token,
+              hasUser: !!currentState.auth?.user,
+              isLogin: currentState.auth?.isLogin,
+              roleNames: currentState.auth?.roleNames
+            });
+            
+            // Flush persistor để đảm bảo dữ liệu được lưu vào localStorage ngay lập tức
+            persistor.flush().then(() => {
+              console.log('Login Action: Persistor flushed successfully');
+              
+              // Kiểm tra localStorage sau khi flush
+              const persistedAuth = localStorage.getItem('persist:auth');
+              console.log('Login Action: localStorage after flush:', {
+                hasAuth: !!persistedAuth,
+                authDataLength: persistedAuth?.length || 0,
+                authDataPreview: persistedAuth?.substring(0, 300)
+              });
+              
+              if (resData.data.token) {
+                dispatch(getAllCartAction(
+                  resData.data.token,
+                  () => {
+                  },
+                  (err) => {
+                    console.warn("Failed to load cart after login:", err);
+                  }
+                ));
+              }
+              
+              // Gọi onSuccess sau khi đảm bảo dữ liệu đã được persist
+              onSuccess?.(resData);
+            }).catch((err) => {
+              console.error('Login Action: Error flushing persistor:', err);
+              
+              // Vẫn gọi onSuccess nếu flush fail (không block user)
+              if (resData.data.token) {
+                dispatch(getAllCartAction(
+                  resData.data.token,
+                  () => {
+                  },
+                  (err) => {
+                    console.warn("Failed to load cart after login:", err);
+                  }
+                ));
+              }
+              onSuccess?.(resData);
+            });
+          });
+        });
       } else {
         throw new Error("Tài khoản hoặc mật khẩu sai");
       }
@@ -186,25 +230,55 @@ export const updateUser = (formData: FormData, onSuccess?: any, onError?: any) =
 export const logoutAction = (logoutRequest: LogoutRequest, onSuccess?: any, onError?: any) => async (dispatch) => {
   dispatch({ type: LOGOUT_REQUEST });
   try {
-
+    
     const res = await fetch(`${BASE_API_URL}/api/logout`, {
       method: "POST",
       headers: { Authorization: `Bearer ${logoutRequest.token}` },
     });
-    const resData = await res.json();
-    if (resData.status.code === 200) {
-      sessionStorage.clear();
-      // Xóa dữ liệu từ redux-persist localStorage
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem('persist:auth');
-        localStorage.removeItem('persist:root');
-      }
+    
+    let resData;
+    try {
+      resData = await res.json();
+    } catch (parseError) {
+
+      console.warn('Logout API response is not JSON, continuing with client-side logout');
+      resData = { status: { code: 200 } };
     }
+    
+    const statusCode = resData.status?.code;
+    const isSuccess = statusCode === 200 || statusCode === "200";
+    
+    if (typeof window !== 'undefined') {
+      sessionStorage.clear();
+      localStorage.removeItem('persist:auth');
+      localStorage.removeItem('persist:root');
+      Object.keys(localStorage).forEach(key => {
+        if (key.startsWith('persist:')) {
+          localStorage.removeItem(key);
+        }
+      });
+    }
+    
     dispatch({ type: LOGOUT_SUCCESS });
     onSuccess?.(resData);
+    
   } catch (error: any) {
-    dispatch({ type: LOGOUT_FAILURE, payload: error.message });
-    onError?.(error.message);
+    console.error('Logout API error:', error);
+    
+    // Vẫn xóa dữ liệu local
+    if (typeof window !== 'undefined') {
+      sessionStorage.clear();
+      localStorage.removeItem('persist:auth');
+      localStorage.removeItem('persist:root');
+      Object.keys(localStorage).forEach(key => {
+        if (key.startsWith('persist:')) {
+          localStorage.removeItem(key);
+        }
+      });
+    }
+    
+    dispatch({ type: LOGOUT_SUCCESS }); 
+    onSuccess?.({ status: { code: 200 } });
   }
 };
 

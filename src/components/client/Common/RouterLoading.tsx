@@ -19,34 +19,40 @@ const RouterLoading = () => {
     // Clear previous timers
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
     if (intervalRef.current) clearInterval(intervalRef.current);
-
-    // Reset và bắt đầu loading
+    setLoading(false);
     setProgress(0);
-    setLoading(true);
 
-    // Progress animation nhanh hơn
-    let currentProgress = 0;
-    intervalRef.current = setInterval(() => {
-      currentProgress += 15; // Tăng nhanh hơn
-      if (currentProgress >= 85) {
-        if (intervalRef.current) clearInterval(intervalRef.current);
-        currentProgress = 85;
-      }
-      setProgress(currentProgress);
-    }, 20); // Update thường xuyên hơn
-
-    // Complete loading nhanh hơn - Next.js navigation thường rất nhanh
-    timeoutRef.current = setTimeout(() => {
-      setProgress(100);
-      setTimeout(() => {
-        setLoading(false);
-        setProgress(0);
-      }, 30); // Giảm delay
-    }, 50); // Giảm từ 100ms xuống 50ms
+    const showDelay = setTimeout(() => {
+      setProgress(0);
+      setLoading(true);
+      
+      // Progress animation cực nhanh
+      let currentProgress = 0;
+      intervalRef.current = setInterval(() => {
+        currentProgress += 40;
+        if (currentProgress >= 95) {
+          if (intervalRef.current) clearInterval(intervalRef.current);
+          currentProgress = 95;
+        }
+        setProgress(currentProgress);
+      }, 5);
+      
+      // Complete loading cực nhanh
+      timeoutRef.current = setTimeout(() => {
+        setProgress(100);
+        setTimeout(() => {
+          setLoading(false);
+          setProgress(0);
+        }, 3);
+      }, 30);
+    }, 1000); // Chỉ hiển thị nếu navigation cực kỳ chậm (>1000ms = 1 giây)
 
     return () => {
+      clearTimeout(showDelay);
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
       if (intervalRef.current) clearInterval(intervalRef.current);
+      setLoading(false);
+      setProgress(0);
     };
   }, [pathname, searchParams]);
 

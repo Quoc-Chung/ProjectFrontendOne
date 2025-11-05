@@ -37,8 +37,6 @@ export const addProductToCartAction = (
   
       if (resData.status.code === "200") {
         dispatch({ type: ADD_PRODUCT_TO_CART_SUCCESS, payload: resData.data });
-        // Refresh lại danh sách giỏ hàng sau khi thêm thành công
-        dispatch(getAllCartAction(token));
         onSuccess?.(resData);
       } else {
         dispatch({ type: ADD_PRODUCT_TO_CART_FAILURE, payload: resData.status.message });
@@ -67,9 +65,7 @@ export const addProductToCartAction = (
       
       });
   
-      // Kiểm tra status code trước khi parse JSON
       if (res.status === 403) {
-        // Token hết hạn hoặc không có quyền truy cập
         dispatch({ type: GET_ALL_CART_FAILURE, payload: "Token hết hạn" });
         onError?.("Token hết hạn");
         return;
@@ -90,7 +86,6 @@ export const addProductToCartAction = (
     }
   };
 
-  // Cập nhật số lượng sản phẩm trong giỏ hàng (local state)
   export const updateProductQuantityAction = (
     productId: string,
     newQuantity: number
@@ -101,9 +96,8 @@ export const addProductToCartAction = (
     });
   };
 
-  // Xóa sản phẩm khỏi giỏ hàng
   export const removeProductFromCartAction = (
-    cartItemId: string,
+    productId: string,
     token: string,
     onSuccess?: (res: ApiResponse<any>) => void,
     onError?: (error: string) => void
@@ -111,7 +105,8 @@ export const addProductToCartAction = (
     dispatch({ type: DELETE_PRODUCT_FROM_CART });
 
     try {
-      const res = await fetch(`${BASE_API_CART_URL}/api/cart/remove/${cartItemId}`, {
+      // Gửi productId trong path variable
+      const res = await fetch(`${BASE_API_CART_URL}/api/cart/remove/${productId}`, {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
@@ -141,15 +136,9 @@ export const addProductToCartAction = (
       const resData: ApiResponse<any> = await res.json();
 
       if (resData.status?.code === "200") {
-        dispatch({ type: DELETE_PRODUCT_FROM_CART_SUCCESS, payload: cartItemId });
-        // Refresh lại danh sách giỏ hàng sau khi xóa thành công
-        dispatch(getAllCartAction(
-          token,
-          () => {},
-          (err) => {
-            console.warn("Failed to refresh cart after deletion:", err);
-          }
-        ));
+        // Truyền productId vào payload để reducer có thể filter đúng
+        dispatch({ type: DELETE_PRODUCT_FROM_CART_SUCCESS, payload: productId });
+        // Không cần refresh cart ngay - state đã được cập nhật tức thì
         onSuccess?.(resData);
       } else {
         dispatch({ type: DELETE_PRODUCT_FROM_CART_FAILURE, payload: resData.status?.message || "Lỗi khi xóa sản phẩm" });

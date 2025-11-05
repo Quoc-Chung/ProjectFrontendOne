@@ -23,7 +23,9 @@ const Signin = () => {
 
   useEffect(() => {
     setIsHydrated(true);
-  }, []);
+    // Prefetch forgot-password page for instant navigation
+    router.prefetch("/forgot-password");
+  }, [router]);
 
  const handleLoginGoogle = () => {
   // Redirect đến backend OAuth endpoint với callback URL
@@ -50,15 +52,20 @@ const Signin = () => {
       const showToast = searchParams.get('showToast');
       const redirect = searchParams.get('redirect');
       
-      console.log('Signin useEffect - showToast:', showToast, 'redirect:', redirect);
+      // Kiểm tra xem có phải vừa logout không
+      const justLoggedOut = typeof window !== 'undefined' ? sessionStorage.getItem('justLoggedOut') === 'true' : false;
       
-      if (showToast === 'true') {
-        console.log('Showing toast warning...');
+      if (showToast === 'true' && !justLoggedOut) {
+        // Xác định message phù hợp dựa trên redirect path
+        const isAdminRoute = redirect?.startsWith('/admin-app');
+        const toastMessage = isAdminRoute 
+          ? "Bạn cần quyền Administrator để truy cập trang này. Vui lòng đăng nhập!" 
+          : "Bạn chưa đăng nhập. Vui lòng đăng nhập để tiếp tục!";
         
         setTimeout(() => {
-          toast.warning("Bạn chưa đăng nhập. Vui lòng đăng nhập để tiếp tục!", {
+          toast.warning(toastMessage, {
             position: "top-right",
-            autoClose: 1000,
+            autoClose: 2000,
             hideProgressBar: false,
             closeOnClick: true,
             pauseOnHover: true,
@@ -67,10 +74,17 @@ const Signin = () => {
           console.log('Toast warning displayed');
         }, 500);
         
-        // Lưu redirect URL để sau khi đăng nhập sẽ redirect về
         if (redirect) {
           localStorage.setItem("redirectUrl", redirect);
           console.log('Saved redirect URL:', redirect);
+ 
+          if (isAdminRoute) {
+            localStorage.setItem("redirectAfterLogin", redirect);
+          }
+        }
+      } else if (justLoggedOut) {
+        if (typeof window !== 'undefined') {
+          sessionStorage.removeItem('justLoggedOut');
         }
       }
     }
@@ -82,13 +96,11 @@ const Signin = () => {
   };
 
   const handleForgetPassword = () => {
-     router.replace("/forgot-password"); 
-  }
+    router.push("/forgot-password");
+  };
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    
-    // Kiểm tra validation cơ bản
     if (!formData.account.trim()) {
       toast.error("❌ Vui lòng nhập tài khoản!", {
         position: "top-right",
@@ -113,46 +125,48 @@ const Signin = () => {
         formData,
         (responseData) => {
           setIsLoading(false);
-          toast.success("🎉 Đăng nhập thành công", {
-            autoClose: 1500,
-            position: "top-right"
-          });
           
-          // Lấy roleNames từ response data
           const userRoleNames = responseData?.data?.roleNames || responseData?.roleNames || [];
           
           console.log('Login success - Full response:', responseData);
           console.log('User roleNames:', userRoleNames);
           console.log('Is array?', Array.isArray(userRoleNames));
           
-          // Kiểm tra roleNames để quyết định redirect
-          if (Array.isArray(userRoleNames) && userRoleNames.length > 0 && userRoleNames.includes('Administrator')) {
-            console.log('✓ User has Administrator role, redirecting to /admin-app');
-            // Redirect ngay lập tức cho admin, không cần đợi toast
-            router.push("/admin-app");
-          } else {
-            console.log('✓ User is regular user, redirecting to home');
-            const redirectAfterLogin = localStorage.getItem("redirectAfterLogin");
-            const redirectUrl = localStorage.getItem("redirectUrl");
+          // Đợi một chút để Redux Persist lưu dữ liệu vào localStorage trước khi redirect
+          setTimeout(() => {
+            toast.success("🎉 Đăng nhập thành công", {
+              autoClose: 1500,
+              position: "top-right"
+            });
             
+            // Đợi thêm một chút để đảm bảo Redux state đã được persist
             setTimeout(() => {
-              if (redirectAfterLogin) {
-                localStorage.removeItem("redirectAfterLogin");
-                router.replace(redirectAfterLogin);
-              } else if (redirectUrl) {
-                localStorage.removeItem("redirectUrl");
-                router.replace(redirectUrl);
+              if (Array.isArray(userRoleNames) && userRoleNames.length > 0 && userRoleNames.includes('Administrator')) {
+                console.log('✓ User has Administrator role, redirecting to /admin-app');
+                console.log('✓ Redux state should be persisted by now');
+                router.push("/admin-app");
               } else {
-                router.push("/");
+                console.log('✓ User is regular user, redirecting to home');
+                const redirectAfterLogin = localStorage.getItem("redirectAfterLogin");
+                const redirectUrl = localStorage.getItem("redirectUrl");
+                
+                if (redirectAfterLogin) {
+                  localStorage.removeItem("redirectAfterLogin");
+                  router.replace(redirectAfterLogin);
+                } else if (redirectUrl) {
+                  localStorage.removeItem("redirectUrl");
+                  router.replace(redirectUrl);
+                } else {
+                  router.push("/");
+                }
               }
-            }, 100);
-          }
+            }, 200); 
+          }, 100); 
         },
         (error: any) => {
           setIsLoading(false);
           console.error("Đăng nhập thất bại:", error);
           
-          // Hiển thị toast lỗi cho người dùng
           toast.error("❌ Đăng nhập thất bại! Vui lòng kiểm tra lại tài khoản và mật khẩu.", {
             position: "top-right",
             autoClose: 3000,
@@ -221,7 +235,12 @@ const Signin = () => {
               </div>
 
               <div className="flex justify-end">
-                <button type="button" onClick={handleForgetPassword} suppressHydrationWarning>
+                <button 
+                  type="button" 
+                  onClick={handleForgetPassword}
+                  className="text-blue-600 hover:text-blue-800 transition-colors"
+                  suppressHydrationWarning
+                >
                   <p>Quên mật khẩu ?</p>
                 </button>
               </div>

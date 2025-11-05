@@ -24,6 +24,11 @@ const CounDown = dynamic(() => import("./Countdown"), {
   loading: () => <div className="h-64 bg-gray-100 animate-pulse rounded-lg"></div>,
 });
 
+// Lazy load FeaturedProducts để giảm bundle size (sử dụng framer-motion)
+const FeaturedProducts = dynamic(() => import("./FeaturedProducts"), {
+  loading: () => <div className="h-96 bg-gray-100 animate-pulse rounded-lg"></div>,
+});
+
 const Home = () => {
   return (
     <main className="relative">

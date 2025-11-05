@@ -37,7 +37,7 @@ const SingleItem = ({ item }: SingleItemProps) => {
     setIsRemoving(true);
     dispatch(
       removeProductFromCartAction(
-        item.id,
+        item.productId,
         token,
         (res) => {
           toast.success("Đã xóa sản phẩm khỏi giỏ hàng!", {

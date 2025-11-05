@@ -3,21 +3,28 @@ import React from "react";
 import Image from "next/image";
 import { Product } from "@/types/product";
 import { useModalContext } from "@/app/context/QuickViewModalContext";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 
 const ProductItem = ({ item }: { item: Product }) => {
   const { openModal } = useModalContext();
-  const router = useRouter();
 
   return (
-    <Link href={`/shop-details/${item.id}`} prefetch={true} className="group cursor-pointer block">
+    <Link 
+      href={`/shop-details/${item.id}`} 
+      prefetch={true}
+      scroll={false}
+      className="group cursor-pointer block"
+      role="button"
+      tabIndex={0}
+      aria-label={`Xem chi tiết sản phẩm ${item.title}`}
+    >
       <div className="relative overflow-hidden flex items-center justify-center rounded-lg bg-[#F6F7FB] min-h-[270px] mb-4">
         <Image src={item.imgs.previews[0]} alt="" width={250} height={250} />
 
         <div className="absolute left-0 bottom-0 translate-y-full w-full flex items-center justify-center gap-2.5 pb-5 ease-linear duration-200 group-hover:translate-y-0">
           <button
             onClick={(e) => {
+              e.preventDefault(); // Ngăn navigation
               e.stopPropagation(); // Ngăn event bubbling
               openModal();
             }}
@@ -52,6 +59,7 @@ const ProductItem = ({ item }: { item: Product }) => {
 
           <button
             onClick={(e) => {
+              e.preventDefault(); // Ngăn navigation
               e.stopPropagation(); // Ngăn event bubbling
               // Add to cart logic here
             }}
@@ -62,6 +70,7 @@ const ProductItem = ({ item }: { item: Product }) => {
 
           <button
             onClick={(e) => {
+              e.preventDefault(); // Ngăn navigation
               e.stopPropagation(); // Ngăn event bubbling
               // Add to favorite logic here
             }}
@@ -125,7 +134,7 @@ const ProductItem = ({ item }: { item: Product }) => {
         <p className="text-custom-sm">({item.reviews})</p>
       </div>
 
-      <h3 className="font-medium text-dark ease-out duration-200 hover:text-blue mb-1.5">
+      <h3 className="font-medium text-dark ease-out duration-200 group-hover:text-blue mb-1.5 transition-colors">
         {item.title}
       </h3>
 

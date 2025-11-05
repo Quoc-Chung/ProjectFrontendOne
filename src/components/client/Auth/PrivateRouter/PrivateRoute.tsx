@@ -31,7 +31,6 @@ const PrivateRoute = ({ children }: PrivateRouteProps) => {
     if (!token && !globalToastShown) {
       localStorage.setItem("redirectUrl", pathname);
       globalToastShown = true;
-      toast.warning("Bạn chưa đăng nhập. Vui lòng đăng nhập!");
       router.replace("/signin");
       return;
     }

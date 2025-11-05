@@ -17,10 +17,12 @@ export class CategoryService {
         headers: {
           "Content-Type": "application/json",
         },
+        credentials: 'include',
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorText = await response.text().catch(() => 'Unknown error');
+        throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
       }
 
       const data: CategoriesResponse = await response.json();

@@ -12,8 +12,7 @@ const nextConfig = {
 
   // Tắt Next.js development indicator overlay
   devIndicators: {
-    buildActivity: false,
-    buildActivityPosition: 'bottom-right',
+    position: 'bottom-right',
   },
 
   compiler: {
@@ -50,7 +49,10 @@ const nextConfig = {
   },
   
   // Bundle optimization
+  // Webpack config chỉ áp dụng cho production build
+  // Trong dev mode với Turbopack, config này sẽ không được sử dụng nhưng vẫn cần thiết cho production
   webpack: (config, { dev, isServer }) => {
+    // Chỉ áp dụng optimization cho production build (khi build, không phải dev)
     if (!dev && !isServer) {
       config.optimization.splitChunks = {
         chunks: 'all',
@@ -73,10 +75,10 @@ const nextConfig = {
           },
         },
       };
+      
+      // Add chunk loading error handling (chỉ cho production)
+      config.output.chunkLoadingGlobal = 'webpackChunkNextCommerce';
     }
-    
-    // Add chunk loading error handling
-    config.output.chunkLoadingGlobal = 'webpackChunkNextCommerce';
     
     return config;
   },

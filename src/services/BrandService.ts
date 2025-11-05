@@ -26,10 +26,12 @@ export class BrandService {
           headers: {
             "Content-Type": "application/json",
           },
+          credentials: 'include',
         });
 
         if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
+          const errorText = await response.text().catch(() => 'Unknown error');
+          throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
         }
 
         const data: BrandListResponse = await response.json();
@@ -38,7 +40,7 @@ export class BrandService {
           throw new Error(data.status.message || "Failed to fetch brands");
         }
 
-        // Thêm brands từ trang hiện tại
+
         allBrands.push(...data.data.content);
         
         // Cập nhật thông tin pagination

@@ -16,6 +16,53 @@ import { ProductDetails } from "./ProductDetails";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 
+// Component riêng để xử lý image với error handling
+const ProductImageCell: React.FC<{ product: Product }> = ({ product }) => {
+  const [imageError, setImageError] = useState(false);
+  const [imageLoaded, setImageLoaded] = useState(false);
+
+  if (!product.thumbnailUrl) {
+    return (
+      <div className="w-14 h-10 bg-gray-200 rounded-md flex items-center justify-center">
+        <span className="text-xs text-gray-400">N/A</span>
+      </div>
+    );
+  }
+
+  if (imageError) {
+    return (
+      <div className="w-14 h-10 bg-gray-200 rounded-md flex items-center justify-center">
+        <span className="text-xs text-gray-400">N/A</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative w-14 h-10">
+      {!imageLoaded && (
+        <div className="absolute inset-0 w-14 h-10 bg-gray-200 rounded-md flex items-center justify-center">
+          <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div>
+        </div>
+      )}
+      <Image
+        src={product.thumbnailUrl}
+        alt={product.name}
+        width={56}
+        height={40}
+        className={`object-cover rounded-md ${imageLoaded ? 'opacity-100' : 'opacity-0'} transition-opacity`}
+        onError={() => {
+          setImageError(true);
+          setImageLoaded(false);
+        }}
+        onLoad={() => {
+          setImageLoaded(true);
+        }}
+        unoptimized
+      />
+    </div>
+  );
+};
+
 const ProductManagement: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -25,7 +72,7 @@ const ProductManagement: React.FC = () => {
   const router = useRouter();
 
   // Phân trang từ API
-  const [currentPage, setCurrentPage] = useState<number>(0); // API sử dụng page bắt đầu từ 0
+  const [currentPage, setCurrentPage] = useState<number>(0); 
   const [totalPages, setTotalPages] = useState<number>(1);
   const [totalElements, setTotalElements] = useState<number>(0);
   const [hasNext, setHasNext] = useState<boolean>(false);
@@ -63,13 +110,10 @@ const ProductManagement: React.FC = () => {
     }
   };
 
-  // Load products from API
   useEffect(() => {
     loadProducts();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentPage]);
 
-  // Handle search
   const handleSearch = async () => {
     if (searchTerm.trim() === "") {
       loadProducts();
@@ -412,23 +456,7 @@ const ProductManagement: React.FC = () => {
                           {product.id.substring(0, 8)}...
                         </td>
                         <td className="px-4 py-2">
-                          {product.thumbnailUrl ? (
-                            <Image
-                              src={product.thumbnailUrl}
-                              alt={product.name}
-                              width={56}
-                              height={40}
-                              unoptimized
-                              className="object-cover rounded-md"
-                              onError={(e) => {
-                                (e.target as HTMLImageElement).style.display = "none";
-                              }}
-                            />
-                          ) : (
-                            <div className="w-14 h-10 bg-gray-200 rounded-md flex items-center justify-center">
-                              <span className="text-xs text-gray-400">N/A</span>
-                            </div>
-                          )}
+                          <ProductImageCell product={product} />
                         </td>
                         <td className="px-4 py-2 text-sm text-gray-900 truncate">
                           {product.name}

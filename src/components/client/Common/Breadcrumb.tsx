@@ -7,19 +7,20 @@ const Breadcrumb = ({ title, pages }) => {
       <div className="border-t border-gray-3">
         <div className="max-w-[1170px] w-full mx-auto px-4 sm:px-8 xl:px-0 py-5 xl:py-10">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <h1 className="font-semibold text-dark text-xl sm:text-2xl xl:text-custom-2">
+            <h1 className="font-semibold text-dark text-xl sm:text-2xl xl:text-custom-2 line-clamp-2 flex-1 min-w-0">
               {title}
             </h1>
 
-            <ul className="flex items-center gap-2">
-              <li className="text-custom-sm hover:text-blue">
+            <ul className="flex items-center gap-2 flex-shrink-0">
+              <li className="text-custom-sm hover:text-blue whitespace-nowrap">
                 <Link href="/" prefetch={true}>Home /</Link>
               </li>
 
               {pages.length > 0 &&
                 pages.map((page, key) => (
-                  <li className="text-custom-sm last:text-blue capitalize" key={key}>
-                    {page} 
+                  <li className={`text-custom-sm last:text-blue capitalize ${key === pages.length - 1 ? 'truncate max-w-[200px] sm:max-w-none' : 'whitespace-nowrap'}`} key={key}>
+                    {key > 0 && <span className="mx-1">/</span>}
+                    {page}
                   </li>
                 ))}
             </ul>

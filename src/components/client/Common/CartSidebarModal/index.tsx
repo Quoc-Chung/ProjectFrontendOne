@@ -2,6 +2,8 @@
 import React, { useEffect, useState } from "react";
 
 import { useCartModalContext } from "@/app/context/CartSidebarModalContext";
+import { useAppDispatch, useAppSelector } from "@/redux/store";
+import { getAllCartAction } from "@/redux/Client/CartOrder/Action";
 
 import SingleItem from "./SingleItem";
 import Link from "next/link";
@@ -9,12 +11,29 @@ import EmptyCart from "./EmptyCart";
 
 const CartSidebarModal = () => {
   const { isCartModalOpen, closeCartModal } = useCartModalContext();
-  const cartItems = []
+  const dispatch = useAppDispatch();
+  const token = useAppSelector((state) => state.auth.token);
+  const cartItems = useAppSelector((state) => state.cart.cart);
 
-  const totalPrice = 0
+  // Tính tổng tiền từ cart items - sử dụng useMemo để tối ưu
+  const totalPrice = React.useMemo(() => {
+    return cartItems?.reduce((total, item) => {
+      return total + (item.productPrice * item.quantity);
+    }, 0) || 0;
+  }, [cartItems]);
+
+  // Sync cart từ server khi mở modal - delay để không overwrite state vừa thêm
+  useEffect(() => {
+    if (isCartModalOpen && token) {
+      // Delay 500ms để đảm bảo không overwrite state vừa thêm sản phẩm
+      const timer = setTimeout(() => {
+        dispatch(getAllCartAction(token));
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [isCartModalOpen, token, dispatch]);
 
   useEffect(() => {
-    // closing modal while clicking outside
     function handleClickOutside(event) {
       if (!event.target.closest(".modal-content")) {
         closeCartModal();
@@ -90,7 +109,7 @@ const CartSidebarModal = () => {
             <div className="flex items-center justify-between gap-5 mb-6">
               <p className="font-medium text-xl text-dark">Subtotal:</p>
 
-              <p className="font-medium text-xl text-dark">${totalPrice}</p>
+              <p className="font-medium text-xl text-dark">{totalPrice.toLocaleString('vi-VN')} ₫</p>
             </div>
 
             <div className="flex items-center gap-4">

@@ -20,17 +20,39 @@ const Header = () => {
   const { openCartModal } = useCartModalContext();
 
 
-  const { user, token, isLogin } = useSelector((state: RootState) => state.auth);
+  const { user, token, isLogin, roleNames } = useSelector((state: RootState) => state.auth);
   const { cart: cartItems } = useSelector((state: RootState) => state.cart);
-  
-  // Tính tổng tiền từ cart items
-  const totalPrice = cartItems?.reduce((total, item) => {
-    return total + (item.productPrice * item.quantity);
-  }, 0) || 0;
+
+  const isAdministrator = React.useMemo(() => {
+    if (!roleNames || !Array.isArray(roleNames)) return false;
+    return roleNames.includes('Administrator') || roleNames.includes('ADMIN') || roleNames.includes('admin');
+  }, [roleNames]);
+
+  const totalPrice = React.useMemo(() => {
+    return cartItems?.reduce((total, item) => {
+      return total + (item.productPrice * item.quantity);
+    }, 0) || 0;
+  }, [cartItems]);
 
   useEffect(() => {
-    setIsHydrated(true);
-  }, []);
+    const checkHydration = () => {
+      if (typeof window !== 'undefined') {
+        const hasPersistData = localStorage.getItem('persist:auth') || localStorage.getItem('persist:cart');
+
+        if (hasPersistData || token || user) {
+          setIsHydrated(true);
+        } else {
+          setTimeout(() => setIsHydrated(true), 200);
+        }
+      } else {
+        setIsHydrated(true);
+      }
+    };
+    
+    const timer = setTimeout(checkHydration, 150);
+    
+    return () => clearTimeout(timer);
+  }, [token, user]);
 
   const getFilteredMenuData = () => {
     return menuData.filter(item => {
@@ -66,6 +88,9 @@ const Header = () => {
           
           // Đảm bảo xóa hết localStorage liên quan đến auth
           if (typeof window !== 'undefined') {
+            // Set flag để ProtectedRoute biết đây là logout, không hiển thị toast "chưa đăng nhập"
+            sessionStorage.setItem('justLoggedOut', 'true');
+            
             localStorage.removeItem('persist:auth');
             localStorage.removeItem('persist:root');
             // Xóa thêm các key có thể có
@@ -126,12 +151,12 @@ const Header = () => {
 
   return (
     <header
-      className={`fixed left-0 top-0 w-full z-9999 bg-white transition-all ease-in-out duration-300 ${stickyMenu && "shadow"
+      className={`fixed left-0 top-0 w-full z-9999 bg-white transition-shadow duration-100 ${stickyMenu && "shadow"
         }`}
     >
       <div className="max-w-[1170px] mx-auto px-4 sm:px-7.5 xl:px-0">
         <div
-          className={`flex flex-col lg:flex-row gap-5 items-end lg:items-center xl:justify-between ease-out duration-200 ${stickyMenu ? "py-4" : "py-6"
+          className={`flex flex-col lg:flex-row gap-5 items-end lg:items-center xl:justify-between ${stickyMenu ? "py-4" : "py-6"
             }`}
         >
           <div className="xl:w-auto flex-col sm:flex-row w-full flex sm:justify-between sm:items-center gap-5 sm:gap-10">
@@ -158,30 +183,33 @@ const Header = () => {
 
             <div className="flex w-full lg:w-auto justify-between items-center gap-5">
               <div className="flex items-center gap-5">
-                <Link href={isHydrated ? (isLogin ? "/my-account" : "/signin") : "/signin"} prefetch={true}
-                  className="flex items-center gap-2.5"
-                  onClick={handleAccountClick}
-                  suppressHydrationWarning
-                >
-                  <Image
-                    src={isHydrated ? (user?.avatarUrl ? user.avatarUrl : "/images/avatars/nologin.png") : "/images/avatars/nologin.png"}
-                    alt=""
-                    width={30}
-                    height={30}
-                    className="rounded-full"
-                  />
+                {/* Chỉ hiển thị account/login nếu không phải Administrator */}
+                {!isAdministrator && (
+                  <Link href={isHydrated ? (isLogin ? "/my-account" : "/signin") : "/signin"} prefetch={true}
+                    className="flex items-center gap-2.5 transition-none"
+                    onClick={handleAccountClick}
+                    suppressHydrationWarning
+                  >
+                    <Image
+                      src={isHydrated ? (user?.avatarUrl ? user.avatarUrl : "/images/avatars/nologin.png") : "/images/avatars/nologin.png"}
+                      alt=""
+                      width={30}
+                      height={30}
+                      className="rounded-full"
+                    />
 
 
-                  <div>
-                    <span className="block text-[12px] text-red-700 uppercase font-bold">
-                     {isHydrated ? (isLogin ? getDisplayName(user) : "account") : "account"}
-                    </span>
-                    <p className="font-medium text-custom-sm text-dark">
-                      {isHydrated ? (user && isLogin ?
-                        <button onClick={handleLogout}> Logout </button> : <button  >Login</button>) : <button>Login</button>}
-                    </p>
-                  </div>
-                </Link>
+                    <div>
+                      <span className="block text-[12px] text-red-700 uppercase font-bold">
+                       {isHydrated ? (isLogin ? getDisplayName(user) : "account") : "account"}
+                      </span>
+                      <p className="font-medium text-custom-sm text-dark">
+                        {isHydrated ? (user && isLogin ?
+                          <button onClick={handleLogout}> Logout </button> : <button  >Login</button>) : <button>Login</button>}
+                      </p>
+                    </div>
+                  </Link>
+                )}
 
                 {isHydrated && isLogin && (
                   <button
@@ -230,7 +258,7 @@ const Header = () => {
                       cart
                     </span>
                     <p className="font-medium text-custom-sm text-dark">
-                      ${totalPrice || 0}
+                      {totalPrice.toLocaleString('vi-VN')} ₫
                     </p>
                   </div>
                 </button>
@@ -301,12 +329,12 @@ const Header = () => {
                     ) : (
                       <li
                         key={i}
-                        className="group relative before:w-0 before:h-[3px] before:bg-blue before:absolute before:left-0 before:top-0 before:rounded-b-[3px] before:ease-out before:duration-200 hover:before:w-full "
+                        className="group relative"
                       >
                         <Link
                           href={menuItem.path}
                           prefetch={true}
-                          className={`hover:text-blue text-custom-sm font-medium text-dark flex ${stickyMenu ? "xl:py-4" : "xl:py-6"
+                          className={`text-custom-sm font-medium text-dark flex transition-none ${stickyMenu ? "xl:py-4" : "xl:py-6"
                             }`}
                         >
                           {menuItem.title}

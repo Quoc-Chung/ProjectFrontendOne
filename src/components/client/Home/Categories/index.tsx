@@ -1,9 +1,9 @@
 "use client";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { useCallback, useRef, useEffect, useState } from "react";
-import { Category, CategoriesResponse } from "@/types/Client/Category/Category";
+import { Category } from "@/types/Client/Category/Category";
 import Image from "next/image";
-import { BASE_API_PRODUCT_URL } from "@/utils/configAPI";
+import { CategoryService } from "@/services/CategoryService";
 
 // Import Swiper styles
 import "swiper/css/navigation";
@@ -11,39 +11,28 @@ import "swiper/css";
 import SingleItem from "./SingleItem";
 
 const Categories = () => {
-  const sliderRef = useRef(null);
+  const sliderRef = useRef<any>(null);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const handlePrev = useCallback(() => {
-    if (!sliderRef.current) return;
+    if (!sliderRef.current?.swiper) return;
     sliderRef.current.swiper.slidePrev();
   }, []);
 
   const handleNext = useCallback(() => {
-    if (!sliderRef.current) return;
+    if (!sliderRef.current?.swiper) return;
     sliderRef.current.swiper.slideNext();
   }, []);
 
-  // Fetch categories from API
+  // Fetch categories from API using CategoryService
   const fetchCategories = async () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await fetch(`${BASE_API_PRODUCT_URL}/api/categories`);
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      const data: CategoriesResponse = await response.json();
-      
-      if (data.status.code === "200") {
-        setCategories(data.data);
-      } else {
-        throw new Error(data.status.message);
-      }
+      const data = await CategoryService.getAllCategories();
+      setCategories(data);
     } catch (err: any) {
       console.error("Error fetching categories:", err);
       setError(err.message);
@@ -98,12 +87,6 @@ const Categories = () => {
   useEffect(() => {
     fetchCategories();
   }, []);
-
-  useEffect(() => {
-    if (sliderRef.current && categories.length > 0) {
-      sliderRef.current.swiper.init();
-    }
-  }, [categories]);
 
   return (
     <section className="overflow-hidden py-6 bg-white">

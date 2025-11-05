@@ -3,7 +3,22 @@ export const setCookie = (name: string, value: string, days: number = 7) => {
   if (typeof window !== 'undefined') {
     const expires = new Date();
     expires.setTime(expires.getTime() + (days * 24 * 60 * 60 * 1000));
-    document.cookie = `${name}=${value};expires=${expires.toUTCString()};path=/;SameSite=Lax`;
+    // Encode value để đảm bảo JSON và special characters được handle đúng
+    const encodedValue = encodeURIComponent(value);
+    // Sử dụng SameSite=Lax là tốt nhất cho same-site requests
+    const cookieString = `${name}=${encodedValue};expires=${expires.toUTCString()};path=/;SameSite=Lax`;
+    document.cookie = cookieString;
+    console.log('Cookie set:', name, 'length:', value.length);
+    
+    // Verify cookie was set
+    setTimeout(() => {
+      const verify = getCookie(name);
+      if (verify) {
+        console.log('Cookie verified:', name, 'exists');
+      } else {
+        console.warn('Cookie verification failed:', name, 'not found');
+      }
+    }, 50);
   }
 };
 
@@ -14,7 +29,15 @@ export const getCookie = (name: string): string | null => {
     for (let i = 0; i < ca.length; i++) {
       let c = ca[i];
       while (c.charAt(0) === ' ') c = c.substring(1, c.length);
-      if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
+      if (c.indexOf(nameEQ) === 0) {
+        const value = c.substring(nameEQ.length, c.length);
+        // Decode value nếu đã được encode
+        try {
+          return decodeURIComponent(value);
+        } catch {
+          return value;
+        }
+      }
     }
   }
   return null;

@@ -11,7 +11,6 @@ import "react-toastify/dist/ReactToastify.css";
 const ToastContainer = dynamic(() => import("react-toastify").then(mod => ({ default: mod.ToastContainer })), {
   ssr: false,
 });
-
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],

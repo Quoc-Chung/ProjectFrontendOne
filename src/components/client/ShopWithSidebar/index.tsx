@@ -8,6 +8,7 @@ import GenderDropdown from "./GenderDropdown";
 import ColorsDropdwon from "./ColorsDropdwon";
 import ProductGrid from "./ProductGrid";
 import Pagination from "./Pagination";
+import { useAppSelector } from "@/redux/store";
 
 // Dynamic import PriceDropdown to avoid SSR issues with react-range-slider-input
 const PriceDropdown = dynamic(() => import("./PriceDropdown"), {
@@ -20,29 +21,6 @@ const PriceDropdown = dynamic(() => import("./PriceDropdown"), {
 });
 import { Product, ProductsResponse } from "@/types/Client/Product/Product";
 import { BASE_API_PRODUCT_URL } from "@/utils/configAPI";
-import { Category, CategoriesResponse } from "@/types/Client/Category/Category";
-
-interface Brand {
-  id: string;
-  name: string;
-  logoUrl: string;
-  slug: string;
-}
-
-interface BrandsResponse {
-  status: {
-    code: string;
-    message: string;
-    label: string;
-  };
-  data: {
-    content: Brand[];
-    totalElements: number;
-    totalPages: number;
-    [key: string]: any;
-  };
-  extraData: any;
-}
 
 const ShopWithSidebar = () => {
   const [productStyle, setProductStyle] = useState<"grid" | "list">("grid");
@@ -58,22 +36,28 @@ const ShopWithSidebar = () => {
   const [hasNext, setHasNext] = useState(false);
   const [hasPrevious, setHasPrevious] = useState(false);
   
-  // Categories state
-  const [categories, setCategories] = useState<Array<{
-    name: string;
-    products: number;
-    isRefined: boolean;
-    id?: string;
-  }>>([]);
-  const [categoriesLoading, setCategoriesLoading] = useState(true);
-  
-  // Brands state
-  const [brands, setBrands] = useState<Array<{
-    name: string;
-    products: number;
-    id?: string;
-  }>>([]);
-  const [brandsLoading, setBrandsLoading] = useState(true);
+  // Lấy dữ liệu từ Redux
+  const { categories: reduxCategories, loading: categoriesLoading } = useAppSelector((state) => state.category);
+  const { brands: reduxBrands, loading: brandsLoading } = useAppSelector((state) => state.brand);
+
+  // Transform categories từ Redux format sang format của CategoryDropdown
+  const categories = React.useMemo(() => {
+    return reduxCategories.map((cat) => ({
+      name: cat.name || cat.displayName,
+      products: cat.productCount || 0,
+      isRefined: false,
+      id: cat.id,
+    }));
+  }, [reduxCategories]);
+
+  // Transform brands từ Redux format sang format của GenderDropdown
+  const brands = React.useMemo(() => {
+    return reduxBrands.map((brand) => ({
+      name: brand.name,
+      products: 0, // Brand service không trả về product count
+      id: brand.id,
+    }));
+  }, [reduxBrands]);
   
   // Search and Filter states
   const [searchTerm, setSearchTerm] = useState<string>("");
@@ -100,7 +84,7 @@ const ShopWithSidebar = () => {
     
     // category parameter (category name, not ID) - need to get category name from selectedCategory
     // We'll need to find category name from categories array
-    if (selectedCategory) {
+    if (selectedCategory && categories.length > 0) {
       const category = categories.find(cat => cat.id === selectedCategory);
       if (category?.name) {
         params.append('category', category.name);
@@ -109,7 +93,7 @@ const ShopWithSidebar = () => {
     
     // brand parameter (brand name, not ID) - need to get brand name from selectedBrand
     // We'll need to find brand name from brands array
-    if (selectedBrand) {
+    if (selectedBrand && brands.length > 0) {
       const brand = brands.find(b => b.id === selectedBrand);
       if (brand?.name) {
         params.append('brand', brand.name);
@@ -138,29 +122,70 @@ const ShopWithSidebar = () => {
       return;
     }
 
-      try {
-        setLoading(true);
-        const url = buildSearchUrl(page, 6); // 6 products per page
-        console.log("🔍 Fetching products from:", url);
-        
-        const response = await fetch(url, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        });
-        
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error("❌ API Error Response:", {
-            status: response.status,
-            statusText: response.statusText,
-            body: errorText,
-            url: url
-          });
-          throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
-        }
+    try {
+      setLoading(true);
       
+      // Build URL safely - only include filters if categories/brands are available when needed
+      let url: string;
+      if ((selectedCategory && categories.length === 0) || (selectedBrand && brands.length === 0)) {
+        // If filter is selected but data not loaded yet, build URL without that filter for now
+        const params = new URLSearchParams();
+        params.append('page', String(page - 1));
+        params.append('size', '6');
+        
+        if (searchTerm && searchTerm.trim()) {
+          params.append('name', searchTerm.trim());
+        }
+        
+        // Only add category if categories are loaded
+        if (selectedCategory && categories.length > 0) {
+          const category = categories.find(cat => cat.id === selectedCategory);
+          if (category?.name) {
+            params.append('category', category.name);
+          }
+        }
+        
+        // Only add brand if brands are loaded
+        if (selectedBrand && brands.length > 0) {
+          const brand = brands.find(b => b.id === selectedBrand);
+          if (brand?.name) {
+            params.append('brand', brand.name);
+          }
+        }
+        
+        if (priceRange.min !== null && priceRange.min !== undefined) {
+          params.append('minPrice', String(priceRange.min));
+        }
+        if (priceRange.max !== null && priceRange.max !== undefined) {
+          params.append('maxPrice', String(priceRange.max));
+        }
+        
+        url = `${BASE_API_PRODUCT_URL}/api/product/search?${params.toString()}`;
+      } else {
+        url = buildSearchUrl(page, 6);
+      }
+      
+      console.log("🔍 Fetching products from:", url);
+      
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text().catch(() => 'Unknown error');
+        console.error("❌ API Error Response:", {
+          status: response.status,
+          statusText: response.statusText,
+          body: errorText,
+          url: url
+        });
+        throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
+      }
+    
       const data: ProductsResponse = await response.json();
       
       if (data.status.code === "200") {
@@ -189,7 +214,7 @@ const ShopWithSidebar = () => {
     } finally {
       setLoading(false);
     }
-  }, [buildSearchUrl, productsCache, searchTerm, selectedCategory, selectedBrand, priceRange]);
+  }, [buildSearchUrl, productsCache, searchTerm, selectedCategory, selectedBrand, priceRange, categories, brands]);
 
   // Prefetch next page
   const prefetchNextPage = useCallback(async (currentPage: number) => {
@@ -223,157 +248,104 @@ const ShopWithSidebar = () => {
     }
   };
 
-  // Track if component has mounted
   const [hasMounted, setHasMounted] = useState(false);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
 
-  // Initial mount: fetch products, categories, and brands
+
   useEffect(() => {
     // Fetch data on mount
     const initializeData = async () => {
       try {
-        // Build URL manually for initial load to avoid dependency issues
-        // Only include parameters that have values, don't send "null" strings
         const params = new URLSearchParams();
         params.append('page', '0');
         params.append('size', '6'); // 6 products per page
-        
-        // Don't add name, brand, category, minPrice, maxPrice if they are null
-        // Let the API use default values
+
         
         const url = `${BASE_API_PRODUCT_URL}/api/product/search?${params.toString()}`;
         console.log("🔍 Initial fetch from:", url);
         
         setLoading(true);
         
-        // Add error handling for 500 errors
-        let response;
-        try {
-          response = await fetch(url, {
-            method: 'GET',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-          });
-        } catch (fetchError) {
-          console.error("❌ Network error:", fetchError);
-          throw fetchError;
-        }
+        // Fetch với error handling tốt hơn
+        const response = await fetch(url, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+        });
         
         if (!response.ok) {
-          const errorText = await response.text();
+          const errorText = await response.text().catch(() => 'Unknown error');
           console.error("❌ API Error Response:", {
             status: response.status,
             statusText: response.statusText,
-            body: errorText
+            body: errorText,
+            url: url
           });
-          throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
+          // Không throw error, chỉ log và set empty array
+          setProducts([]);
+          setLoading(false);
+          setHasMounted(true);
+          setIsInitialLoad(false);
+          return;
         }
         
         const data: ProductsResponse = await response.json();
         console.log("📦 Initial products response:", data);
         
-        if (data.status.code === "200") {
+        if (data.status && data.status.code === "200" && data.data) {
           const productsList = data.data.content || [];
           console.log("✅ Initial products found:", productsList.length);
           
           setProducts(productsList);
-          setCurrentPage(data.data.current_page || 1);
+          setCurrentPage(data.data.current_page !== undefined ? data.data.current_page + 1 : 1);
           setTotalPages(data.data.total_pages || 1);
           setTotalElements(data.data.total_elements || 0);
           setHasNext(data.data.has_next || false);
           setHasPrevious(data.data.has_previous || false);
         } else {
-          console.error("❌ API returned error:", data.status);
+          console.error("❌ API returned error:", data.status || data);
           setProducts([]);
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error("❌ Error fetching initial products:", error);
+        console.error("Error details:", {
+          message: error.message,
+          stack: error.stack,
+          name: error.name
+        });
         setProducts([]);
       } finally {
         setLoading(false);
+        setHasMounted(true);
+        setIsInitialLoad(false);
       }
-      
-      await fetchCategories();
-      await fetchBrands();
-      setHasMounted(true);
-      setIsInitialLoad(false);
     };
-    initializeData();
+    
+    // Đợi một chút để đảm bảo Redux đã hydrate xong
+    setTimeout(() => {
+      initializeData();
+    }, 200);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Only run on mount
+  }, []); // Only run on mount 
 
-  // Reset to page 1 when filters change and refetch (after initial mount)
-  // Wait for categories and brands to be loaded before applying filters
   useEffect(() => {
-    if (isInitialLoad || !hasMounted) return; // Skip on initial load
-    // Only refetch if categories and brands are loaded (when using their names)
-    if ((selectedCategory && categories.length === 0) || (selectedBrand && brands.length === 0)) {
+    if (isInitialLoad || !hasMounted) return; 
+
+    const needsCategories = selectedCategory && categories.length === 0;
+    const needsBrands = selectedBrand && brands.length === 0;
+    
+    if (needsCategories || needsBrands) {
       return; // Wait for data to load
     }
+    
     setCurrentPage(1);
     fetchProducts(1);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchTerm, selectedCategory, selectedBrand, priceRange.min, priceRange.max, hasMounted, isInitialLoad, categories, brands]);
 
-  // Fetch categories from API
-  const fetchCategories = useCallback(async () => {
-    try {
-      setCategoriesLoading(true);
-      const response = await fetch(`${BASE_API_PRODUCT_URL}/api/categories`);
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      const data: CategoriesResponse = await response.json();
-      
-      if (data.status.code === "200" && data.data) {
-        // Transform API categories to match CategoryDropdown format
-        const transformedCategories = data.data.map((cat) => ({
-          name: cat.name || cat.displayName,
-          products: cat.productCount || 0,
-          isRefined: false,
-          id: cat.id,
-        }));
-        setCategories(transformedCategories);
-      }
-    } catch (error) {
-      console.error("Error fetching categories:", error);
-      // Fallback to empty array or keep existing data
-    } finally {
-      setCategoriesLoading(false);
-    }
-  }, []);
 
-  // Fetch brands from API
-  const fetchBrands = useCallback(async () => {
-    try {
-      setBrandsLoading(true);
-      const response = await fetch(`${BASE_API_PRODUCT_URL}/api/brand`);
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      const data: BrandsResponse = await response.json();
-      
-      if (data.status.code === "200" && data.data?.content) {
-        // Transform API brands to match GenderDropdown format
-        const transformedBrands = data.data.content.map((brand) => ({
-          name: brand.name,
-          products: 0, 
-          id: brand.id,
-        }));
-        setBrands(transformedBrands);
-      }
-    } catch (error) {
-      console.error("Error fetching brands:", error);
-      // Fallback to empty array or keep existing data
-    } finally {
-      setBrandsLoading(false);
-    }
-  }, []);
 
   const options = [
     { label: "Latest Products", value: "0" },
