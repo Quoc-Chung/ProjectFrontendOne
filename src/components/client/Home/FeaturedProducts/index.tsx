@@ -7,7 +7,7 @@ import { useState } from "react";
 import shopData from "@/components/client/Shop/shopData";
 
 const FeaturedProducts = () => {
-  const [hoveredId, setHoveredId] = useState<number | null>(null);
+  const [hoveredId, setHoveredId] = useState<string | number | null>(null);
 
   // Lấy 8 sản phẩm đầu tiên
   const featuredProducts = shopData.slice(0, 8);
@@ -31,7 +31,6 @@ const FeaturedProducts = () => {
           </p>
         </motion.div>
 
-        {/* Products Grid - 4 cột */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {featuredProducts.map((product, index) => (
             <motion.div
@@ -47,9 +46,7 @@ const FeaturedProducts = () => {
             >
               <Link href={`/shop-details/${product.id}`} prefetch={true} scroll={false}>
                 <div className="bg-white rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden h-full flex flex-col">
-                  {/* Image Container */}
                   <div className="relative w-full h-[250px] sm:h-[280px] bg-gray-100 overflow-hidden">
-                    {/* Discount Badge */}
                     {index < 4 && (
                       <div className="absolute top-4 right-4 z-10 bg-red-500 text-white font-bold text-sm sm:text-base px-3 py-1.5 rounded-lg shadow-lg">
                         -{20 + index * 5}%
@@ -66,7 +63,6 @@ const FeaturedProducts = () => {
                       sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
                     />
 
-                    {/* Hover Overlay với nút */}
                     <div
                       className={`absolute inset-0 bg-black/40 flex items-center justify-center transition-opacity duration-300 ${
                         hoveredId === product.id ? "opacity-100" : "opacity-0"
@@ -82,13 +78,11 @@ const FeaturedProducts = () => {
                     </div>
                   </div>
 
-                  {/* Content */}
                   <div className="p-4 sm:p-5 flex-1 flex flex-col">
                     <h3 className="font-semibold text-base sm:text-lg text-dark mb-2 line-clamp-2 group-hover:text-blue-600 transition-colors duration-200">
                       {product.title}
                     </h3>
 
-                    {/* Rating */}
                     <div className="flex items-center gap-1 mb-3">
                       {[...Array(5)].map((_, i) => (
                         <svg

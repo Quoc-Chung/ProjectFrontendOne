@@ -1,17 +1,12 @@
-
 import { Metadata } from "next";
 import { InventoryManagement } from "../../../../../components/server/InventoryManagement";
-import { Product } from "../../../../../types/Admin";
-import { mockProducts } from "../../../../../utils/mockData";
-
 
 export const metadata: Metadata = {
-  title: "NextCommerce | Employee Management",
-  description: "Manage employee information in NextCommerce Admin Panel",
+  title: "NextCommerce | Quản lý kho",
+  description: "Quản lý kho hàng trong bảng điều khiển Admin NextCommerce",
 };
 
 export default function InventoryPage() {
-    
   return (
     <main className="p-8">
       <InventoryManagement />

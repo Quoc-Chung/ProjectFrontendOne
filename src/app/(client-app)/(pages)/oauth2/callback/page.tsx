@@ -12,6 +12,7 @@ const OAuth2Callback = () => {
     const dispatch = useAppDispatch();
 
     useEffect(() => {
+        document.title = "Đăng nhập Google | NextCommerce";
         const data = searchParams.get("data");
         if (data) {
             try {

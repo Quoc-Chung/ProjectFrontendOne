@@ -49,7 +49,7 @@ export class ChunkLoader {
 }
 
 // Enhanced dynamic import with chunk error handling
-export function dynamicImport<T>(
+export function dynamicImport<T extends { default: React.ComponentType<any> }>(
   importFn: () => Promise<T>,
   options: {
     ssr?: boolean;
@@ -59,9 +59,10 @@ export function dynamicImport<T>(
 ) {
   const { ssr = true, loading, chunkName } = options;
 
-  return React.lazy(() => 
-    ChunkLoader.loadChunk(importFn, chunkName)
-  );
+  return React.lazy(async () => {
+    const loadedModule = await ChunkLoader.loadChunk(importFn, chunkName);
+    return loadedModule as { default: React.ComponentType<any> };
+  });
 }
 
 // Global chunk error handler

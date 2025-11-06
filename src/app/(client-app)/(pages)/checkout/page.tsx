@@ -4,8 +4,8 @@ import ProtectedRoute from "../../../../components/client/Auth/ProtectedRoute";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Checkout Page | NextCommerce Nextjs E-commerce template",
-  description: "This is Checkout Page for NextCommerce Template",
+  title: "Thanh toán | NextCommerce",
+  description: "Trang thanh toán NextCommerce",
 };
 
 const CheckoutPage = () => {

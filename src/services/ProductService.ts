@@ -201,5 +201,38 @@ export class ProductService {
       throw error;
     }
   }
+
+  /**
+   * Lấy danh sách sản phẩm mới nhất
+   * @param limit - Số lượng sản phẩm cần lấy
+   */
+  static async getLatestProducts(limit: number = 10): Promise<Product[]> {
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/products/statistics/latest?limit=${limit}`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      if (data.status.code !== "200") {
+        throw new Error(data.status.message || "Failed to fetch latest products");
+      }
+
+      return data.data || [];
+    } catch (error) {
+      console.error("Error fetching latest products:", error);
+      throw error;
+    }
+  }
 }
 

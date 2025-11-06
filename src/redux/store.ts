@@ -8,36 +8,30 @@ import { persistStore, persistReducer } from "redux-persist";
 import storage from "redux-persist/lib/storage";
 import { combineReducers } from "@reduxjs/toolkit";
 
-// Cấu hình persist cho auth reducer - chỉ persist những field cần thiết
+
 const authPersistConfig = {
   key: 'auth',
   storage,
-  whitelist: ['user', 'token', 'isLogin', 'roleNames'], // Chỉ persist những field cần thiết
-  // Thêm transform để tối ưu hóa
+  whitelist: ['user', 'token', 'isLogin', 'roleNames'], 
   transforms: [],
-  // Giảm throttle để persist nhanh hơn (đặc biệt khi login)
   throttle: 100,
 };
 
-// Cấu hình persist cho cart reducer
 const cartPersistConfig = {
   key: 'cart',
   storage,
-  whitelist: ['cart'], // Persist field 'cart' (array of cart items)
+  whitelist: ['cart'], 
 };
-
-// Cấu hình persist cho brand reducer
 const brandPersistConfig = {
   key: 'brand',
   storage,
-  whitelist: ['brands', 'lastFetched'], // Lưu brands và thời gian fetch
+  whitelist: ['brands', 'lastFetched'], 
 };
 
-// Cấu hình persist cho category reducer
 const categoryPersistConfig = {
   key: 'category',
   storage,
-  whitelist: ['categories', 'lastFetched'], // Lưu categories và thời gian fetch
+  whitelist: ['categories', 'lastFetched'],
 };
 
 const rootReducer = combineReducers({

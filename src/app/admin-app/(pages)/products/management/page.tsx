@@ -1,9 +1,13 @@
 "use client";
 
-import React from "react";
+import React, { useEffect } from "react";
 import ProductManagement from "../../../../../components/server/ProductManagement";
 
 const ProductPage = () => {
+  useEffect(() => {
+    document.title = "NextCommerce | Quản lý sản phẩm";
+  }, []);
+
   return <ProductManagement />;
 };
 

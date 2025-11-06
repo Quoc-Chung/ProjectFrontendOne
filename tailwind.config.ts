@@ -8,7 +8,7 @@ const config: Config = {
     "./src/**/*.{js,ts,jsx,tsx,mdx}",
     "./app/**/*.{js,ts,jsx,tsx}",  
   ],
-  darkMode: ["media", "class"],
+  darkMode: "class",
   theme: {
   	fontFamily: {
   		'euclid-circular-a': [

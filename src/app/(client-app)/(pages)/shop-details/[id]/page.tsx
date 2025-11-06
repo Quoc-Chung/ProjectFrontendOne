@@ -19,8 +19,8 @@ export async function generateMetadata({ params }: ShopDetailsPageProps): Promis
     };
   } catch (error) {
     return {
-      title: "Shop Details Page | NextCommerce",
-      description: "This is Shop Details Page for NextCommerce Template",
+      title: "Chi tiết sản phẩm | NextCommerce",
+      description: "Trang chi tiết sản phẩm NextCommerce",
     };
   }
 }

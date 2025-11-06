@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   experimental: {
-    optimizeCss: true,
+    // optimizeCss: true, // Tạm thời tắt để tránh lỗi với critters
     optimizePackageImports: ['lucide-react', '@radix-ui/react-icons'],
     // Tối ưu navigation
     scrollRestoration: true,

@@ -2,7 +2,7 @@ import Blog from "@/components/client/Blog";
 
 import { Metadata } from "next";
 export const metadata: Metadata = {
-  title: "Blog | NextCommerce Nextjs E-commerce template",
+  title: "Blog | NextCommerce",
   description: "Blog về sản phẩm công nghệ, hiệu năng máy tính",
 };
 

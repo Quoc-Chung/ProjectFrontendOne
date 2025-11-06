@@ -3,38 +3,33 @@
 # ===============================
 FROM node:20-alpine AS builder
 
-# Đặt thư mục làm việc
 WORKDIR /app
 
-# Copy file cấu hình trước (tận dụng cache khi build)
+# Chỉ copy file cần thiết trước để tận dụng cache
 COPY package*.json ./
 
-# Cài đặt dependencies
+# Dùng npm ci để install tất cả dependencies (bao gồm devDependencies cho build)
 RUN npm ci
 
-# Copy toàn bộ source code vào container
+# Copy phần code còn lại
 COPY . .
 
-# Build ứng dụng Next.js (output: .next)
+# Build Next.js
 RUN npm run build
 
 # ===============================
-# 2️⃣ Stage chạy production
+# 2️⃣ Stage production
 # ===============================
 FROM node:20-alpine AS runner
-
 WORKDIR /app
 
 ENV NODE_ENV=production
 
-# Copy file cần thiết từ stage builder
+# Copy từ builder stage
 COPY --from=builder /app/package*.json ./
 COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/node_modules ./node_modules
 
-# Expose cổng 3000 (Next.js default)
 EXPOSE 3000
-
-# Chạy ứng dụng
 CMD ["npm", "start"]

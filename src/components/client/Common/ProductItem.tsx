@@ -4,13 +4,15 @@ import Image from "next/image";
 import { Product } from "@/types/product";
 import { useModalContext } from "@/app/context/QuickViewModalContext";
 import Link from "next/link";
+import { formatPrice } from "@/utils/helpers";
 
 const ProductItem = ({ item }: { item: Product }) => {
   const { openModal } = useModalContext();
+  const productId = item.originalId || item.id;
 
   return (
     <Link 
-      href={`/shop-details/${item.id}`} 
+      href={`/shop-details/${productId}`} 
       prefetch={true}
       scroll={false}
       className="group cursor-pointer block"
@@ -19,13 +21,20 @@ const ProductItem = ({ item }: { item: Product }) => {
       aria-label={`Xem chi tiết sản phẩm ${item.title}`}
     >
       <div className="relative overflow-hidden flex items-center justify-center rounded-lg bg-[#F6F7FB] min-h-[270px] mb-4">
-        <Image src={item.imgs.previews[0]} alt="" width={250} height={250} />
+        <Image 
+          src={item.imgs?.previews?.[0] || "/images/products/product-1-bg-1.png"} 
+          alt={item.title} 
+          width={250} 
+          height={250}
+          className="object-contain"
+          unoptimized
+        />
 
         <div className="absolute left-0 bottom-0 translate-y-full w-full flex items-center justify-center gap-2.5 pb-5 ease-linear duration-200 group-hover:translate-y-0">
           <button
             onClick={(e) => {
-              e.preventDefault(); // Ngăn navigation
-              e.stopPropagation(); // Ngăn event bubbling
+              e.preventDefault(); 
+              e.stopPropagation(); 
               openModal();
             }}
             id="newOne"
@@ -55,13 +64,11 @@ const ProductItem = ({ item }: { item: Product }) => {
             </svg>
           </button>
 
-          
-
+        
           <button
             onClick={(e) => {
-              e.preventDefault(); // Ngăn navigation
-              e.stopPropagation(); // Ngăn event bubbling
-              // Add to cart logic here
+              e.preventDefault(); 
+              e.stopPropagation(); 
             }}
             className="inline-flex font-medium text-custom-sm py-[7px] px-5 rounded-[5px] bg-blue text-white ease-out duration-200 hover:bg-blue-dark"
           >
@@ -70,9 +77,9 @@ const ProductItem = ({ item }: { item: Product }) => {
 
           <button
             onClick={(e) => {
-              e.preventDefault(); // Ngăn navigation
-              e.stopPropagation(); // Ngăn event bubbling
-              // Add to favorite logic here
+              e.preventDefault(); 
+              e.stopPropagation(); 
+
             }}
             aria-label="button for favorite select"
             id="favOne"
@@ -138,10 +145,16 @@ const ProductItem = ({ item }: { item: Product }) => {
         {item.title}
       </h3>
 
-      <span className="flex items-center gap-2 font-medium text-lg">
-        <span className="text-dark">${item.discountedPrice}</span>
-        <span className="text-dark-4 line-through">${item.price}</span>
-      </span>
+      {item.price > 0 ? (
+        <span className="flex items-center gap-2 font-medium text-lg">
+          <span className="text-dark">{formatPrice(item.discountedPrice)}</span>
+          {item.price !== item.discountedPrice && (
+            <span className="text-dark-4 line-through">{formatPrice(item.price)}</span>
+          )}
+        </span>
+      ) : (
+        <span className="text-dark font-medium text-lg">Liên hệ</span>
+      )}
     </Link>
   );
 };

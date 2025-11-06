@@ -3,6 +3,7 @@
 import React, { useState, useRef } from 'react';
 import { CreatePostRequest } from '@/types/SocialMedia/Post';
 import { toast } from 'react-toastify';
+import Image from 'next/image';
 
 interface PostFormProps {
   onSubmit: (postData: CreatePostRequest) => Promise<void>;
@@ -103,10 +104,13 @@ const PostForm: React.FC<PostFormProps> = ({ onSubmit, isLoading = false }) => {
             <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
               {images.map((image, index) => (
                 <div key={index} className="relative group">
-                  <img
+                  <Image
                     src={URL.createObjectURL(image)}
                     alt={`Preview ${index + 1}`}
+                    width={300}
+                    height={128}
                     className="w-full h-32 object-cover rounded-lg"
+                    unoptimized
                   />
                   <button
                     type="button"

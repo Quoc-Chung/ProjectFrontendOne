@@ -3,8 +3,8 @@ import ToastTest from "@/components/client/ToastTest";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Toast Test | NextCommerce",
-  description: "Test toast functionality",
+  title: "Kiểm tra Toast | NextCommerce",
+  description: "Trang kiểm tra chức năng toast",
 };
 
 const ToastTestPage = () => {

@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { Post, Reaction } from '@/types/SocialMedia/Post';
 import CommentForm from '../CommentForm';
 import ShareButton from '../ShareButton';
+import Image from 'next/image';
 
 interface PostCardProps {
   post: Post;
@@ -88,27 +89,36 @@ const PostCard: React.FC<PostCardProps> = ({ post, onReaction, onComment, onShar
       {post.images && post.images.length > 0 && (
         <div className="mb-4">
           {post.images.length === 1 ? (
-            <img
+            <Image
               src={post.images[0]}
               alt="Post image"
+              width={800}
+              height={384}
               className="w-full max-h-96 object-cover rounded-lg"
+              unoptimized
             />
           ) : (
             <div className="grid grid-cols-2 gap-2">
               {post.images.slice(0, 4).map((image, index) => (
-                <img
+                <Image
                   key={index}
                   src={image}
                   alt={`Post image ${index + 1}`}
+                  width={400}
+                  height={192}
                   className="w-full h-48 object-cover rounded-lg"
+                  unoptimized
                 />
               ))}
               {post.images.length > 4 && (
                 <div className="relative">
-                  <img
+                  <Image
                     src={post.images[4]}
                     alt="Post image 5"
+                    width={400}
+                    height={192}
                     className="w-full h-48 object-cover rounded-lg"
+                    unoptimized
                   />
                   <div className="absolute inset-0 bg-black bg-opacity-50 rounded-lg flex items-center justify-center">
                     <span className="text-white text-2xl font-bold">+{post.images.length - 4}</span>

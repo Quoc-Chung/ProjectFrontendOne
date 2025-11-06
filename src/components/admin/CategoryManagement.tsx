@@ -5,6 +5,7 @@ import { Category } from "../../types/Client/Category/Category";
 import { CategoryService } from "../../services/CategoryService";
 import { toast } from "react-toastify";
 import { Search, Folder, FolderTree, Eye, X } from "lucide-react";
+import Image from "next/image";
 
 const CategoryManagement = () => {
   const [categories, setCategories] = useState<Category[]>([]);
@@ -161,23 +162,23 @@ const CategoryManagement = () => {
             {/* Category Icon */}
             <div className="flex justify-center mb-4">
               {category.imageUrl ? (
-                <img
+                <Image
                   src={category.imageUrl}
                   alt={category.name}
+                  width={80}
+                  height={80}
                   className="h-20 w-20 object-contain"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).style.display = "none";
-                    (e.target as HTMLImageElement).nextElementSibling?.classList.remove("hidden");
-                  }}
+                  unoptimized
                 />
-              ) : null}
-              <div className={`h-20 w-20 bg-gray-100 rounded-lg flex items-center justify-center ${category.imageUrl ? "hidden" : ""}`}>
-                {category.hasChildren ? (
-                  <FolderTree className="h-10 w-10 text-gray-400" />
-                ) : (
-                  <Folder className="h-10 w-10 text-gray-400" />
-                )}
-              </div>
+              ) : (
+                <div className="h-20 w-20 bg-gray-100 rounded-lg flex items-center justify-center">
+                  {category.hasChildren ? (
+                    <FolderTree className="h-10 w-10 text-gray-400" />
+                  ) : (
+                    <Folder className="h-10 w-10 text-gray-400" />
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Category Info */}
@@ -271,10 +272,13 @@ const CategoryManagement = () => {
                   {/* Category Image */}
                   {selectedCategory.imageUrl && (
                     <div className="flex justify-center mb-4">
-                      <img
+                      <Image
                         src={selectedCategory.imageUrl}
                         alt={selectedCategory.name}
+                        width={128}
+                        height={128}
                         className="h-32 w-32 object-contain border border-gray-200 rounded-lg"
+                        unoptimized
                       />
                     </div>
                   )}

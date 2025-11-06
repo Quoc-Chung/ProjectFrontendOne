@@ -1,10 +1,10 @@
 'use client'
 
 import { useSelector } from 'react-redux'
-import { RootState } from '../../../../redux/store'
+import { RootState } from '@/redux/store'
 
 const AdminInfo = () => {
-  const { user, roleNames } = useSelector((state: RootState) => state.authReducer)
+  const { user, roleNames } = useSelector((state: RootState) => state.auth)
 
   if (!user) return null
 

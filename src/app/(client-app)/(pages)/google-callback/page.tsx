@@ -13,6 +13,7 @@ const GoogleCallbackPage = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    document.title = "Đăng nhập Google | NextCommerce";
     const processCallback = async () => {
       try {
         // Lấy các tham số từ URL callback

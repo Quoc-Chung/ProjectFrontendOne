@@ -4,8 +4,8 @@ import { CustomerPurchase } from "../../../../../types/Admin";
 import { CustomerDetails } from "../../../../../components/server/CustomerDetails";
 
 export const metadata: Metadata = {
-  title: "NextCommerce | Customer Detail",
-  description: "View customer purchase details",
+  title: "NextCommerce | Chi tiết khách hàng",
+  description: "Xem chi tiết mua hàng của khách hàng",
 };
 
 export default function CustomerDetailPage() {

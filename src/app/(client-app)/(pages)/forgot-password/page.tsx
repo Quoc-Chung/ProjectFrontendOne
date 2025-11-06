@@ -3,8 +3,8 @@ import React from "react";
 import { Metadata } from "next";
 import ForgetPassword from "../../../../components/client/Auth/ForgotPassword";
 export const metadata: Metadata = {
-  title: "Import email use forget password Page | NextCommerce Nextjs E-commerce template",
-  description: "This is Import Email Page for NextCommerce Template",
+  title: "Quên mật khẩu | NextCommerce",
+  description: "Trang quên mật khẩu NextCommerce",
 };
 
 const ForgetPasswordPage = () => {

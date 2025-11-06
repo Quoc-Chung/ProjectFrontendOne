@@ -7,6 +7,7 @@ import { toast } from "react-toastify";
 import { Search, Plus, Pencil, Trash2, X, Check, Image as ImageIcon } from "lucide-react";
 import { useSelector } from "react-redux";
 import { RootState } from "../../redux/store";
+import Image from "next/image";
 
 const BrandManagement = () => {
   // Get token from Redux
@@ -318,19 +319,19 @@ const BrandManagement = () => {
             {/* Logo */}
             <div className="flex justify-center mb-4">
               {brand.logoUrl ? (
-                <img
+                <Image
                   src={brand.logoUrl}
                   alt={brand.name}
+                  width={80}
+                  height={80}
                   className="h-20 w-20 object-contain"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).style.display = "none";
-                    (e.target as HTMLImageElement).nextElementSibling?.classList.remove("hidden");
-                  }}
+                  unoptimized
                 />
-              ) : null}
-              <div className="h-20 w-20 bg-gray-100 rounded-lg flex items-center justify-center hidden">
-                <ImageIcon className="h-10 w-10 text-gray-400" />
-              </div>
+              ) : (
+                <div className="h-20 w-20 bg-gray-100 rounded-lg flex items-center justify-center">
+                  <ImageIcon className="h-10 w-10 text-gray-400" />
+                </div>
+              )}
             </div>
 
             {/* Brand Info */}
@@ -457,13 +458,13 @@ const BrandManagement = () => {
                 <div className="border border-gray-300 rounded-lg p-4">
                   <p className="text-sm font-medium text-gray-700 mb-2">Xem trước logo:</p>
                   <div className="flex justify-center">
-                    <img
+                    <Image
                       src={formData.logoUrl}
                       alt="Logo preview"
+                      width={80}
+                      height={80}
                       className="h-20 w-20 object-contain"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).style.display = "none";
-                      }}
+                      unoptimized
                     />
                   </div>
                 </div>

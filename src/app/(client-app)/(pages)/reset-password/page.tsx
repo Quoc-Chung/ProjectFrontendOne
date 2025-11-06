@@ -3,8 +3,8 @@ import React from "react";
 import { Metadata } from "next";
 import ResetForgetPassword from "../../../../components/client/Auth/ResetPassword";
 export const metadata: Metadata = {
-  title: "Import email use forget password Page | NextCommerce Nextjs E-commerce template",
-  description: "This is Import Email Page for NextCommerce Template",
+  title: "Đặt lại mật khẩu | NextCommerce",
+  description: "Trang đặt lại mật khẩu NextCommerce",
 };
 /* /reset-password */ 
 const ResetPassword = () => {

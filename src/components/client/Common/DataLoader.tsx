@@ -5,17 +5,11 @@ import { useAppDispatch, useAppSelector } from "@/redux/store";
 import { fetchBrandsAction } from "@/redux/Client/Brand/Action";
 import { fetchCategoriesAction } from "@/redux/Client/Category/Action";
 
-/**
- * Component để load Brand và Category khi app khởi động
- * Chỉ load nếu chưa có dữ liệu hoặc dữ liệu quá cũ (hơn 5 phút)
- */
+const CACHE_DURATION = 5 * 60 * 1000;
 const DataLoader = () => {
   const dispatch = useAppDispatch();
   const { brands, lastFetched: brandsLastFetched } = useAppSelector((state) => state.brand);
   const { categories, lastFetched: categoriesLastFetched } = useAppSelector((state) => state.category);
-
-  // Thời gian cache (5 phút = 300000ms)
-  const CACHE_DURATION = 5 * 60 * 1000;
 
   useEffect(() => {
     // Chỉ load trên client side
@@ -46,7 +40,7 @@ const DataLoader = () => {
     }, 100);
 
     return () => clearTimeout(timer);
-  }, []);
+  }, [brands.length, brandsLastFetched, categories.length, categoriesLastFetched, dispatch]);
   return null;
 };
 

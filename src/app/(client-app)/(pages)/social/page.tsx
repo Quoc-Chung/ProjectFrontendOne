@@ -14,6 +14,7 @@ const SocialMediaPage: React.FC = () => {
   const [isCreatingPost, setIsCreatingPost] = useState(false);
 
   useEffect(() => {
+    document.title = "Mạng xã hội | NextCommerce";
     loadPosts();
   }, []);
 

@@ -3,8 +3,8 @@ import React from "react";
 import { Metadata } from "next";
 import VarifierOTp from "../../../../components/client/Auth/VerifyOtp";
 export const metadata: Metadata = {
-  title: "Verify Otp Page | NextCommerce Nextjs E-commerce template",
-  description: "Verify forget password NextCommerce Template",
+  title: "Xác thực OTP | NextCommerce",
+  description: "Trang xác thực OTP NextCommerce",
 };
 
 /* /verifyotp */

@@ -3,13 +3,13 @@ import { Menu } from "@/types/Menu";
 export const menuData: Menu[] = [
   {
     id: 1,
-    title: "Home",
+    title: "Trang chủ",
     newTab: false,
     path: "/",
   },
   {
     id: 2,
-    title: "Shop",
+    title: "Cửa hàng",
     newTab: false,
     path: "/shop-with-sidebar",
   },
@@ -21,19 +21,19 @@ export const menuData: Menu[] = [
   },
   {
     id: 4,
-    title: "Q&A",
+    title: "Hỏi đáp",
     newTab: false,
     path: "/faq",
   },
   {
     id: 5,
-    title: "Cart",
+    title: "Giỏ hàng",
     newTab: false,
     path: "/cart",
   },
   {
     id: 6,
-    title: "Contact",
+    title: "Liên hệ",
     newTab: false,
     path: "/contact",
   }

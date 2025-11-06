@@ -3,7 +3,7 @@
 // ===========================
 
 export interface ProductSpec {
-  [key: string]: string; // Changed: removed undefined, API expects only string values
+  [key: string]: string; 
   CPU?: string;
   Display?: string;
   RAM?: string;
@@ -28,11 +28,11 @@ export interface Product {
   brandName: string;
   categoryName: string;
   specs: ProductSpec;
-  price: number;
+  price: number | null;
   thumbnailUrl: string | null;
+  images?: string[];
 }
 
-// API Response Types
 export interface ApiStatus {
   code: string;
   message: string;

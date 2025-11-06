@@ -11,6 +11,8 @@ export default function ForbiddenPage() {
 
   useEffect(() => {
     setIsHydrated(true);
+    // Set page title
+    document.title = "Truy cập bị từ chối | NextCommerce";
   }, []);
 
   return (
