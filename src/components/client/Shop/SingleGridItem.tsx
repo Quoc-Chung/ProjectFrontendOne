@@ -55,11 +55,19 @@ const SingleGridItem = ({ item }: { item: Product }) => {
     );
   };
 
+  const productId = item.originalId || item.id;
+
+  // Validate productId
+  if (!productId || productId === 'undefined' || productId === 'null') {
+    console.error('Invalid product ID:', productId, item);
+    return null;
+  }
+
   return (
     <Link 
-      href={`/shop-details/${item.id}`}
+      href={`/shop-details/${String(productId)}`}
       prefetch={true}
-      scroll={false}
+      scroll={true}
       className="group cursor-pointer block"
       role="button"
       tabIndex={0}

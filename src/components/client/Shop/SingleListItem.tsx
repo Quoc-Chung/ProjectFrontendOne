@@ -8,12 +8,19 @@ import Image from "next/image";
 
 const SingleListItem = ({ item }: { item: Product }) => {
   const { openModal } = useModalContext();
+  const productId = item.originalId || item.id;
+
+  // Validate productId
+  if (!productId || productId === 'undefined' || productId === 'null') {
+    console.error('Invalid product ID:', productId, item);
+    return null;
+  }
 
   return (
     <Link
-      href={`/shop-details/${item.id}`}
+      href={`/shop-details/${String(productId)}`}
       prefetch={true}
-      scroll={false}
+      scroll={true}
       className="group rounded-lg bg-white shadow-1 block cursor-pointer"
       role="button"
       tabIndex={0}

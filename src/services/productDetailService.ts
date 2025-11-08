@@ -36,14 +36,14 @@ export const productDetailService = {
           label: "OK"
         },
         data: {
-          id: productId,
-          name: `Product ${productId}`,
-          description: `This is a detailed description for product ${productId}. It features high-quality materials and modern design.`,
-          brandName: "Brand Name",
-          categoryName: "Electronics",
+          id: productId || 'unknown',
+          name: `Sản phẩm ${productId || 'Không xác định'}`,
+          description: `Đây là mô tả chi tiết cho sản phẩm ${productId || 'này'}. Sản phẩm có chất lượng cao và thiết kế hiện đại.`,
+          brandName: "Thương hiệu",
+          categoryName: "Điện tử",
           specs: {
-            "Material": "Premium Quality",
-            "Color": "Black",
+            "Material": "Chất lượng cao",
+            "Color": "Đen",
             "Weight": "1.2kg",
             "Dimensions": "30x20x10cm"
           },
@@ -54,21 +54,37 @@ export const productDetailService = {
         extraData: null
       };
 
-      // Thử gọi API thực trước
-      const response = await fetch(`${API_BASE_URL}/product/${productId}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
+      // Thử gọi API thực trước với timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 giây timeout
+      
+      try {
+        const response = await fetch(`${API_BASE_URL}/product/${productId}`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          signal: controller.signal,
+        });
 
-      if (!response.ok) {
-        console.warn(`API not available (${response.status}), using mock data for product ${productId}`);
-        return mockProductData;
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+          console.warn(`API not available (${response.status}), using mock data for product ${productId}`);
+          return mockProductData;
+        }
+
+        const data: ProductDetailResponse = await response.json();
+        return data;
+      } catch (fetchError: any) {
+        clearTimeout(timeoutId);
+        if (fetchError.name === 'AbortError') {
+          console.warn(`API request timeout, using mock data for product ${productId}`);
+          return mockProductData;
+        }
+        // Nếu là lỗi khác, throw lại để catch block bên ngoài xử lý
+        throw fetchError;
       }
-
-      const data: ProductDetailResponse = await response.json();
-      return data;
     } catch (error) {
       console.warn('API error, using mock data:', error);
       // Trả về mock data khi có lỗi
@@ -79,14 +95,14 @@ export const productDetailService = {
           label: "OK"
         },
         data: {
-          id: productId,
-          name: `Product ${productId}`,
-          description: `This is a detailed description for product ${productId}. It features high-quality materials and modern design.`,
-          brandName: "Brand Name",
-          categoryName: "Electronics",
+          id: productId || 'unknown',
+          name: `Sản phẩm ${productId || 'Không xác định'}`,
+          description: `Đây là mô tả chi tiết cho sản phẩm ${productId || 'này'}. Sản phẩm có chất lượng cao và thiết kế hiện đại.`,
+          brandName: "Thương hiệu",
+          categoryName: "Điện tử",
           specs: {
-            "Material": "Premium Quality",
-            "Color": "Black",
+            "Material": "Chất lượng cao",
+            "Color": "Đen",
             "Weight": "1.2kg",
             "Dimensions": "30x20x10cm"
           },

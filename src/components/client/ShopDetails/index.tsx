@@ -78,10 +78,11 @@ const ShopDetails = ({ productData }: ShopDetailsProps) => {
   };
 
   // Memoize specs - hooks phải được gọi trước early return
-  const specsString = product?.specs ? JSON.stringify(product.specs) : null;
+  // Chỉ depend vào product?.id để tránh infinite loop khi product?.specs là object mới mỗi lần render
   const detailedSpecs = useMemo(() => {
+    if (!product) return {};
     return getDetailedSpecs(product);
-  }, [product?.id, specsString]);
+  }, [product?.id]);
 
   const groupedSpecs = useMemo(() => {
     return groupSpecs(detailedSpecs);
@@ -89,9 +90,21 @@ const ShopDetails = ({ productData }: ShopDetailsProps) => {
 
   // Early return nếu không có productData - sau tất cả hooks
   if (!productData || !productData.data) {
+    console.warn('ShopDetails: No product data available', { productData });
     return (
       <div className="text-center py-20">
         <p className="text-gray-600">Không tìm thấy thông tin sản phẩm</p>
+        <p className="text-sm text-gray-400 mt-2">Vui lòng thử lại sau hoặc quay lại trang chủ</p>
+      </div>
+    );
+  }
+  
+  // Đảm bảo product có đầy đủ thông tin cần thiết
+  if (!product) {
+    console.error('ShopDetails: Product is null or undefined', { productData });
+    return (
+      <div className="text-center py-20">
+        <p className="text-gray-600">Dữ liệu sản phẩm không hợp lệ</p>
       </div>
     );
   }
@@ -192,11 +205,46 @@ const ShopDetails = ({ productData }: ShopDetailsProps) => {
 
 
 
+  // Debug logging
+  console.log('ShopDetails: Component rendering');
+  console.log('ShopDetails: productData:', productData);
+  console.log('ShopDetails: product:', product);
+  console.log('ShopDetails: product?.name:', product?.name);
+
+  // Early return nếu không có productData hoặc product
+  if (!productData || !productData.data || !product) {
+    console.warn('ShopDetails: Missing product data, showing fallback');
+    return (
+      <div className="min-h-screen">
+        <Breadcrumb title="Chi tiết sản phẩm" pages={["shop details"]} />
+        <div className="text-center py-20">
+          <p className="text-gray-600 text-lg">Không tìm thấy thông tin sản phẩm</p>
+          <p className="text-sm text-gray-400 mt-2">Vui lòng thử lại sau hoặc quay lại trang chủ</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Đảm bảo product có đầy đủ thông tin
+  const safeProduct = {
+    id: product.id || 'unknown',
+    name: product.name || 'Sản phẩm không tên',
+    description: product.description || 'Không có mô tả',
+    brandName: product.brandName || 'Thương hiệu',
+    categoryName: product.categoryName || 'Danh mục',
+    price: product.price || 0,
+    thumbnailUrl: product.thumbnailUrl || '/images/products/product-1-1.png',
+    images: product.images || [],
+    specs: product.specs || null,
+  };
+
+  console.log('ShopDetails: Rendering with safeProduct:', safeProduct);
+
   return (
     <>
-      <Breadcrumb title={product.name} pages={["shop details"]} />
+      <Breadcrumb title={safeProduct.name} pages={["shop details"]} />
 
-      {product.name ? (
+      {safeProduct.name ? (
         <>
           <section className="overflow-hidden relative pb-12 pt-4 lg:pt-12 xl:pt-16">
             <div className="max-w-[1170px] w-full mx-auto px-4 sm:px-8 xl:px-0">
@@ -227,12 +275,12 @@ const ShopDetails = ({ productData }: ShopDetailsProps) => {
                       </button>
 
                       <Image
-                        src={getImageUrl(product.thumbnailUrl)}
-                        alt={product.name}
+                        src={getImageUrl(safeProduct.thumbnailUrl)}
+                        alt={safeProduct.name}
                         width={570}
                         height={512}
                         className="object-contain w-full h-full"
-                        unoptimized={product.thumbnailUrl?.startsWith('http://') || product.thumbnailUrl?.startsWith('https://')}
+                        unoptimized={safeProduct.thumbnailUrl?.startsWith('http://') || safeProduct.thumbnailUrl?.startsWith('https://')}
                         onError={(e) => {
                           const target = e.target as HTMLImageElement;
                           target.src = "/images/products/product-1-bg-1.png";
@@ -282,11 +330,11 @@ const ShopDetails = ({ productData }: ShopDetailsProps) => {
                   {/* Product Header */}
                   <div className="mb-4">
                     <h2 className="font-bold text-2xl sm:text-3xl text-dark mb-2">
-                      {product.name}
+                      {safeProduct.name}
                     </h2>
                     <div className="flex items-center gap-4 mb-3">
-                      <span className="text-gray-600 text-sm bg-gray-100 px-2 py-1 rounded">{product.brandName}</span>
-                      <span className="text-gray-600 text-sm bg-gray-100 px-2 py-1 rounded">{product.categoryName}</span>
+                      <span className="text-gray-600 text-sm bg-gray-100 px-2 py-1 rounded">{safeProduct.brandName}</span>
+                      <span className="text-gray-600 text-sm bg-gray-100 px-2 py-1 rounded">{safeProduct.categoryName}</span>
                       {isHydrated && isLogin && (
                         <span className="text-green-600 text-sm bg-green-100 px-2 py-1 rounded flex items-center gap-1">
                           <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
@@ -310,7 +358,7 @@ const ShopDetails = ({ productData }: ShopDetailsProps) => {
                   {/* Product Description */}
                   <div className="mb-4">
                     <h4 className="font-semibold text-lg text-dark mb-2">Mô tả sản phẩm</h4>
-                    <p className="text-gray-700 text-sm leading-relaxed">{product.description}</p>
+                    <p className="text-gray-700 text-sm leading-relaxed">{safeProduct.description}</p>
                   </div>
 
                   {/* Technical Specifications - Cơ bản */}
@@ -355,7 +403,7 @@ const ShopDetails = ({ productData }: ShopDetailsProps) => {
                   <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-4  mt-[80px]">
                     <div className="flex items-center justify-between mb-2">
                       <h3 className="text-3xl font-bold text-blue">
-                        {product.price.toLocaleString('vi-VN')} VNĐ
+                        {safeProduct.price > 0 ? `${safeProduct.price.toLocaleString('vi-VN')} VNĐ` : 'Liên hệ'}
                       </h3>
                       <div className="flex items-center gap-1">
                         {[...Array(5)].map((_, i) => (

@@ -9,6 +9,13 @@ import Link from "next/link";
 
 const SingleItem = ({ item }: { item: Product }) => {
   const { openModal } = useModalContext();
+  const productId = item.originalId || item.id;
+
+  // Validate productId
+  if (!productId || productId === 'undefined' || productId === 'null') {
+    console.error('Invalid product ID:', productId, item);
+    return null;
+  }
 
   return (
     <div className="group">
@@ -52,7 +59,7 @@ const SingleItem = ({ item }: { item: Product }) => {
           </div>
 
           <h3 className="font-medium text-dark ease-out duration-200 hover:text-blue mb-1.5">
-            <Link href="/shop-details"> {item.title} </Link>
+            <Link href={`/shop-details/${String(productId)}`} prefetch={true} scroll={true}> {item.title} </Link>
           </h3>
 
           <span className="flex items-center justify-center gap-2 font-medium text-lg">

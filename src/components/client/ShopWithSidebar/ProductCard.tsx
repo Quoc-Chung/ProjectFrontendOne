@@ -37,19 +37,20 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, style }) => {
     return url.startsWith('http://') || url.startsWith('https://'); 
   };
 
-  const productUrl = `/shop-details/${product.id}`;
+  // Validate productId
+  if (!product.id || product.id === 'undefined' || product.id === 'null') {
+    console.error('Invalid product ID:', product.id, product);
+    return null;
+  }
 
-  const handleLinkClick = (e: React.MouseEvent) => {
-    // Đảm bảo navigation hoạt động
-    console.log('Navigating to:', productUrl);
-  };
+  const productUrl = `/shop-details/${String(product.id)}`;
 
   if (style === "grid") {
     return (
       <Link 
         href={productUrl}
         prefetch={true}
-        onClick={handleLinkClick}
+        scroll={true}
         className="block bg-white rounded-lg shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden cursor-pointer group transform hover:-translate-y-1"
         role="button"
         tabIndex={0}
@@ -88,7 +89,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, style }) => {
     <Link
       href={productUrl}
       prefetch={true}
-      onClick={handleLinkClick}
+      scroll={true}
       className="flex items-center gap-4 bg-white rounded-lg shadow-md p-4 hover:shadow-lg transition-all duration-300 cursor-pointer group transform hover:-translate-y-1"
       role="button"
       tabIndex={0}
