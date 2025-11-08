@@ -24,6 +24,7 @@ const SingleItem = ({ item }: { item: Category }) => {
   return (
     <a href={`/shop-with-sidebar?category=${item.slug}`} className="group flex flex-col items-center">
       <div className="max-w-[130px] w-full bg-[#F2F3F8] h-32.5 rounded-full flex items-center justify-center mb-4 relative">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img 
           src={imageSrc} 
           alt={item.displayName} 

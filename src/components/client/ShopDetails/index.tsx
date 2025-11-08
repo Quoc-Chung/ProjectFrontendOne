@@ -25,7 +25,69 @@ const ShopDetails = ({ productData }: ShopDetailsProps) => {
   const { isLogin, user } = useSelector((state: RootState) => state.auth);
   const token = useAppSelector((state) => state.auth.token);
 
-  // Early return nếu không có productData
+  // Lấy product với fallback
+  const product = productData?.data;
+
+  // Helper functions - được định nghĩa trước hooks
+  const getDetailedSpecs = (prod: typeof product) => {
+    if (!prod) return {};
+    if (prod.specs && prod.specs !== null && Object.keys(prod.specs).length > 0) {
+      return prod.specs;
+    }
+    return {
+      // Thông số cơ bản
+      "Bộ xử lý": "AMD Ryzen 7 6800H (8 nhân, 16 luồng)",
+      "Card đồ họa": "NVIDIA GeForce RTX 4060 (8GB GDDR6)",
+      "RAM": "16GB DDR5 4800MHz",
+      "Ổ cứng": "512GB NVMe PCIe 4.0 SSD",
+      "Màn hình": "15.6 inch Full HD (1920 x 1080) IPS 144Hz",
+      "Pin": "90Wh - 6-8 giờ (Văn phòng), 2-3 giờ (Gaming)",
+      "Kích thước": "354 x 251 x 22.4 mm",
+      "Trọng lượng": "2.2 kg",
+      "Hệ điều hành": "Windows 11 Home",
+      "Bảo hành": "24 tháng",
+      // Thông số nâng cao
+      "Công nghệ GPU": "DLSS 3.0, Ray Tracing, NVIDIA Reflex",
+      "Kết nối": "USB-C (Thunderbolt 4), USB-A, HDMI 2.1, Wi-Fi 6E, Bluetooth 5.2",
+      "Tản nhiệt": "Dual Fan + 5 Heat Pipes, Liquid Metal",
+      "Bàn phím": "RGB Backlit, N-key rollover",
+      "Hiệu năng Gaming": "Cyberpunk 2077: 65-75 FPS (1080p Ultra)",
+      "Benchmark": "3DMark Time Spy: 9,200 điểm",
+      "Tiêu chuẩn": "MIL-STD-810H (Chuẩn quân đội)",
+    };
+  };
+
+  const groupSpecs = (specs: { [key: string]: string }) => {
+    const groups: { [key: string]: { [key: string]: string } } = {
+      "Thông số kỹ thuật cơ bản": {},
+      "Thông số kỹ thuật nâng cao": {},
+    };
+    const basicKeys = [
+      "Bộ xử lý", "Card đồ họa", "RAM", "Ổ cứng", "Màn hình",
+      "Pin", "Kích thước", "Trọng lượng", "Hệ điều hành", "Bảo hành"
+    ];
+
+    Object.entries(specs).forEach(([key, value]) => {
+      if (basicKeys.includes(key)) {
+        groups["Thông số kỹ thuật cơ bản"][key] = value;
+      } else {
+        groups["Thông số kỹ thuật nâng cao"][key] = value;
+      }
+    });
+    return groups;
+  };
+
+  // Memoize specs - hooks phải được gọi trước early return
+  const specsString = product?.specs ? JSON.stringify(product.specs) : null;
+  const detailedSpecs = useMemo(() => {
+    return getDetailedSpecs(product);
+  }, [product?.id, specsString]);
+
+  const groupedSpecs = useMemo(() => {
+    return groupSpecs(detailedSpecs);
+  }, [detailedSpecs]);
+
+  // Early return nếu không có productData - sau tất cả hooks
   if (!productData || !productData.data) {
     return (
       <div className="text-center py-20">
@@ -33,8 +95,6 @@ const ShopDetails = ({ productData }: ShopDetailsProps) => {
       </div>
     );
   }
-
-  const product = productData.data;
 
   const getImageUrl = (url: string | undefined | null) => {
     if (!url || url.trim() === '') return "/images/products/product-1-bg-1.png";
@@ -70,60 +130,6 @@ const ShopDetails = ({ productData }: ShopDetailsProps) => {
     }
     return images;
   };
-  const getDetailedSpecs = () => {
-    if (product.specs && product.specs !== null && Object.keys(product.specs).length > 0) {
-      return product.specs;
-    }
-    return {
-      // Thông số cơ bản
-      "Bộ xử lý": "AMD Ryzen 7 6800H (8 nhân, 16 luồng)",
-      "Card đồ họa": "NVIDIA GeForce RTX 4060 (8GB GDDR6)",
-      "RAM": "16GB DDR5 4800MHz",
-      "Ổ cứng": "512GB NVMe PCIe 4.0 SSD",
-      "Màn hình": "15.6 inch Full HD (1920 x 1080) IPS 144Hz",
-      "Pin": "90Wh - 6-8 giờ (Văn phòng), 2-3 giờ (Gaming)",
-      "Kích thước": "354 x 251 x 22.4 mm",
-      "Trọng lượng": "2.2 kg",
-      "Hệ điều hành": "Windows 11 Home",
-      "Bảo hành": "24 tháng",
-      // Thông số nâng cao
-      "Công nghệ GPU": "DLSS 3.0, Ray Tracing, NVIDIA Reflex",
-      "Kết nối": "USB-C (Thunderbolt 4), USB-A, HDMI 2.1, Wi-Fi 6E, Bluetooth 5.2",
-      "Tản nhiệt": "Dual Fan + 5 Heat Pipes, Liquid Metal",
-      "Bàn phím": "RGB Backlit, N-key rollover",
-      "Hiệu năng Gaming": "Cyberpunk 2077: 65-75 FPS (1080p Ultra)",
-      "Benchmark": "3DMark Time Spy: 9,200 điểm",
-      "Tiêu chuẩn": "MIL-STD-810H (Chuẩn quân đội)",
-    };
-  };
-  // Nhóm thông số thành 2 khung: Cơ bản và Nâng cao
-  const groupSpecs = (specs: { [key: string]: string }) => {
-    const groups: { [key: string]: { [key: string]: string } } = {
-      "Thông số kỹ thuật cơ bản": {},
-      "Thông số kỹ thuật nâng cao": {},
-    };
-    // Mapping các key vào nhóm cơ bản
-    const basicKeys = [
-      "Bộ xử lý", "Card đồ họa", "RAM", "Ổ cứng", "Màn hình",
-      "Pin", "Kích thước", "Trọng lượng", "Hệ điều hành", "Bảo hành"
-    ];
-
-    Object.entries(specs).forEach(([key, value]) => {
-      if (basicKeys.includes(key)) {
-        groups["Thông số kỹ thuật cơ bản"][key] = value;
-      } else {
-        groups["Thông số kỹ thuật nâng cao"][key] = value;
-      }
-    });
-    return groups;
-  };
-  // Memoize để tránh re-render liên tục
-  const detailedSpecs = useMemo(() => {
-    return getDetailedSpecs();
-  }, [product.id, product.specs ? JSON.stringify(product.specs) : null]);
-  const groupedSpecs = useMemo(() => {
-    return groupSpecs(detailedSpecs);
-  }, [detailedSpecs]);
   const handlePreviewSlider = () => {
     openPreviewModal();
   };

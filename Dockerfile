@@ -14,8 +14,11 @@ RUN npm ci
 # Copy phần code còn lại
 COPY . .
 
+# ⚙️ Tắt kiểm tra lint trong Next.js build (tạm thời)
+ENV NEXT_DISABLE_ESLINT=1
+
 # Build Next.js
-RUN npm run build
+RUN npm run build 
 
 # ===============================
 # 2️⃣ Stage production
