@@ -69,13 +69,12 @@ const Checkout = () => {
                     {/* <!-- product item --> */}
                     <div className="flex items-center justify-between py-5 border-b border-gray-3">
                       <div>
-                        <p className="text-dark">iPhone 14 Plus , 6/128GB</p>
+                        <p className="text-dark">ASUS TUF Gaming A15 - RTX 4060</p>
                       </div>
                       <div>
-                        <p className="text-dark text-right">$899.00</p>
+                        <p className="text-dark text-right">21.990.000₫</p>
                       </div>
                     </div>
-
                     {/* <!-- product item --> */}
                     <div className="flex items-center justify-between py-5 border-b border-gray-3">
                       <div>
@@ -85,7 +84,6 @@ const Checkout = () => {
                         <p className="text-dark text-right">$129.00</p>
                       </div>
                     </div>
-
                     {/* <!-- product item --> */}
                     <div className="flex items-center justify-between py-5 border-b border-gray-3">
                       <div>

@@ -9,16 +9,16 @@ const PromoBanner = () => {
         <div className="relative z-1 overflow-hidden rounded-lg bg-[#F5F5F7] py-12.5 lg:py-17.5 xl:py-22.5 px-4 sm:px-7.5 lg:px-14 xl:px-19 mb-7.5">
           <div className="max-w-[550px] w-full">
             <span className="block font-medium text-xl text-dark mb-3">
-              Apple iPhone 14 Plus
+              ASUS TUF Gaming A15
             </span>
 
             <h2 className="font-bold text-xl lg:text-heading-4 xl:text-heading-3 text-dark mb-5">
-              UP TO 30% OFF
+              GIẢM ĐẾN 30%
             </h2>
 
             <p>
-              iPhone 14 has the same superspeedy chip that’s in iPhone 13 Pro,
-              A15 Bionic, with a 5‑core GPU, powers all the latest features.
+              Laptop gaming hiệu năng cao với RTX 4060, CPU Ryzen 7, màn hình 144Hz.
+              Thiết kế bền bỉ chuẩn quân đội, tối ưu cho game thủ.
             </p>
 
             <a
@@ -83,16 +83,16 @@ const PromoBanner = () => {
 
             <div>
               <span className="block text-lg text-dark mb-1.5">
-                Apple Watch Ultra
+                HP Spectre x360
               </span>
 
               <h2 className="font-bold text-xl lg:text-heading-4 text-dark mb-2.5">
-                Up to <span className="text-orange">40%</span> off
+                Giảm đến <span className="text-orange">40%</span>
               </h2>
 
               <p className="max-w-[285px] text-custom-sm">
-                The aerospace-grade titanium case strikes the perfect balance of
-                everything.
+                Laptop 2-in-1 cao cấp với màn hình cảm ứng, thiết kế sang trọng,
+                hiệu năng mạnh mẽ cho công việc và giải trí.
               </p>
 
               <a

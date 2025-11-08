@@ -32,7 +32,17 @@ const Categories = () => {
       setLoading(true);
       setError(null);
       const data = await CategoryService.getAllCategories();
-      setCategories(data);
+      console.log('📦 All categories from API:', data);
+      // Filter only root categories (rootCategory: true)
+      const rootCategories = data.filter(category => category.rootCategory === true);
+      console.log('✅ Root categories filtered:', rootCategories);
+      console.log('🖼️ Root categories with imageUrl:', rootCategories.map(cat => ({
+        name: cat.displayName,
+        imageUrl: cat.imageUrl,
+        hasImage: !!cat.imageUrl,
+        imageUrlType: typeof cat.imageUrl
+      })));
+      setCategories(rootCategories);
     } catch (err: any) {
       console.error("Error fetching categories:", err);
       setError(err.message);
@@ -130,10 +140,10 @@ const Categories = () => {
                     </clipPath>
                   </defs>
                 </svg>
-                Categories
+                Danh mục
               </span>
               <h2 className="font-semibold text-xl xl:text-heading-5 text-dark">
-                Browse by Category
+                Danh sách loại sản phẩm
               </h2>
             </div>
 
@@ -176,7 +186,12 @@ const Categories = () => {
             </div>
           </div>
 
-          {error ? (
+          {loading ? (
+            <div className="text-center py-20">
+              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+              <p className="mt-4 text-gray-600">Đang tải danh mục...</p>
+            </div>
+          ) : error ? (
             <div className="text-center py-20">
               <div className="text-red-600 text-lg font-medium mb-4">
                 Lỗi tải danh mục: {error}
@@ -187,6 +202,10 @@ const Categories = () => {
               >
                 Thử lại
               </button>
+            </div>
+          ) : categories.length === 0 ? (
+            <div className="text-center py-20">
+              <p className="text-gray-600">Không có danh mục nào</p>
             </div>
           ) : (
             <Swiper

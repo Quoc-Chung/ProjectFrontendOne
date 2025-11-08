@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import Breadcrumb from "../Common/Breadcrumb";
 import Image from "next/image";
 import { usePreviewSlider } from "@/app/context/PreviewSliderContext";
@@ -21,30 +21,115 @@ const ShopDetails = ({ productData }: ShopDetailsProps) => {
   const { openPreviewModal } = usePreviewSlider();
   const router = useRouter();
   const dispatch = useAppDispatch();
-  
+
   const { isLogin, user } = useSelector((state: RootState) => state.auth);
   const token = useAppSelector((state) => state.auth.token);
 
+  // Early return nếu không có productData
+  if (!productData || !productData.data) {
+    return (
+      <div className="text-center py-20">
+        <p className="text-gray-600">Không tìm thấy thông tin sản phẩm</p>
+      </div>
+    );
+  }
 
-  const getImageUrl = (url: string | undefined) => {
-    if (!url) return "/images/products/product-1-bg-1.png";
-    
+  const product = productData.data;
+
+  const getImageUrl = (url: string | undefined | null) => {
+    if (!url || url.trim() === '') return "/images/products/product-1-bg-1.png";
+
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      return url;
+    }
     if (url.startsWith('/images/')) {
       return url;
     }
-    
+
     if (!url.startsWith('/')) {
       return `/${url}`;
     }
-    
+
     return url;
   };
+
+  const getAllImages = () => {
+    const images: string[] = [];
+    if (product.thumbnailUrl && product.thumbnailUrl.trim() !== '') {
+      images.push(product.thumbnailUrl);
+    }
+    if (product.images && Array.isArray(product.images) && product.images.length > 0) {
+      product.images.forEach(img => {
+        if (img && img.trim() !== '' && !images.includes(img)) {
+          images.push(img);
+        }
+      });
+    }
+    if (images.length === 0) {
+      images.push("/images/products/product-1-bg-1.png");
+    }
+    return images;
+  };
+  const getDetailedSpecs = () => {
+    if (product.specs && product.specs !== null && Object.keys(product.specs).length > 0) {
+      return product.specs;
+    }
+    return {
+      // Thông số cơ bản
+      "Bộ xử lý": "AMD Ryzen 7 6800H (8 nhân, 16 luồng)",
+      "Card đồ họa": "NVIDIA GeForce RTX 4060 (8GB GDDR6)",
+      "RAM": "16GB DDR5 4800MHz",
+      "Ổ cứng": "512GB NVMe PCIe 4.0 SSD",
+      "Màn hình": "15.6 inch Full HD (1920 x 1080) IPS 144Hz",
+      "Pin": "90Wh - 6-8 giờ (Văn phòng), 2-3 giờ (Gaming)",
+      "Kích thước": "354 x 251 x 22.4 mm",
+      "Trọng lượng": "2.2 kg",
+      "Hệ điều hành": "Windows 11 Home",
+      "Bảo hành": "24 tháng",
+      // Thông số nâng cao
+      "Công nghệ GPU": "DLSS 3.0, Ray Tracing, NVIDIA Reflex",
+      "Kết nối": "USB-C (Thunderbolt 4), USB-A, HDMI 2.1, Wi-Fi 6E, Bluetooth 5.2",
+      "Tản nhiệt": "Dual Fan + 5 Heat Pipes, Liquid Metal",
+      "Bàn phím": "RGB Backlit, N-key rollover",
+      "Hiệu năng Gaming": "Cyberpunk 2077: 65-75 FPS (1080p Ultra)",
+      "Benchmark": "3DMark Time Spy: 9,200 điểm",
+      "Tiêu chuẩn": "MIL-STD-810H (Chuẩn quân đội)",
+    };
+  };
+  // Nhóm thông số thành 2 khung: Cơ bản và Nâng cao
+  const groupSpecs = (specs: { [key: string]: string }) => {
+    const groups: { [key: string]: { [key: string]: string } } = {
+      "Thông số kỹ thuật cơ bản": {},
+      "Thông số kỹ thuật nâng cao": {},
+    };
+    // Mapping các key vào nhóm cơ bản
+    const basicKeys = [
+      "Bộ xử lý", "Card đồ họa", "RAM", "Ổ cứng", "Màn hình",
+      "Pin", "Kích thước", "Trọng lượng", "Hệ điều hành", "Bảo hành"
+    ];
+
+    Object.entries(specs).forEach(([key, value]) => {
+      if (basicKeys.includes(key)) {
+        groups["Thông số kỹ thuật cơ bản"][key] = value;
+      } else {
+        groups["Thông số kỹ thuật nâng cao"][key] = value;
+      }
+    });
+    return groups;
+  };
+  // Memoize để tránh re-render liên tục
+  const detailedSpecs = useMemo(() => {
+    return getDetailedSpecs();
+  }, [product.id, product.specs ? JSON.stringify(product.specs) : null]);
+  const groupedSpecs = useMemo(() => {
+    return groupSpecs(detailedSpecs);
+  }, [detailedSpecs]);
   const handlePreviewSlider = () => {
     openPreviewModal();
   };
-  const handleAddToCart = (e: React.FormEvent) => {     
+  const handleAddToCart = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!isHydrated) {
       toast.info("Đang tải dữ liệu, vui lòng đợi...", {
         autoClose: 1500,
@@ -55,7 +140,7 @@ const ShopDetails = ({ productData }: ShopDetailsProps) => {
     if (!isLogin) {
       const currentUrl = window.location.pathname + window.location.search;
       localStorage.setItem('redirectAfterLogin', currentUrl);
-      
+
       toast.warning("Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng!", {
         autoClose: 2000,
         position: "top-right"
@@ -63,13 +148,12 @@ const ShopDetails = ({ productData }: ShopDetailsProps) => {
       router.push('/signin');
       return;
     }
-    else{
+    else {
       toast.success(`Đã thêm ${quantity} sản phẩm "${productData.data.name}" vào giỏ hàng!`, {
         autoClose: 1500,
         position: "top-right"
       });
     }
-
     if (!productData) {
       toast.error("Không tìm thấy thông tin sản phẩm!");
       return;
@@ -79,7 +163,6 @@ const ShopDetails = ({ productData }: ShopDetailsProps) => {
         { productId: productData.data.id, quantity },
         token || "",
         (res) => {
-          
         },
         (err) => {
           if (err === "Token hết hạn") {
@@ -94,7 +177,7 @@ const ShopDetails = ({ productData }: ShopDetailsProps) => {
           }
         }
       )
-    );   
+    );
   };
 
 
@@ -102,26 +185,6 @@ const ShopDetails = ({ productData }: ShopDetailsProps) => {
 
 
 
-  // Show loading state if no product data
-  if (!productData) {
-    return (
-      <>
-        <Breadcrumb title={"Shop Details"} pages={["shop details"]} />
-        <section className="overflow-hidden relative pb-20 pt-5 lg:pt-20 xl:pt-28">
-          <div className="max-w-[1170px] w-full mx-auto px-4 sm:px-8 xl:px-0">
-            <div className="text-center">
-              <div className="animate-pulse bg-gray-200 h-96 rounded-lg"></div>
-              <p className="mt-4 text-gray-600">Đang tải thông tin sản phẩm...</p>
-            </div>
-          </div>
-        </section>
-      </>
-    );
-  }
-
-  const product = productData.data;
-  console.log('Product data:', product);
-  console.log('Thumbnail URL:', product.thumbnailUrl);
 
   return (
     <>
@@ -160,15 +223,50 @@ const ShopDetails = ({ productData }: ShopDetailsProps) => {
                       <Image
                         src={getImageUrl(product.thumbnailUrl)}
                         alt={product.name}
-                        width={250}
-                        height={250}
-                        className="object-cover"
+                        width={570}
+                        height={512}
+                        className="object-contain w-full h-full"
+                        unoptimized={product.thumbnailUrl?.startsWith('http://') || product.thumbnailUrl?.startsWith('https://')}
                         onError={(e) => {
                           const target = e.target as HTMLImageElement;
                           target.src = "/images/products/product-1-bg-1.png";
                         }}
                         priority
+                        sizes="(max-width: 768px) 100vw, 570px"
                       />
+                      {/* Technical Specifications - Nâng cao (dưới ảnh sản phẩm) */}
+                      {groupedSpecs["Thông số kỹ thuật nâng cao"] && Object.keys(groupedSpecs["Thông số kỹ thuật nâng cao"]).length > 0 && (
+                        <div className="mt-8">
+                          <div className="bg-gradient-to-br from-amber-50 via-yellow-50 to-orange-50 rounded-xl border-2 border-amber-400 shadow-xl hover:shadow-2xl ring-2 ring-amber-200 ring-opacity-50 transition-all duration-300 overflow-hidden">
+                            <div className="bg-gradient-to-r from-amber-500 via-yellow-500 to-orange-500 px-6 py-4 flex items-center gap-3">
+                              <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd" />
+                              </svg>
+                              <h5 className="font-bold text-white text-xl">
+                                Thông số kỹ thuật nâng cao
+                                <span className="ml-2 text-xs bg-white/20 px-2 py-1 rounded-full">PREMIUM</span>
+                              </h5>
+                            </div>
+                            <div className="p-6">
+                              <div className="space-y-3">
+                                {Object.entries(groupedSpecs["Thông số kỹ thuật nâng cao"]).map(([key, value]) => (
+                                  <div
+                                    key={key}
+                                    className="flex items-start gap-6 py-3 px-4 rounded-lg transition-all bg-white/60 hover:bg-white/80 border border-amber-200"
+                                  >
+                                    <span className="font-semibold text-base whitespace-nowrap flex-shrink-0 w-[200px] text-amber-900">
+                                      {key}:
+                                    </span>
+                                    <span className="text-base font-medium flex-1 break-words text-amber-800">
+                                      {value}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -209,23 +307,46 @@ const ShopDetails = ({ productData }: ShopDetailsProps) => {
                     <p className="text-gray-700 text-sm leading-relaxed">{product.description}</p>
                   </div>
 
-                  {/* Technical Specifications */}
-                  {product.specs && Object.keys(product.specs).length > 0 && (
-                    <div className="mb-4">
-                      <h4 className="font-semibold text-lg text-dark mb-3">Thông số kỹ thuật</h4>
-                      <div className="grid grid-cols-1 gap-2">
-                        {Object.entries(product.specs).map(([key, value], index) => (
-                          <div key={key} className="flex justify-between items-center py-2 border-b border-gray-200 last:border-b-0">
-                            <span className="font-medium text-gray-800 text-sm">{key}:</span>
-                            <span className="text-gray-600 text-sm">{value}</span>
+                  {/* Technical Specifications - Cơ bản */}
+                  {groupedSpecs["Thông số kỹ thuật cơ bản"] && Object.keys(groupedSpecs["Thông số kỹ thuật cơ bản"]).length > 0 && (
+                    <div className="mb-6">
+                      <h4 className="font-bold text-xl text-dark mb-4 flex items-center gap-2">
+                        <svg className="w-6 h-6 text-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
+                        </svg>
+                        Thông số kỹ thuật cơ bản
+                      </h4>
+
+                      <div className="bg-gradient-to-br from-gray-50 to-white rounded-xl border border-gray-200 shadow-lg hover:shadow-xl transition-shadow duration-300 overflow-hidden">
+                        <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-4 flex items-center gap-3">
+                          <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z" />
+                          </svg>
+                          <h5 className="font-bold text-white text-lg">Thông số kỹ thuật cơ bản</h5>
+                        </div>
+                        <div className="p-6">
+                          <div className="space-y-3">
+                            {Object.entries(groupedSpecs["Thông số kỹ thuật cơ bản"]).map(([key, value]) => (
+                              <div
+                                key={key}
+                                className="flex items-start gap-6 py-3 px-4 rounded-lg transition-all hover:bg-gray-50 border-b border-gray-100 last:border-b-0"
+                              >
+                                <span className="font-semibold text-base whitespace-nowrap flex-shrink-0 w-[200px] text-gray-800">
+                                  {key}:
+                                </span>
+                                <span className="text-base font-medium flex-1 break-words text-gray-700">
+                                  {value}
+                                </span>
+                              </div>
+                            ))}
                           </div>
-                        ))}
+                        </div>
                       </div>
                     </div>
                   )}
-                  
+
                   {/* Price and Rating */}
-                  <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-4 mb-4">
+                  <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-4  mt-[80px]">
                     <div className="flex items-center justify-between mb-2">
                       <h3 className="text-3xl font-bold text-blue">
                         {product.price.toLocaleString('vi-VN')} VNĐ
@@ -239,13 +360,13 @@ const ShopDetails = ({ productData }: ShopDetailsProps) => {
                         <span className="text-sm text-gray-600 ml-1">(5 reviews)</span>
                       </div>
                     </div>
-                    
-                  
+
+
                   </div>
 
                   {/* Action Buttons */}
                   <form onSubmit={handleAddToCart}>
-                    <div className="flex flex-wrap items-center gap-3">
+                    <div className="flex flex-wrap items-center gap-3 mt-5">
                       <div className="flex items-center rounded-md border border-gray-300">
                         <button
                           type="button"
@@ -272,13 +393,13 @@ const ShopDetails = ({ productData }: ShopDetailsProps) => {
                           </svg>
                         </button>
                       </div>
-                      
+
 
                       <button
                         type="submit"
                         className="flex-1 bg-blue text-white py-2.5 px-6 rounded-md font-medium hover:bg-blue-dark transition-colors duration-200"
                       >
-                      Thêm vào giỏ hàng
+                        Thêm vào giỏ hàng
                       </button>
 
                       <button
@@ -293,6 +414,8 @@ const ShopDetails = ({ productData }: ShopDetailsProps) => {
                   </form>
                 </div>
               </div>
+
+
             </div>
           </section>
 

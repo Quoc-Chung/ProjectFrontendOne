@@ -73,6 +73,22 @@ const PreviewSliderModal = dynamic(() =>
   }
 );
 
+const FloatingAds = dynamic(() => 
+  import("@/components/client/Home/FloatingAds"),
+  {
+    ssr: false,
+    loading: () => null,
+  }
+);
+
+const ScrollAds = dynamic(() => 
+  import("@/components/client/Home/ScrollAds"),
+  {
+    ssr: false,
+    loading: () => null,
+  }
+);
+
 export default function RootLayout({
   children,
 }: {
@@ -163,6 +179,20 @@ export default function RootLayout({
             </CartModalProvider>
             <ScrollToTop />
             <Footer />
+
+            {/* Floating Advertisement Banners - Hiển thị khi ở đầu trang */}
+            <Suspense fallback={null}>
+              <ChunkErrorBoundary fallback={null}>
+                <FloatingAds />
+              </ChunkErrorBoundary>
+            </Suspense>
+
+            {/* Scroll Advertisement Banners - Hiển thị khi scroll xuống */}
+            <Suspense fallback={null}>
+              <ChunkErrorBoundary fallback={null}>
+                <ScrollAds />
+              </ChunkErrorBoundary>
+            </Suspense>
 
             {/* ToastContainer - lazy loaded with error boundary */}
             <Suspense fallback={null}>

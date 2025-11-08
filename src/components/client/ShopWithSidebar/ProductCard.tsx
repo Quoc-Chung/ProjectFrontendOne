@@ -10,9 +10,15 @@ interface ProductCardProps {
 }
 
 const ProductCard: React.FC<ProductCardProps> = ({ product, style }) => {
+
   const getImageSrc = () => {
-    if (product.thumbnailUrl && product.thumbnailUrl !== null) {
-      // Map API image names to actual file names
+    if (product.thumbnailUrl && product.thumbnailUrl !== null && product.thumbnailUrl.trim() !== "") {
+      // If it's a full URL (starts with http:// or https://), use it directly
+      if (product.thumbnailUrl.startsWith('http://') || product.thumbnailUrl.startsWith('https://')) {
+        return product.thumbnailUrl;
+      }
+      
+      // Otherwise, it's a local path - map API image names to actual file names
       const imageMapping: { [key: string]: string } = {
         "/images/products/product-1-1.png": "/images/products/product-1-sm-1.png",
         "/images/products/product-2-1.png": "/images/products/product-2-sm-1.png",
@@ -27,14 +33,24 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, style }) => {
     return "/images/products/product-1-sm-1.png"; 
   };
 
+  const isExternalUrl = (url: string) => {
+    return url.startsWith('http://') || url.startsWith('https://'); 
+  };
+
   const productUrl = `/shop-details/${product.id}`;
+
+  const handleLinkClick = (e: React.MouseEvent) => {
+    // Đảm bảo navigation hoạt động
+    console.log('Navigating to:', productUrl);
+  };
 
   if (style === "grid") {
     return (
       <Link 
         href={productUrl}
         prefetch={true}
-        className="block bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 overflow-hidden cursor-pointer group"
+        onClick={handleLinkClick}
+        className="block bg-white rounded-lg shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden cursor-pointer group transform hover:-translate-y-1"
         role="button"
         tabIndex={0}
         aria-label={`Xem chi tiết sản phẩm ${product.name}`}
@@ -46,6 +62,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, style }) => {
             alt={product.name}
             fill
             className="object-cover transition-transform duration-300 group-hover:scale-105"
+            unoptimized={isExternalUrl(getImageSrc())}
             onError={(e) => {
               console.error('Image error:', getImageSrc());
               (e.target as HTMLImageElement).src = "/images/products/image 156.png";
@@ -60,7 +77,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, style }) => {
           </h3>
           <p className="text-gray-600 text-sm mb-2">{product.brandName}</p>
           <p className="text-blue-600 font-bold text-xl">
-            {product.price.toLocaleString('vi-VN')} VNĐ
+            {product.price ? `${product.price.toLocaleString('vi-VN')} VNĐ` : 'Liên hệ'}
           </p>
         </div>
       </Link>
@@ -71,8 +88,8 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, style }) => {
     <Link
       href={productUrl}
       prefetch={true}
-      scroll={false}
-      className="flex items-center gap-4 bg-white rounded-lg shadow-md p-4 hover:shadow-lg transition-shadow cursor-pointer group"
+      onClick={handleLinkClick}
+      className="flex items-center gap-4 bg-white rounded-lg shadow-md p-4 hover:shadow-lg transition-all duration-300 cursor-pointer group transform hover:-translate-y-1"
       role="button"
       tabIndex={0}
       aria-label={`Xem chi tiết sản phẩm ${product.name}`}
@@ -84,6 +101,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, style }) => {
           alt={product.name}
           fill
           className="object-cover rounded transition-transform duration-300 group-hover:scale-105"
+          unoptimized={isExternalUrl(getImageSrc())}
           onError={(e) => {
             console.error('Image error:', getImageSrc());
             (e.target as HTMLImageElement).src = "/images/products/image 156.png";
@@ -98,7 +116,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, style }) => {
         </h3>
         <p className="text-gray-600 text-sm mb-2 line-clamp-2">{product.description}</p>
         <p className="text-blue-600 font-bold text-xl">
-          {product.price.toLocaleString('vi-VN')} VNĐ
+          {product.price ? `${product.price.toLocaleString('vi-VN')} VNĐ` : 'Liên hệ'}
         </p>
       </div>
     </Link>

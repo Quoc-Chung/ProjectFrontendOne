@@ -33,7 +33,7 @@ const SingleItem = ({ item }: SingleItemProps) => {
           <h3 className="font-medium text-dark mb-1 ease-out duration-200 hover:text-blue">
             <a href={`/shop-details/${item.productId}`}> {item.productName} </a>
           </h3>
-          <p className="text-custom-sm">Price: ${item.productPrice?.toLocaleString() || 0}</p>
+          <p className="text-custom-sm">Giá: {item.productPrice?.toLocaleString('vi-VN') || 0}₫</p>
         </div>
       </div>
 

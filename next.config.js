@@ -41,6 +41,16 @@ const nextConfig = {
         protocol: "https",
         hostname: "cdn.example.com",
       },
+      {
+        protocol: "http",
+        hostname: "103.90.225.90",
+        port: "8080",
+      },
+      {
+        protocol: "http",
+        hostname: "103.90.225.90",
+        port: "8084",
+      },
     ],
     formats: ['image/webp', 'image/avif'],
     minimumCacheTTL: 60,

@@ -12,7 +12,7 @@ export type Category = {
   categoryType: string;
   productCount: number | null;
   isActive: boolean | null;
-  imageUrl: string;
+  imageUrl: string | null;
   displayName: string;
   fullPath: string;
   rootCategory: boolean;

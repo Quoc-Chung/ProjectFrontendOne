@@ -16,9 +16,10 @@ export interface ProductDetailResponse {
     categoryName: string;
     specs: {
       [key: string]: string;
-    };
+    } | null;
     price: number;
     thumbnailUrl: string;
+    images: string[];
   };
   extraData: any;
 }
@@ -47,7 +48,8 @@ export const productDetailService = {
             "Dimensions": "30x20x10cm"
           },
           price: 999000,
-          thumbnailUrl: "/images/products/product-1-1.png"
+          thumbnailUrl: "/images/products/product-1-1.png",
+          images: []
         },
         extraData: null
       };
@@ -89,7 +91,8 @@ export const productDetailService = {
             "Dimensions": "30x20x10cm"
           },
           price: 999000,
-          thumbnailUrl: "/images/products/product-1-1.png"
+          thumbnailUrl: "/images/products/product-1-1.png",
+          images: []
         },
         extraData: null
       };
