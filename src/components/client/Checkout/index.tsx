@@ -81,7 +81,7 @@ const Checkout = () => {
                         <p className="text-dark">Asus RT Dual Band Router</p>
                       </div>
                       <div>
-                        <p className="text-dark text-right">$129.00</p>
+                        <p className="text-dark text-right">3.225.000₫</p>
                       </div>
                     </div>
                     {/* <!-- product item --> */}
@@ -90,28 +90,28 @@ const Checkout = () => {
                         <p className="text-dark">Havit HV-G69 USB Gamepad</p>
                       </div>
                       <div>
-                        <p className="text-dark text-right">$29.00</p>
+                        <p className="text-dark text-right">725.000₫</p>
                       </div>
                     </div>
 
                     {/* <!-- product item --> */}
                     <div className="flex items-center justify-between py-5 border-b border-gray-3">
                       <div>
-                        <p className="text-dark">Shipping Fee</p>
+                        <p className="text-dark">Phí vận chuyển</p>
                       </div>
                       <div>
-                        <p className="text-dark text-right">$15.00</p>
+                        <p className="text-dark text-right">375.000₫</p>
                       </div>
                     </div>
 
                     {/* <!-- total --> */}
                     <div className="flex items-center justify-between pt-5">
                       <div>
-                        <p className="font-medium text-lg text-dark">Total</p>
+                        <p className="font-medium text-lg text-dark">Tổng cộng</p>
                       </div>
                       <div>
                         <p className="font-medium text-lg text-dark text-right">
-                          $1072.00
+                          26.800.000₫
                         </p>
                       </div>
                     </div>

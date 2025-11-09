@@ -20,16 +20,16 @@ interface ScrollAd {
 const scrollAds: ScrollAd[] = [
   {
     id: 1,
-    title: "Smart Watch",
-    subtitle: "Đồng hồ thông minh",
+    title: "Laptop & PC",
+    subtitle: "Máy tính & Phụ kiện",
     discount: "40%",
-    description: "Đồng hồ thông minh theo dõi sức khỏe, thông báo thông minh, pin bền 7 ngày. Thiết kế sang trọng, chống nước IP68",
-    image: "/images/anhnenmoi/ThayDongHo.png",
-    link: "/shop-with-sidebar?category=peripherals",
+    description: "Laptop gaming, PC workstation, bàn phím cơ, chuột gaming, màn hình 4K. Hiệu năng mạnh mẽ, thiết kế chuyên nghiệp cho công việc và giải trí",
+    image: "/images/anhnenmoi/MayTinhHP.png",
+    link: "/shop-with-sidebar?category=laptop",
     position: "left",
     bgGradient: "from-purple-500 via-purple-600 to-indigo-600",
     textColor: "text-white",
-    icon: "⌚",
+    icon: "💻",
   },
   {
     id: 2,
@@ -88,17 +88,17 @@ const ScrollAds = () => {
       {scrollAds.map((ad) => (
         <div
           key={ad.id}
-          className={`fixed ${ad.position === "left" ? "left-8" : "right-8"} top-[45%] -translate-y-1/2 z-50 hidden xl:block transition-all duration-500 ${
+          className={`fixed ${ad.position === "left" ? "left-8" : "right-8"} top-[55%] -translate-y-1/2 z-50 hidden xl:block transition-all duration-500 ${
             isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"
           }`}
           style={{
-            top: 'max(45%, 200px)',
+            top: 'max(55%, 350px)',
             animation: isVisible ? "bounce-vertical 3s ease-in-out infinite" : "none",
           }}
         >
           <Link
             href={ad.link}
-            className="group relative block w-32 h-72 rounded-2xl overflow-hidden shadow-2xl hover:shadow-3xl transition-all duration-500 transform hover:scale-105"
+            className="group relative block w-32 h-96 rounded-2xl overflow-hidden shadow-2xl hover:shadow-3xl transition-all duration-500 transform hover:scale-105"
           >
             {/* Background Gradient */}
             <div className={`absolute inset-0 bg-gradient-to-br ${ad.bgGradient} opacity-95 group-hover:opacity-100 transition-opacity duration-500`}></div>

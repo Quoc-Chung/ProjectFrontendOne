@@ -3,8 +3,8 @@ const shopData: Product[] = [
   {
     title: "Havit HV-G69 USB Gamepad",
     reviews: 15,
-    price: 59.0,
-    discountedPrice: 29.0,
+    price: 1475000,
+    discountedPrice: 725000,
     id: 1,
     imgs: {
       thumbnails: [
@@ -122,8 +122,8 @@ const shopData: Product[] = [
   {
     title: "Asus RT Dual Band Router",
     reviews: 15,
-    price: 59.0,
-    discountedPrice: 29.0,
+    price: 1475000,
+    discountedPrice: 725000,
     id: 8,
     imgs: {
       thumbnails: [
