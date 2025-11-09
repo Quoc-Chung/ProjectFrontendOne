@@ -17,6 +17,7 @@ interface ShopDetailsProps {
 
 const ShopDetails = ({ productData }: ShopDetailsProps) => {
   const [quantity, setQuantity] = useState(1);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const isHydrated = useOptimizedHydration(30); // Sử dụng hook tối ưu hóa
   const { openPreviewModal } = usePreviewSlider();
   const router = useRouter();
@@ -57,38 +58,45 @@ const ShopDetails = ({ productData }: ShopDetailsProps) => {
     };
   };
 
-  const groupSpecs = (specs: { [key: string]: string }) => {
-    const groups: { [key: string]: { [key: string]: string } } = {
-      "Thông số kỹ thuật cơ bản": {},
-      "Thông số kỹ thuật nâng cao": {},
-    };
-    const basicKeys = [
-      "Bộ xử lý", "Card đồ họa", "RAM", "Ổ cứng", "Màn hình",
-      "Pin", "Kích thước", "Trọng lượng", "Hệ điều hành", "Bảo hành"
+  // Tạo danh sách thông số kỹ thuật gộp lại
+  const getMergedSpecs = (specs: { [key: string]: string }) => {
+    // Danh sách các trường cần hiển thị (cơ bản + 2 trường từ nâng cao)
+    const displayKeys = [
+      "Bộ xử lý",
+      "Card đồ họa",
+      "RAM",
+      "Ổ cứng",
+      "Màn hình",
+      "Pin",
+      "Kích thước",
+      "Trọng lượng",
+      "Hệ điều hành",
+      "Bảo hành",
+      "Công nghệ GPU",  // Thêm từ nâng cao
+      "Bàn phím"        // Thêm từ nâng cao
     ];
 
-    Object.entries(specs).forEach(([key, value]) => {
-      if (basicKeys.includes(key)) {
-        groups["Thông số kỹ thuật cơ bản"][key] = value;
-      } else {
-        groups["Thông số kỹ thuật nâng cao"][key] = value;
+    const merged: { [key: string]: string } = {};
+
+    // Lấy các trường theo thứ tự đã định
+    displayKeys.forEach(key => {
+      if (specs[key]) {
+        merged[key] = specs[key];
       }
     });
-    return groups;
+
+    return merged;
   };
 
-  // Memoize specs - hooks phải được gọi trước early return
-  // Chỉ depend vào product?.id để tránh infinite loop khi product?.specs là object mới mỗi lần render
   const detailedSpecs = useMemo(() => {
     if (!product) return {};
     return getDetailedSpecs(product);
   }, [product?.id]);
 
-  const groupedSpecs = useMemo(() => {
-    return groupSpecs(detailedSpecs);
+  const mergedSpecs = useMemo(() => {
+    return getMergedSpecs(detailedSpecs);
   }, [detailedSpecs]);
 
-  // Early return nếu không có productData - sau tất cả hooks
   if (!productData || !productData.data) {
     console.warn('ShopDetails: No product data available', { productData });
     return (
@@ -98,8 +106,7 @@ const ShopDetails = ({ productData }: ShopDetailsProps) => {
       </div>
     );
   }
-  
-  // Đảm bảo product có đầy đủ thông tin cần thiết
+
   if (!product) {
     console.error('ShopDetails: Product is null or undefined', { productData });
     return (
@@ -138,10 +145,33 @@ const ShopDetails = ({ productData }: ShopDetailsProps) => {
         }
       });
     }
-    if (images.length === 0) {
-      images.push("/images/products/product-1-bg-1.png");
+    
+    // Mock 4 ảnh từ thư mục images/products nếu không đủ
+    const mockImages = [
+      "/images/products/product-1-1.png",
+      "/images/products/product-2-1.png",
+      "/images/products/product-1-sm-1.png",
+      "/images/products/product-1-sm-2.png"
+    ];
+    
+    // Nếu không có đủ ảnh, thêm ảnh mock
+    while (images.length < 4) {
+      const mockImg = mockImages[images.length];
+      if (mockImg && !images.includes(mockImg)) {
+        images.push(mockImg);
+      } else {
+        // Fallback nếu hết ảnh mock
+        images.push("/images/products/product-1-bg-1.png");
+        break;
+      }
     }
-    return images;
+    
+    // Đảm bảo có ít nhất 4 ảnh
+    if (images.length === 0) {
+      images.push(...mockImages.slice(0, 4));
+    }
+    
+    return images.slice(0, 4); // Chỉ lấy 4 ảnh đầu tiên
   };
   const handlePreviewSlider = () => {
     openPreviewModal();
@@ -199,13 +229,6 @@ const ShopDetails = ({ productData }: ShopDetailsProps) => {
     );
   };
 
-
-
-
-
-
-
-  // Debug logging
   console.log('ShopDetails: Component rendering');
   console.log('ShopDetails: productData:', productData);
   console.log('ShopDetails: product:', product);
@@ -249,9 +272,11 @@ const ShopDetails = ({ productData }: ShopDetailsProps) => {
           <section className="overflow-hidden relative pb-12 pt-4 lg:pt-12 xl:pt-16">
             <div className="max-w-[1170px] w-full mx-auto px-4 sm:px-8 xl:px-0">
               <div className="flex flex-col lg:flex-row gap-5 xl:gap-12">
+                {/* Cột trái: Ảnh và Price/Action */}
                 <div className="lg:max-w-[570px] w-full">
-                  <div className="lg:min-h-[512px] rounded-lg shadow-1 bg-gray-2 p-4 sm:p-7.5 relative flex items-center justify-center">
-                    <div>
+                  {/* Div riêng cho ảnh sản phẩm */}
+                  <div className="lg:min-h-[512px] rounded-lg shadow-1 bg-gray-2 p-4 sm:p-7.5 relative flex items-center justify-center mb-5">
+                    <div className="w-full">
                       <button
                         onClick={handlePreviewSlider}
                         aria-label="button for zoom"
@@ -275,12 +300,12 @@ const ShopDetails = ({ productData }: ShopDetailsProps) => {
                       </button>
 
                       <Image
-                        src={getImageUrl(safeProduct.thumbnailUrl)}
+                        src={selectedImage || getImageUrl(safeProduct.thumbnailUrl)}
                         alt={safeProduct.name}
                         width={570}
                         height={512}
                         className="object-contain w-full h-full"
-                        unoptimized={safeProduct.thumbnailUrl?.startsWith('http://') || safeProduct.thumbnailUrl?.startsWith('https://')}
+                        unoptimized={(selectedImage || safeProduct.thumbnailUrl)?.startsWith('http://') || (selectedImage || safeProduct.thumbnailUrl)?.startsWith('https://')}
                         onError={(e) => {
                           const target = e.target as HTMLImageElement;
                           target.src = "/images/products/product-1-bg-1.png";
@@ -288,40 +313,117 @@ const ShopDetails = ({ productData }: ShopDetailsProps) => {
                         priority
                         sizes="(max-width: 768px) 100vw, 570px"
                       />
-                      {/* Technical Specifications - Nâng cao (dưới ảnh sản phẩm) */}
-                      {groupedSpecs["Thông số kỹ thuật nâng cao"] && Object.keys(groupedSpecs["Thông số kỹ thuật nâng cao"]).length > 0 && (
-                        <div className="mt-8">
-                          <div className="bg-gradient-to-br from-amber-50 via-yellow-50 to-orange-50 rounded-xl border-2 border-amber-400 shadow-xl hover:shadow-2xl ring-2 ring-amber-200 ring-opacity-50 transition-all duration-300 overflow-hidden">
-                            <div className="bg-gradient-to-r from-amber-500 via-yellow-500 to-orange-500 px-6 py-4 flex items-center gap-3">
-                              <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
-                                <path fillRule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd" />
-                              </svg>
-                              <h5 className="font-bold text-white text-xl">
-                                Thông số kỹ thuật nâng cao
-                                <span className="ml-2 text-xs bg-white/20 px-2 py-1 rounded-full">PREMIUM</span>
-                              </h5>
-                            </div>
-                            <div className="p-6">
-                              <div className="space-y-3">
-                                {Object.entries(groupedSpecs["Thông số kỹ thuật nâng cao"]).map(([key, value]) => (
-                                  <div
-                                    key={key}
-                                    className="flex items-start gap-6 py-3 px-4 rounded-lg transition-all bg-white/60 hover:bg-white/80 border border-amber-200"
+                      
+                      {/* Thumbnail Gallery - 4 ảnh nhỏ dưới ảnh chính */}
+                      {(() => {
+                        const allImages = getAllImages();
+                        
+                        if (allImages.length > 0) {
+                          return (
+                            <div className="mt-4 flex gap-2 justify-center">
+                              {allImages.map((imgUrl, index) => {
+                                const imageUrl = getImageUrl(imgUrl);
+                                const isSelected = selectedImage === imageUrl || (!selectedImage && index === 0);
+                                
+                                return (
+                                  <button
+                                    key={index}
+                                    onClick={() => setSelectedImage(imageUrl)}
+                                    className={`relative w-20 h-20 sm:w-24 sm:h-24 rounded-lg overflow-hidden border-2 transition-all duration-200 ${
+                                      isSelected 
+                                        ? 'border-blue-500 shadow-lg scale-105' 
+                                        : 'border-gray-200 hover:border-blue-300 hover:shadow-md'
+                                    }`}
+                                    aria-label={`Xem ảnh ${index + 1}`}
                                   >
-                                    <span className="font-semibold text-base whitespace-nowrap flex-shrink-0 w-[200px] text-amber-900">
-                                      {key}:
-                                    </span>
-                                    <span className="text-base font-medium flex-1 break-words text-amber-800">
-                                      {value}
-                                    </span>
-                                  </div>
-                                ))}
-                              </div>
+                                    <Image
+                                      src={imageUrl}
+                                      alt={`${safeProduct.name} - Ảnh ${index + 1}`}
+                                      fill
+                                      className="object-cover"
+                                      unoptimized={imageUrl.startsWith('http://') || imageUrl.startsWith('https://')}
+                                      onError={(e) => {
+                                        const target = e.target as HTMLImageElement;
+                                        target.src = "/images/products/product-1-bg-1.png";
+                                      }}
+                                    />
+                                  </button>
+                                );
+                              })}
                             </div>
-                          </div>
-                        </div>
-                      )}
+                          );
+                        }
+                        return null;
+                      })()}
                     </div>
+                  </div>
+
+                  {/* Div riêng cho Price, Rating và Action Buttons */}
+                  <div>
+                    {/* Price and Rating */}
+                    <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-4 mb-5">
+                      <div className="flex items-center justify-between mb-2">
+                        <h3 className="text-3xl font-bold text-blue">
+                          {safeProduct.price > 0 ? `${safeProduct.price.toLocaleString('vi-VN')} VNĐ` : 'Liên hệ'}
+                        </h3>
+                        <div className="flex items-center gap-1">
+                          {[...Array(5)].map((_, i) => (
+                            <svg key={i} className="fill-[#FFA645] w-4 h-4" viewBox="0 0 18 18">
+                              <path d="M16.7906 6.72187L11.7 5.93438L9.39377 1.09688C9.22502 0.759375 8.77502 0.759375 8.60627 1.09688L6.30002 5.9625L1.23752 6.72187C0.871891 6.77812 0.731266 7.25625 1.01252 7.50938L4.69689 11.3063L3.82502 16.6219C3.76877 16.9875 4.13439 17.2969 4.47189 17.0719L9.05627 14.5687L13.6125 17.0719C13.9219 17.2406 14.3156 16.9594 14.2313 16.6219L13.3594 11.3063L17.0438 7.50938C17.2688 7.25625 17.1563 6.77812 16.7906 6.72187Z" />
+                            </svg>
+                          ))}
+                          <span className="text-sm text-gray-600 ml-1">(5 reviews)</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Action Buttons */}
+                    <form onSubmit={handleAddToCart}>
+                      <div className="flex flex-wrap items-center gap-3">
+                        <div className="flex items-center rounded-md border border-gray-300">
+                          <button
+                            type="button"
+                            aria-label="button for remove product"
+                            className="flex items-center justify-center w-10 h-10 ease-out duration-200 hover:text-blue"
+                            onClick={() => quantity > 1 && setQuantity(quantity - 1)}
+                          >
+                            <svg className="fill-current w-4 h-4" viewBox="0 0 20 20">
+                              <path d="M3.33301 10.0001C3.33301 9.53984 3.7061 9.16675 4.16634 9.16675H15.833C16.2932 9.16675 16.6663 9.53984 16.6663 10.0001C16.6663 10.4603 16.2932 10.8334 15.833 10.8334H4.16634C3.7061 10.8334 3.33301 10.4603 3.33301 10.0001Z" />
+                            </svg>
+                          </button>
+                          <span className="flex items-center justify-center w-12 h-10 border-x border-gray-300 text-sm font-medium">
+                            {quantity}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setQuantity(quantity + 1)}
+                            aria-label="button for add product"
+                            className="flex items-center justify-center w-10 h-10 ease-out duration-200 hover:text-blue"
+                          >
+                            <svg className="fill-current w-4 h-4" viewBox="0 0 20 20">
+                              <path d="M3.33301 10C3.33301 9.5398 3.7061 9.16671 4.16634 9.16671H15.833C16.2932 9.16671 16.6663 9.5398 16.6663 10C16.6663 10.4603 16.2932 10.8334 15.833 10.8334H4.16634C3.7061 10.8334 3.33301 10.4603 3.33301 10Z" />
+                              <path d="M9.99967 16.6667C9.53944 16.6667 9.16634 16.2936 9.16634 15.8334L9.16634 4.16671C9.16634 3.70647 9.53944 3.33337 9.99967 3.33337C10.4599 3.33337 10.833 3.70647 10.833 4.16671L10.833 15.8334C10.833 16.2936 10.4599 16.6667 9.99967 16.6667Z" />
+                            </svg>
+                          </button>
+                        </div>
+
+                        <button
+                          type="submit"
+                          className="flex-1 bg-blue text-white py-2.5 px-6 rounded-md font-medium hover:bg-blue-dark transition-colors duration-200"
+                        >
+                          Thêm vào giỏ hàng
+                        </button>
+
+                        <button
+                          type="button"
+                          className="flex items-center justify-center w-10 h-10 rounded-md border border-gray-300 hover:text-white hover:bg-gray-800 transition-colors duration-200"
+                        >
+                          <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M5.62436 4.42423C3.96537 5.18256 2.75 6.98626 2.75 9.13713C2.75 11.3345 3.64922 13.0283 4.93829 14.4798C6.00072 15.6761 7.28684 16.6677 8.54113 17.6346C8.83904 17.8643 9.13515 18.0926 9.42605 18.3219C9.95208 18.7366 10.4213 19.1006 10.8736 19.3649C11.3261 19.6293 11.6904 19.75 12 19.75C12.3096 19.75 12.6739 19.6293 13.1264 19.3649C13.5787 19.1006 14.0479 18.7366 14.574 18.3219C14.8649 18.0926 15.161 17.8643 15.4589 17.6346C16.7132 16.6677 17.9993 15.6761 19.0617 14.4798C20.3508 13.0283 21.25 11.3345 21.25 9.13713C21.25 6.98626 20.0346 5.18256 18.3756 4.42423C16.7639 3.68751 14.5983 3.88261 12.5404 6.02077C12.399 6.16766 12.2039 6.25067 12 6.25067C11.7961 6.25067 11.601 6.16766 11.4596 6.02077C9.40166 3.88261 7.23607 3.68751 5.62436 4.42423ZM12 4.45885C9.68795 2.39027 7.09896 2.1009 5.00076 3.05999C2.78471 4.07296 1.25 6.42506 1.25 9.13713C1.25 11.8027 2.3605 13.8361 3.81672 15.4758C4.98287 16.789 6.41022 17.888 7.67083 18.8586C7.95659 19.0786 8.23378 19.2921 8.49742 19.4999C9.00965 19.9037 9.55954 20.3343 10.1168 20.66C10.6739 20.9855 11.3096 21.25 12 21.25C12.6904 21.25 13.3261 20.9855 13.8832 20.66C14.4405 20.3343 14.9903 19.9037 15.5026 19.4999C15.7662 19.2921 16.0434 19.0786 16.3292 18.8586C17.5898 17.888 19.0171 16.789 20.1833 15.4758C21.6395 13.8361 22.75 11.8027 22.75 9.13713C22.75 6.42506 21.2153 4.07296 18.9992 3.05999C16.901 2.1009 14.3121 2.39027 12 4.45885Z" />
+                          </svg>
+                        </button>
+                      </div>
+                    </form>
                   </div>
                 </div>
 
@@ -361,34 +463,29 @@ const ShopDetails = ({ productData }: ShopDetailsProps) => {
                     <p className="text-gray-700 text-sm leading-relaxed">{safeProduct.description}</p>
                   </div>
 
-                  {/* Technical Specifications - Cơ bản */}
-                  {groupedSpecs["Thông số kỹ thuật cơ bản"] && Object.keys(groupedSpecs["Thông số kỹ thuật cơ bản"]).length > 0 && (
+                  {/* Technical Specifications - Gộp lại thành 1 bảng (Thu nhỏ) */}
+                  {Object.keys(mergedSpecs).length > 0 && (
                     <div className="mb-6">
-                      <h4 className="font-bold text-xl text-dark mb-4 flex items-center gap-2">
-                        <svg className="w-6 h-6 text-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
-                        </svg>
-                        Thông số kỹ thuật cơ bản
-                      </h4>
-
-                      <div className="bg-gradient-to-br from-gray-50 to-white rounded-xl border border-gray-200 shadow-lg hover:shadow-xl transition-shadow duration-300 overflow-hidden">
-                        <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-4 flex items-center gap-3">
-                          <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
-                            <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z" />
+                      <div className="bg-gradient-to-br from-amber-50 via-yellow-50 to-orange-50 rounded-xl border-2 border-amber-400 shadow-xl hover:shadow-2xl ring-2 ring-amber-200 ring-opacity-50 transition-all duration-300 overflow-hidden">
+                        <div className="bg-gradient-to-r from-amber-500 via-yellow-500 to-orange-500 px-4 py-3 flex items-center gap-2">
+                          <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd" />
                           </svg>
-                          <h5 className="font-bold text-white text-lg">Thông số kỹ thuật cơ bản</h5>
+                          <h5 className="font-bold text-white text-lg">
+                            Thông số kỹ thuật
+                          </h5>
                         </div>
-                        <div className="p-6">
-                          <div className="space-y-3">
-                            {Object.entries(groupedSpecs["Thông số kỹ thuật cơ bản"]).map(([key, value]) => (
+                        <div className="p-4">
+                          <div className="space-y-1.5">
+                            {Object.entries(mergedSpecs).map(([key, value]) => (
                               <div
                                 key={key}
-                                className="flex items-start gap-6 py-3 px-4 rounded-lg transition-all hover:bg-gray-50 border-b border-gray-100 last:border-b-0"
+                                className="flex items-start gap-4 py-1.5 px-3 rounded-lg transition-all bg-white/60 hover:bg-white/80 border border-amber-200"
                               >
-                                <span className="font-semibold text-base whitespace-nowrap flex-shrink-0 w-[200px] text-gray-800">
+                                <span className="font-semibold text-sm whitespace-nowrap flex-shrink-0 w-[180px] text-amber-900">
                                   {key}:
                                 </span>
-                                <span className="text-base font-medium flex-1 break-words text-gray-700">
+                                <span className="text-sm font-medium flex-1 break-words text-amber-800">
                                   {value}
                                 </span>
                               </div>
@@ -399,73 +496,8 @@ const ShopDetails = ({ productData }: ShopDetailsProps) => {
                     </div>
                   )}
 
-                  {/* Price and Rating */}
-                  <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-4  mt-[80px]">
-                    <div className="flex items-center justify-between mb-2">
-                      <h3 className="text-3xl font-bold text-blue">
-                        {safeProduct.price > 0 ? `${safeProduct.price.toLocaleString('vi-VN')} VNĐ` : 'Liên hệ'}
-                      </h3>
-                      <div className="flex items-center gap-1">
-                        {[...Array(5)].map((_, i) => (
-                          <svg key={i} className="fill-[#FFA645] w-4 h-4" viewBox="0 0 18 18">
-                            <path d="M16.7906 6.72187L11.7 5.93438L9.39377 1.09688C9.22502 0.759375 8.77502 0.759375 8.60627 1.09688L6.30002 5.9625L1.23752 6.72187C0.871891 6.77812 0.731266 7.25625 1.01252 7.50938L4.69689 11.3063L3.82502 16.6219C3.76877 16.9875 4.13439 17.2969 4.47189 17.0719L9.05627 14.5687L13.6125 17.0719C13.9219 17.2406 14.3156 16.9594 14.2313 16.6219L13.3594 11.3063L17.0438 7.50938C17.2688 7.25625 17.1563 6.77812 16.7906 6.72187Z" />
-                          </svg>
-                        ))}
-                        <span className="text-sm text-gray-600 ml-1">(5 reviews)</span>
-                      </div>
-                    </div>
 
 
-                  </div>
-
-                  {/* Action Buttons */}
-                  <form onSubmit={handleAddToCart}>
-                    <div className="flex flex-wrap items-center gap-3 mt-5">
-                      <div className="flex items-center rounded-md border border-gray-300">
-                        <button
-                          type="button"
-                          aria-label="button for remove product"
-                          className="flex items-center justify-center w-10 h-10 ease-out duration-200 hover:text-blue"
-                          onClick={() => quantity > 1 && setQuantity(quantity - 1)}
-                        >
-                          <svg className="fill-current w-4 h-4" viewBox="0 0 20 20">
-                            <path d="M3.33301 10.0001C3.33301 9.53984 3.7061 9.16675 4.16634 9.16675H15.833C16.2932 9.16675 16.6663 9.53984 16.6663 10.0001C16.6663 10.4603 16.2932 10.8334 15.833 10.8334H4.16634C3.7061 10.8334 3.33301 10.4603 3.33301 10.0001Z" />
-                          </svg>
-                        </button>
-                        <span className="flex items-center justify-center w-12 h-10 border-x border-gray-300 text-sm font-medium">
-                          {quantity}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => setQuantity(quantity + 1)}
-                          aria-label="button for add product"
-                          className="flex items-center justify-center w-10 h-10 ease-out duration-200 hover:text-blue"
-                        >
-                          <svg className="fill-current w-4 h-4" viewBox="0 0 20 20">
-                            <path d="M3.33301 10C3.33301 9.5398 3.7061 9.16671 4.16634 9.16671H15.833C16.2932 9.16671 16.6663 9.5398 16.6663 10C16.6663 10.4603 16.2932 10.8334 15.833 10.8334H4.16634C3.7061 10.8334 3.33301 10.4603 3.33301 10Z" />
-                            <path d="M9.99967 16.6667C9.53944 16.6667 9.16634 16.2936 9.16634 15.8334L9.16634 4.16671C9.16634 3.70647 9.53944 3.33337 9.99967 3.33337C10.4599 3.33337 10.833 3.70647 10.833 4.16671L10.833 15.8334C10.833 16.2936 10.4599 16.6667 9.99967 16.6667Z" />
-                          </svg>
-                        </button>
-                      </div>
-
-
-                      <button
-                        type="submit"
-                        className="flex-1 bg-blue text-white py-2.5 px-6 rounded-md font-medium hover:bg-blue-dark transition-colors duration-200"
-                      >
-                        Thêm vào giỏ hàng
-                      </button>
-
-                      <button
-                        type="button"
-                        className="flex items-center justify-center w-10 h-10 rounded-md border border-gray-300 hover:text-white hover:bg-gray-800 transition-colors duration-200"
-                      >
-                        <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-                          <path d="M5.62436 4.42423C3.96537 5.18256 2.75 6.98626 2.75 9.13713C2.75 11.3345 3.64922 13.0283 4.93829 14.4798C6.00072 15.6761 7.28684 16.6677 8.54113 17.6346C8.83904 17.8643 9.13515 18.0926 9.42605 18.3219C9.95208 18.7366 10.4213 19.1006 10.8736 19.3649C11.3261 19.6293 11.6904 19.75 12 19.75C12.3096 19.75 12.6739 19.6293 13.1264 19.3649C13.5787 19.1006 14.0479 18.7366 14.574 18.3219C14.8649 18.0926 15.161 17.8643 15.4589 17.6346C16.7132 16.6677 17.9993 15.6761 19.0617 14.4798C20.3508 13.0283 21.25 11.3345 21.25 9.13713C21.25 6.98626 20.0346 5.18256 18.3756 4.42423C16.7639 3.68751 14.5983 3.88261 12.5404 6.02077C12.399 6.16766 12.2039 6.25067 12 6.25067C11.7961 6.25067 11.601 6.16766 11.4596 6.02077C9.40166 3.88261 7.23607 3.68751 5.62436 4.42423ZM12 4.45885C9.68795 2.39027 7.09896 2.1009 5.00076 3.05999C2.78471 4.07296 1.25 6.42506 1.25 9.13713C1.25 11.8027 2.3605 13.8361 3.81672 15.4758C4.98287 16.789 6.41022 17.888 7.67083 18.8586C7.95659 19.0786 8.23378 19.2921 8.49742 19.4999C9.00965 19.9037 9.55954 20.3343 10.1168 20.66C10.6739 20.9855 11.3096 21.25 12 21.25C12.6904 21.25 13.3261 20.9855 13.8832 20.66C14.4405 20.3343 14.9903 19.9037 15.5026 19.4999C15.7662 19.2921 16.0434 19.0786 16.3292 18.8586C17.5898 17.888 19.0171 16.789 20.1833 15.4758C21.6395 13.8361 22.75 11.8027 22.75 9.13713C22.75 6.42506 21.2153 4.07296 18.9992 3.05999C16.901 2.1009 14.3121 2.39027 12 4.45885Z" />
-                        </svg>
-                      </button>
-                    </div>
-                  </form>
                 </div>
               </div>
 
