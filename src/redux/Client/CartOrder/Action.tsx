@@ -6,7 +6,6 @@ import { ApiResponse } from "../../../types/Common/common";
 import { GET_ALL_CART } from "./ActionType";
 import { GET_ALL_CART_SUCCESS } from "./ActionType";
 import { GET_ALL_CART_FAILURE } from "./ActionType";
-import { AppDispatch } from "../../store";
 // Thêm sản phẩm vào giỏ hàng 
 export const addProductToCartAction = (
     request: CartOrderRequest,
@@ -99,16 +98,15 @@ export const addProductToCartAction = (
 
   export const removeProductFromCartAction = (
     productId: string,
-    skuId: string,
     token: string,
     onSuccess?: (res: ApiResponse<any>) => void,
     onError?: (error: string) => void
-  ) => async (dispatch: AppDispatch) => {
+  ) => async (dispatch: Dispatch<any>) => {
     dispatch({ type: DELETE_PRODUCT_FROM_CART });
 
     try {
-      // Gửi productId và skuId trong path variables
-      const res = await fetch(`${BASE_API_CART_URL}/api/cart/remove/${productId}/${skuId}`, {
+      // Gửi productId trong path variable
+      const res = await fetch(`${BASE_API_CART_URL}/api/cart/remove/${productId}`, {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
@@ -138,8 +136,8 @@ export const addProductToCartAction = (
       const resData: ApiResponse<any> = await res.json();
 
       if (resData.status?.code === "200") {
-        // Truyền cả productId và skuId vào payload để reducer có thể filter đúng
-        dispatch({ type: DELETE_PRODUCT_FROM_CART_SUCCESS, payload: { productId, skuId } });
+        // Truyền productId vào payload để reducer có thể filter đúng
+        dispatch({ type: DELETE_PRODUCT_FROM_CART_SUCCESS, payload: productId });
         // Không cần refresh cart ngay - state đã được cập nhật tức thì
         onSuccess?.(resData);
       } else {

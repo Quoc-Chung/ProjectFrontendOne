@@ -4,7 +4,6 @@ import {
   ProductDetailResponse,
   ProductCreateRequest,
 } from "../types/Admin/ProductAPI";
-import { SKUResponse } from "../types/Client/Product/Product";
 
 const API_BASE_URL = "http://103.90.225.90:8080/services/product-service/api";
 
@@ -232,39 +231,6 @@ export class ProductService {
       return data.data || [];
     } catch (error) {
       console.error("Error fetching latest products:", error);
-      throw error;
-    }
-  }
-
-  /**
-   * Lấy danh sách SKU theo productId
-   * @param productId - ID của sản phẩm
-   */
-  static async getSKUsByProductId(productId: string): Promise<SKUResponse> {
-    try {
-      const response = await fetch(
-        `${API_BASE_URL}/sku/by-product/${productId}`,
-        {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-          },
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data: SKUResponse = await response.json();
-
-      if (data.status.code !== "200") {
-        throw new Error(data.status.message || "Failed to fetch SKUs");
-      }
-
-      return data;
-    } catch (error) {
-      console.error("Error fetching SKUs by product ID:", error);
       throw error;
     }
   }

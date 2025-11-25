@@ -5,7 +5,6 @@ import { CartOrderResponse } from "../../../types/Client/CartOrder/cartorder";
 import { updateProductQuantityAction, removeProductFromCartAction } from "../../../redux/Client/CartOrder/Action";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
-import { ProductService } from "../../../services/ProductService";
 
 interface SingleItemProps {
   item: CartOrderResponse;
@@ -14,7 +13,6 @@ interface SingleItemProps {
 const SingleItem = ({ item }: SingleItemProps) => {
   const [quantity, setQuantity] = useState(item.quantity);
   const [isRemoving, setIsRemoving] = useState(false);
-  const [productImage, setProductImage] = useState<string>("/images/products/product-1-1.png");
   const dispatch = useAppDispatch();
   const token = useAppSelector((state) => state.auth.token);
   const router = useRouter();
@@ -23,25 +21,6 @@ const SingleItem = ({ item }: SingleItemProps) => {
   useEffect(() => {
     setQuantity(item.quantity);
   }, [item.quantity]);
-
-  // Fetch product image from Product API
-  useEffect(() => {
-    const fetchProductImage = async () => {
-      try {
-        const product = await ProductService.getProductById(item.productId);
-        if (product.thumbnailUrl) {
-          setProductImage(product.thumbnailUrl);
-        }
-      } catch (error) {
-        console.error("Error fetching product image:", error);
-        // Keep default image if error
-      }
-    };
-
-    if (item.productId) {
-      fetchProductImage();
-    }
-  }, [item.productId]);
 
   const handleRemoveFromCart = () => {
     if (!token) {
@@ -56,20 +35,18 @@ const SingleItem = ({ item }: SingleItemProps) => {
     if (isRemoving) return;
 
     setIsRemoving(true);
-    // @ts-ignore - Thunk action type inference issue
     dispatch(
       removeProductFromCartAction(
         item.productId,
-        item.skuId,
         token,
-        () => {
+        (res) => {
           toast.success("Đã xóa sản phẩm khỏi giỏ hàng!", {
             autoClose: 1500,
             position: "top-right"
           });
           setIsRemoving(false);
         },
-        (err: string) => {
+        (err) => {
           if (err === "Token hết hạn") {
             dispatch({ type: "LOGOUT" });
             toast.warning("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại!", {
@@ -111,34 +88,20 @@ const SingleItem = ({ item }: SingleItemProps) => {
         <div className="flex items-center justify-between gap-5">
           <div className="w-full flex items-center gap-5.5">
             <div className="flex items-center justify-center rounded-[5px] bg-gray-2 max-w-[80px] w-full h-17.5">
-              <Image
-                width={200}
-                height={200}
-                src={productImage}
-                alt={item.productName || "product"}
-                onError={(e) => {
-                  const target = e.target as HTMLImageElement;
-                  target.src = "/images/products/product-1-1.png";
-                }}
-              />
+              <Image width={200} height={200} src="/images/products/product-11-1.PNG" alt="product" />
             </div>
 
             <div>
               <h3 className="text-dark ease-out duration-200 hover:text-blue">
-                <a href={`/shop-details/${item.productId}`}> {item.productName} </a>
+                <a href="#"> {item.productName} </a>
               </h3>
-              {item.skuId && (
-                <p className="text-sm text-gray-600 mt-1">
-                  SKU: {item.skuId}
-                </p>
-              )}
             </div>
           </div>
         </div>
       </div>
 
       <div className="min-w-[180px]">
-        <p className="text-dark">{item.productPrice?.toLocaleString('vi-VN')}₫</p>
+        <p className="text-dark">${item.productPrice?.toLocaleString()}</p>
       </div>
 
       <div className="min-w-[275px]">
@@ -194,7 +157,7 @@ const SingleItem = ({ item }: SingleItemProps) => {
       </div>
 
       <div className="min-w-[200px]">
-        <p className="text-dark">{(item.productPrice * quantity)?.toLocaleString('vi-VN')}₫</p>
+        <p className="text-dark">${(item.productPrice * quantity)?.toLocaleString()}</p>
       </div>
 
       <div className="min-w-[50px] flex justify-end">

@@ -3,9 +3,7 @@ import React, { useEffect, useState } from "react";
 
 import { useCartModalContext } from "@/app/context/CartSidebarModalContext";
 import { useAppDispatch, useAppSelector } from "@/redux/store";
-import { getAllCartAction, removeProductFromCartAction } from "@/redux/Client/CartOrder/Action";
-import { toast } from "react-toastify";
-import { useRouter } from "next/navigation";
+import { getAllCartAction } from "@/redux/Client/CartOrder/Action";
 
 import SingleItem from "./SingleItem";
 import Link from "next/link";
@@ -14,7 +12,6 @@ import EmptyCart from "./EmptyCart";
 const CartSidebarModal = () => {
   const { isCartModalOpen, closeCartModal } = useCartModalContext();
   const dispatch = useAppDispatch();
-  const router = useRouter();
   const token = useAppSelector((state) => state.auth.token);
   const cartItems = useAppSelector((state) => state.cart.cart);
 
@@ -24,49 +21,6 @@ const CartSidebarModal = () => {
       return total + (item.productPrice * item.quantity);
     }, 0) || 0;
   }, [cartItems]);
-
-  // Handle remove item from cart
-  const handleRemoveItem = (productId: string, skuId: string) => {
-    if (!token) {
-      toast.warning("Vui lòng đăng nhập để tiếp tục!", {
-        autoClose: 2000,
-        position: "top-right"
-      });
-      closeCartModal();
-      router.push('/signin');
-      return;
-    }
-
-    dispatch(
-      removeProductFromCartAction(
-        productId,
-        skuId,
-        token,
-        (res) => {
-          toast.success("Đã xóa sản phẩm khỏi giỏ hàng!", {
-            autoClose: 1500,
-            position: "top-right"
-          });
-        },
-        (err) => {
-          if (err === "Token hết hạn") {
-            dispatch({ type: "LOGOUT" });
-            toast.warning("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại!", {
-              autoClose: 3000,
-              position: "top-right"
-            });
-            closeCartModal();
-            router.push('/signin');
-          } else {
-            toast.error("Xóa sản phẩm thất bại: " + err, {
-              autoClose: 2000,
-              position: "top-right"
-            });
-          }
-        }
-      )
-    );
-  };
 
   // Sync cart từ server khi mở modal - delay để không overwrite state vừa thêm
   useEffect(() => {
@@ -142,7 +96,7 @@ const CartSidebarModal = () => {
                   <SingleItem
                     key={key}
                     item={item}
-                    onRemove={handleRemoveItem}
+                 
                   />
                 ))
               ) : (
