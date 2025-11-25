@@ -7,11 +7,86 @@ import { toast } from "react-toastify";
 import { Search, Folder, FolderTree, Eye, X } from "lucide-react";
 import Image from "next/image";
 
+const ITEMS_PER_PAGE = 8;
+
+const getCategoryTypeLabel = (category: Category) => {
+  if (category.categoryType) {
+    const typeMap: Record<string, string> = {
+      ROOT: "Danh mục gốc",
+      INTERMEDIATE: "Danh mục trung gian",
+      LEAF: "Danh mục lá",
+    };
+    return typeMap[category.categoryType] || category.categoryType;
+  }
+
+  if (category.rootCategory) return "Danh mục gốc";
+  if (category.leafCategory) return "Danh mục lá";
+  return "Danh mục trung gian";
+};
+
+const getCategoryStatusLabel = (category: Category) => {
+  if (category.leafCategory) return "Danh mục lá";
+  if (category.childrenCount > 0) return `Có danh mục con (${category.childrenCount})`;
+  return "Không có danh mục con";
+};
+
+const getParentLabel = (category: Category) => {
+  if (category.parentName) return category.parentName;
+  return "Không (Danh mục gốc)";
+};
+
+const sortCategoriesHierarchically = (categories: Category[]) => {
+  const byParent = new Map<string | null, Category[]>();
+
+  categories.forEach((category) => {
+    const key = category.parentId ?? null;
+    const existing = byParent.get(key);
+    if (existing) {
+      existing.push(category);
+    } else {
+      byParent.set(key, [category]);
+    }
+  });
+
+  const sortGroup = (group: Category[]) =>
+    group.sort((a, b) =>
+      (a.displayName || a.name).localeCompare(b.displayName || b.name, undefined, { sensitivity: "base" })
+    );
+
+  const result: Category[] = [];
+  const visited = new Set<string>();
+
+  const traverse = (parentId: string | null) => {
+    const group = byParent.get(parentId);
+    if (!group) return;
+
+    sortGroup(group);
+    group.forEach((category) => {
+      if (visited.has(category.id)) return;
+
+      visited.add(category.id);
+      result.push(category);
+      traverse(category.id);
+    });
+  };
+
+  traverse(null);
+
+  const remaining = categories
+    .filter((category) => !visited.has(category.id))
+    .sort((a, b) =>
+      (a.displayName || a.name).localeCompare(b.displayName || b.name, undefined, { sensitivity: "base" })
+    );
+
+  return [...result, ...remaining];
+};
+
 const CategoryManagement = () => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [filteredCategories, setFilteredCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [searchTerm, setSearchTerm] = useState<string>("");
+  const [currentPage, setCurrentPage] = useState<number>(1);
   
   // Modal states
   const [isDetailModalOpen, setIsDetailModalOpen] = useState<boolean>(false);
@@ -27,22 +102,45 @@ const CategoryManagement = () => {
   useEffect(() => {
     if (searchTerm.trim() === "") {
       setFilteredCategories(categories);
+      setCurrentPage(1);
     } else {
       const filtered = categories.filter((category) =>
         category.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         category.slug.toLowerCase().includes(searchTerm.toLowerCase()) ||
         category.displayName.toLowerCase().includes(searchTerm.toLowerCase())
       );
-      setFilteredCategories(filtered);
+      setFilteredCategories(sortCategoriesHierarchically(filtered));
+      setCurrentPage(1);
     }
   }, [searchTerm, categories]);
+
+  useEffect(() => {
+    const totalPages = Math.max(1, Math.ceil(filteredCategories.length / ITEMS_PER_PAGE));
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [filteredCategories, currentPage]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredCategories.length / ITEMS_PER_PAGE));
+  const startIndex = filteredCategories.length === 0 ? 0 : (currentPage - 1) * ITEMS_PER_PAGE;
+  const endIndex = Math.min(currentPage * ITEMS_PER_PAGE, filteredCategories.length);
+  const displayStart = filteredCategories.length === 0 ? 0 : startIndex + 1;
+  const displayEnd = filteredCategories.length === 0 ? 0 : endIndex;
+  const paginatedCategories = filteredCategories.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+
+  const handlePageChange = (page: number) => {
+    if (page < 1 || page > totalPages) return;
+    setCurrentPage(page);
+  };
 
   const loadCategories = async () => {
     try {
       setLoading(true);
       const data = await CategoryService.getAllCategories();
-      setCategories(data);
-      setFilteredCategories(data);
+      const sorted = sortCategoriesHierarchically(data);
+      setCategories(sorted);
+      setFilteredCategories(sorted);
+      setCurrentPage(1);
     } catch (error) {
       toast.error("Không thể tải danh sách danh mục!", {
         position: "top-right",
@@ -62,7 +160,8 @@ const CategoryManagement = () => {
     try {
       setLoading(true);
       const data = await CategoryService.searchCategoryByName(searchTerm);
-      setFilteredCategories(data);
+      setFilteredCategories(sortCategoriesHierarchically(data));
+      setCurrentPage(1);
     } catch (error) {
       toast.error("Không thể tìm kiếm danh mục!", {
         position: "top-right",
@@ -154,7 +253,7 @@ const CategoryManagement = () => {
 
       {/* Categories Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {filteredCategories.map((category) => (
+        {paginatedCategories.map((category) => (
           <div
             key={category.id}
             className="bg-white rounded-xl shadow-md border border-gray-200 p-6 hover:shadow-lg transition-shadow"
@@ -183,32 +282,29 @@ const CategoryManagement = () => {
 
             {/* Category Info */}
             <div className="text-center mb-4">
-              <h3 className="text-lg font-semibold text-gray-900 mb-1">{category.displayName || category.name}</h3>
-              <p className="text-sm text-gray-500 mb-2">{category.slug}</p>
-              
+              <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                {category.displayName || category.name}
+              </h3>
+              <p className="text-sm text-gray-500 mb-3">{category.slug}</p>
+
               {/* Category Details */}
               <div className="text-xs text-gray-600 space-y-1">
-                {category.productCount !== null && (
-                  <p className="flex justify-center items-center gap-1">
-                    <span className="font-medium">Sản phẩm:</span>
-                    <span>{category.productCount}</span>
-                  </p>
-                )}
-                {category.childrenCount > 0 && (
-                  <p className="flex justify-center items-center gap-1">
-                    <span className="font-medium">Danh mục con:</span>
-                    <span>{category.childrenCount}</span>
-                  </p>
-                )}
+                <p className="flex justify-center items-center gap-1">
+                  <span className="font-medium">Loại danh mục:</span>
+                  <span>{getCategoryTypeLabel(category)}</span>
+                </p>
                 <p className="flex justify-center items-center gap-1">
                   <span className="font-medium">Cấp độ:</span>
-                  <span>{category.hierarchyLevel}</span>
+                  <span>{category.hierarchyLevel ?? "N/A"}</span>
                 </p>
-                {category.parentName && (
-                  <p className="text-gray-500 mt-1">
-                    <span className="font-medium">Danh mục cha:</span> {category.parentName}
-                  </p>
-                )}
+                <p className="flex justify-center items-center gap-1">
+                  <span className="font-medium">Danh mục cha:</span>
+                  <span>{getParentLabel(category)}</span>
+                </p>
+                <p className="flex justify-center items-center gap-1">
+                  <span className="font-medium">Trạng thái:</span>
+                  <span className="font-semibold text-gray-900">{getCategoryStatusLabel(category)}</span>
+                </p>
               </div>
             </div>
 
@@ -240,6 +336,53 @@ const CategoryManagement = () => {
           </div>
         ))}
       </div>
+
+      {/* Pagination */}
+      {filteredCategories.length > 0 && (
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between bg-white p-4 rounded-xl border border-gray-200 shadow">
+          <p className="text-sm text-gray-600">
+            Hiển thị {displayStart}-{displayEnd} trên tổng {filteredCategories.length} danh mục
+          </p>
+          <div className="flex items-center gap-2 flex-wrap">
+            <button
+              onClick={() => handlePageChange(currentPage - 1)}
+              disabled={currentPage === 1}
+              className="px-3 py-1 border border-gray-300 rounded-lg text-sm text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors"
+            >
+              Trước
+            </button>
+            {Array.from({ length: totalPages }, (_, index) => index + 1).map((pageNumber) => (
+              <button
+                key={pageNumber}
+                onClick={() => handlePageChange(pageNumber)}
+                className={`px-3 py-1 rounded-lg border text-sm transition-colors ${
+                  currentPage === pageNumber
+                    ? "bg-blue-600 text-white border-blue-600"
+                    : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
+                }`}
+              >
+                {pageNumber}
+              </button>
+            ))}
+            <button
+              onClick={() => handlePageChange(currentPage + 1)}
+              disabled={currentPage === totalPages}
+              className="px-3 py-1 border border-gray-300 rounded-lg text-sm text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors"
+            >
+              Sau
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Empty State */}
+      {filteredCategories.length === 0 && (
+        <div className="text-center py-12 border border-dashed border-gray-300 rounded-xl bg-white">
+          <p className="text-gray-600 text-lg">
+            {searchTerm ? "Không tìm thấy danh mục nào!" : "Chưa có danh mục nào!"}
+          </p>
+        </div>
+      )}
 
       {/* Detail Modal */}
       {isDetailModalOpen && (

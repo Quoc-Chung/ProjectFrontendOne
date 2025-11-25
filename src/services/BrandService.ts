@@ -119,17 +119,34 @@ export class BrandService {
   }
 
   /**
-   * Tạo brand mới
+   * Tạo brand mới (backend yêu cầu multipart với "brand" JSON + "image" file)
    */
-  static async createBrand(brandData: BrandCreateRequest, token: string): Promise<Brand> {
+  static async createBrand(
+    brandData: BrandCreateRequest,
+    imageFile: File,
+    token: string
+  ): Promise<Brand> {
     try {
+      if (!imageFile) {
+        throw new Error("Logo file is required when creating a brand");
+      }
+
+      const formData = new FormData();
+      formData.append(
+        "brand",
+        JSON.stringify({
+          name: brandData.name.trim(),
+          slug: brandData.slug.trim(),
+        })
+      );
+      formData.append("image", imageFile);
+
       const response = await fetch(`${API_BASE_URL}/brand`, {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(brandData),
+        body: formData,
       });
 
       if (!response.ok) {
@@ -154,22 +171,46 @@ export class BrandService {
    * Cập nhật brand
    */
   static async updateBrand(
-    id: string,
+    brandId: string,
     brandData: BrandUpdateRequest,
+    imageFile: File | undefined,
     token: string
   ): Promise<Brand> {
     try {
-      const response = await fetch(`${API_BASE_URL}/brand/${id}`, {
+      const name = brandData.name?.trim();
+      const slug = brandData.slug?.trim();
+
+      if (!name) {
+        throw new Error("Brand name is required");
+      }
+
+      if (!slug) {
+        throw new Error("Brand slug is required");
+      }
+
+      const payload: BrandUpdateRequest = {
+        name,
+        slug,
+        ...(brandData.logoUrl ? { logoUrl: brandData.logoUrl } : {}),
+      };
+
+      const formData = new FormData();
+      formData.append("brand", JSON.stringify(payload));
+
+      if (imageFile) {
+        formData.append("image", imageFile);
+      }
+
+      const response = await fetch(`${API_BASE_URL}/brand/${brandId}`, {
         method: "PUT",
         headers: {
-          "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(brandData),
+        body: formData,
       });
 
       if (!response.ok) {
-        const errorText = await response.text();
+        const errorText = await response.text().catch(() => "Unknown error");
         throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
       }
 

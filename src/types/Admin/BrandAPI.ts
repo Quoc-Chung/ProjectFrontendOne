@@ -11,14 +11,14 @@ export interface Brand {
 
 export interface BrandCreateRequest {
   name: string;
-  logoUrl: string;
   slug: string;
+  logoUrl?: string;
 }
 
 export interface BrandUpdateRequest {
   name: string;
-  logoUrl: string;
   slug: string;
+  logoUrl?: string;
 }
 
 // API Response Types

@@ -1,13 +1,15 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Brand, BrandCreateRequest, BrandUpdateRequest } from "../../types/Admin/BrandAPI";
+import { Brand, BrandUpdateRequest } from "../../types/Admin/BrandAPI";
 import { BrandService } from "../../services/BrandService";
 import { toast } from "react-toastify";
 import { Search, Plus, Pencil, Trash2, X, Check, Image as ImageIcon } from "lucide-react";
 import { useSelector } from "react-redux";
 import { RootState } from "../../redux/store";
 import Image from "next/image";
+
+const ITEMS_PER_PAGE = 8;
 
 const BrandManagement = () => {
   // Get token from Redux
@@ -17,6 +19,7 @@ const BrandManagement = () => {
   const [filteredBrands, setFilteredBrands] = useState<Brand[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [searchTerm, setSearchTerm] = useState<string>("");
+  const [currentPage, setCurrentPage] = useState<number>(1);
   
   // Modal states
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
@@ -24,14 +27,18 @@ const BrandManagement = () => {
   const [selectedBrand, setSelectedBrand] = useState<Brand | null>(null);
   
   // Form states
-  const [formData, setFormData] = useState<BrandCreateRequest>({
+  const [formData, setFormData] = useState<{
+    name: string;
+    slug: string;
+  }>({
     name: "",
-    logoUrl: "",
     slug: "",
   });
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [formErrors, setFormErrors] = useState<{
     name?: string;
-    logoUrl?: string;
+    logoFile?: string;
     slug?: string;
   }>({});
 
@@ -49,14 +56,36 @@ const BrandManagement = () => {
   useEffect(() => {
     if (searchTerm.trim() === "") {
       setFilteredBrands(brands);
+      setCurrentPage(1);
     } else {
       const filtered = brands.filter((brand) =>
         brand.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         brand.slug.toLowerCase().includes(searchTerm.toLowerCase())
       );
       setFilteredBrands(filtered);
+      setCurrentPage(1);
     }
   }, [searchTerm, brands]);
+
+  // Ensure current page is always in range, especially after filtering
+  useEffect(() => {
+    const totalPages = Math.max(1, Math.ceil(filteredBrands.length / ITEMS_PER_PAGE));
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [filteredBrands, currentPage]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredBrands.length / ITEMS_PER_PAGE));
+  const startIndex = filteredBrands.length === 0 ? 0 : (currentPage - 1) * ITEMS_PER_PAGE;
+  const endIndex = Math.min(currentPage * ITEMS_PER_PAGE, filteredBrands.length);
+  const displayStart = filteredBrands.length === 0 ? 0 : startIndex + 1;
+  const displayEnd = filteredBrands.length === 0 ? 0 : endIndex;
+  const paginatedBrands = filteredBrands.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+
+  const handlePageChange = (page: number) => {
+    if (page < 1 || page > totalPages) return;
+    setCurrentPage(page);
+  };
 
   const loadBrands = async () => {
     try {
@@ -79,9 +108,10 @@ const BrandManagement = () => {
     setSelectedBrand(null);
     setFormData({
       name: "",
-      logoUrl: "",
       slug: "",
     });
+    setLogoFile(null);
+    setLogoPreview(null);
     setFormErrors({});
     setIsModalOpen(true);
   };
@@ -91,9 +121,10 @@ const BrandManagement = () => {
     setSelectedBrand(brand);
     setFormData({
       name: brand.name,
-      logoUrl: brand.logoUrl,
       slug: brand.slug,
     });
+    setLogoFile(null);
+    setLogoPreview(brand.logoUrl);
     setFormErrors({});
     setIsModalOpen(true);
   };
@@ -103,29 +134,35 @@ const BrandManagement = () => {
     setSelectedBrand(null);
     setFormData({
       name: "",
-      logoUrl: "",
       slug: "",
     });
+    setLogoFile(null);
+    setLogoPreview(null);
     setFormErrors({});
   };
 
   const validateForm = (): boolean => {
-    const errors: { name?: string; logoUrl?: string; slug?: string } = {};
+    const errors: { name?: string; logoFile?: string; slug?: string } = {};
+    const trimmedName = formData.name.trim();
+    const trimmedSlug = formData.slug.trim();
+    const slugChanged =
+      modalMode === "create" ||
+      !selectedBrand ||
+      trimmedSlug !== selectedBrand.slug;
 
-    if (!formData.name.trim()) {
+    if (!trimmedName) {
       errors.name = "Tên thương hiệu không được để trống";
     }
 
-    if (!formData.slug.trim()) {
+    if (!trimmedSlug) {
       errors.slug = "Slug không được để trống";
-    } else if (!/^[a-z0-9-]+$/.test(formData.slug)) {
+    } else if (slugChanged && !/^[a-z0-9-]+$/.test(trimmedSlug)) {
       errors.slug = "Slug chỉ được chứa chữ thường, số và dấu gạch ngang";
     }
 
-    if (!formData.logoUrl.trim()) {
-      errors.logoUrl = "URL logo không được để trống";
-    } else if (!/^https?:\/\/.+/.test(formData.logoUrl)) {
-      errors.logoUrl = "URL logo không hợp lệ";
+    // Chỉ validate file khi tạo mới
+    if (modalMode === "create" && !logoFile) {
+      errors.logoFile = "Vui lòng chọn file logo";
     }
 
     setFormErrors(errors);
@@ -134,6 +171,8 @@ const BrandManagement = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const trimmedName = formData.name.trim();
+    const trimmedSlug = formData.slug.trim();
 
     if (!validateForm()) {
       return;
@@ -149,14 +188,43 @@ const BrandManagement = () => {
 
     try {
       if (modalMode === "create") {
-        await BrandService.createBrand(formData, token);
+        if (!logoFile) {
+          toast.error("Vui lòng chọn file logo!", {
+            position: "top-right",
+            autoClose: 3000,
+          });
+          return;
+        }
+        await BrandService.createBrand(
+          {
+            name: trimmedName,
+            slug: trimmedSlug,
+            logoUrl: "",
+          },
+          logoFile,
+          token
+        );
         toast.success("Tạo thương hiệu thành công!", {
           position: "top-right",
           autoClose: 2000,
         });
       } else {
         if (!selectedBrand) return;
-        await BrandService.updateBrand(selectedBrand.id, formData, token);
+        const updatePayload: BrandUpdateRequest = {
+          name: trimmedName,
+          slug: trimmedSlug,
+        };
+
+        if (selectedBrand.logoUrl) {
+          updatePayload.logoUrl = selectedBrand.logoUrl;
+        }
+
+        await BrandService.updateBrand(
+          selectedBrand.id,
+          updatePayload,
+          logoFile ?? undefined,
+          token
+        );
         toast.success("Cập nhật thương hiệu thành công!", {
           position: "top-right",
           autoClose: 2000,
@@ -248,6 +316,42 @@ const BrandManagement = () => {
     }
   };
 
+  const handleLogoFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Validate file type
+      if (!file.type.startsWith("image/")) {
+        setFormErrors((prev) => ({
+          ...prev,
+          logoFile: "File phải là hình ảnh",
+        }));
+        return;
+      }
+
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        setFormErrors((prev) => ({
+          ...prev,
+          logoFile: "File không được vượt quá 5MB",
+        }));
+        return;
+      }
+
+      setLogoFile(file);
+      setFormErrors((prev) => ({
+        ...prev,
+        logoFile: undefined,
+      }));
+
+      // Create preview
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setLogoPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   // Auto-generate slug from name
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const name = e.target.value;
@@ -311,7 +415,7 @@ const BrandManagement = () => {
 
       {/* Brands Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {filteredBrands.map((brand) => (
+        {paginatedBrands.map((brand) => (
           <div
             key={brand.id}
             className="bg-white rounded-xl shadow-md border border-gray-200 p-6 hover:shadow-lg transition-shadow"
@@ -360,6 +464,44 @@ const BrandManagement = () => {
           </div>
         ))}
       </div>
+
+      {/* Pagination */}
+      {filteredBrands.length > 0 && (
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between bg-white p-4 rounded-xl border border-gray-200 shadow">
+          <p className="text-sm text-gray-600">
+            Hiển thị {displayStart}-{displayEnd} trên tổng {filteredBrands.length} thương hiệu
+          </p>
+          <div className="flex items-center gap-2 flex-wrap">
+            <button
+              onClick={() => handlePageChange(currentPage - 1)}
+              disabled={currentPage === 1}
+              className="px-3 py-1 border border-gray-300 rounded-lg text-sm text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors"
+            >
+              Trước
+            </button>
+            {Array.from({ length: totalPages }, (_, index) => index + 1).map((pageNumber) => (
+              <button
+                key={pageNumber}
+                onClick={() => handlePageChange(pageNumber)}
+                className={`px-3 py-1 rounded-lg border text-sm transition-colors ${
+                  currentPage === pageNumber
+                    ? "bg-blue-600 text-white border-blue-600"
+                    : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
+                }`}
+              >
+                {pageNumber}
+              </button>
+            ))}
+            <button
+              onClick={() => handlePageChange(currentPage + 1)}
+              disabled={currentPage === totalPages}
+              className="px-3 py-1 border border-gray-300 rounded-lg text-sm text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors"
+            >
+              Sau
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Empty State */}
       {filteredBrands.length === 0 && (
@@ -433,33 +575,34 @@ const BrandManagement = () => {
                 </p>
               </div>
 
-              {/* Logo URL */}
+              {/* Logo File Upload */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  URL Logo <span className="text-red-500">*</span>
+                  Logo <span className="text-red-500">*</span>
                 </label>
                 <input
-                  type="text"
-                  name="logoUrl"
-                  value={formData.logoUrl}
-                  onChange={handleInputChange}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleLogoFileChange}
                   className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                    formErrors.logoUrl ? "border-red-500" : "border-gray-300"
+                    formErrors.logoFile ? "border-red-500" : "border-gray-300"
                   }`}
-                  placeholder="https://example.com/logo/brand.png"
                 />
-                {formErrors.logoUrl && (
-                  <p className="text-red-500 text-xs mt-1">{formErrors.logoUrl}</p>
+                {formErrors.logoFile && (
+                  <p className="text-red-500 text-xs mt-1">{formErrors.logoFile}</p>
                 )}
+                <p className="text-gray-500 text-xs mt-1">
+                  Chọn file hình ảnh (JPG, PNG, GIF). Kích thước tối đa: 5MB
+                </p>
               </div>
 
               {/* Logo Preview */}
-              {formData.logoUrl && /^https?:\/\/.+/.test(formData.logoUrl) && (
+              {logoPreview && (
                 <div className="border border-gray-300 rounded-lg p-4">
                   <p className="text-sm font-medium text-gray-700 mb-2">Xem trước logo:</p>
                   <div className="flex justify-center">
                     <Image
-                      src={formData.logoUrl}
+                      src={logoPreview}
                       alt="Logo preview"
                       width={80}
                       height={80}
