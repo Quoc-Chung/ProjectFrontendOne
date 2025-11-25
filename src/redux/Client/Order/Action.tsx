@@ -15,7 +15,7 @@ import {
 import { BASE_API_CART_URL } from "../../../utils/configAPI";
 import { ApiResponse } from "../../../types/Common/common";
 
-// T°o °n h‡ng m€i
+// T·∫°o ƒë∆°n h√†ng m·ªõi
 export const createOrderAction = (
   request: CreateOrderRequest,
   token: string,
@@ -24,27 +24,38 @@ export const createOrderAction = (
 ) => async (dispatch: Dispatch<any>) => {
   dispatch({ type: CREATE_ORDER });
 
+  // Validate token
+  if (!token || token.trim() === "") {
+    const errorMsg = "Token kh√¥ng h·ª£p l·ªá. Vui l√≤ng ƒëƒÉng nh·∫≠p l·∫°i.";
+    dispatch({ type: CREATE_ORDER_FAILURE, payload: errorMsg });
+    onError?.(errorMsg);
+    return;
+  }
+
   try {
+    // Ensure token is properly formatted (remove any extra spaces)
+    const cleanToken = token.trim();
+    
     const res = await fetch(`${BASE_API_CART_URL}/api/order/create`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
+        Authorization: `Bearer ${cleanToken}`,
       },
       body: JSON.stringify(request),
     });
 
-    // Ki√m tra status code tr∞€c khi parse JSON
+    // Ki·ªÉm tra status code tr∆∞·ªõc khi parse JSON
     if (res.status === 403) {
-      dispatch({ type: CREATE_ORDER_FAILURE, payload: "Token høt h°n" });
-      onError?.("Token høt h°n");
+      dispatch({ type: CREATE_ORDER_FAILURE, payload: "Token h·∫øt h·∫°n" });
+      onError?.("Token h·∫øt h·∫°n");
       return;
     }
 
     if (!res.ok) {
       const errorText = await res.text();
-      dispatch({ type: CREATE_ORDER_FAILURE, payload: errorText || "L◊i khi t°o °n h‡ng" });
-      onError?.(errorText || "L◊i khi t°o °n h‡ng");
+      dispatch({ type: CREATE_ORDER_FAILURE, payload: errorText || "L·ªói khi t·∫°o ƒë∆°n h√†ng" });
+      onError?.(errorText || "L·ªói khi t·∫°o ƒë∆°n h√†ng");
       return;
     }
 
@@ -63,7 +74,7 @@ export const createOrderAction = (
   }
 };
 
-// L•y t•t c£ °n h‡ng cÁa ng∞›i d˘ng
+// L·∫•y t·∫•t c·∫£ ƒë∆°n h√†ng c·ªßa ng∆∞·ªùi d√πng
 export const getAllOrdersAction = (
   token: string,
   onSuccess?: (res: ApiResponse<OrderResponse[]>) => void,
@@ -81,15 +92,15 @@ export const getAllOrdersAction = (
     });
 
     if (res.status === 403) {
-      dispatch({ type: GET_ALL_ORDERS_FAILURE, payload: "Token høt h°n" });
-      onError?.("Token høt h°n");
+      dispatch({ type: GET_ALL_ORDERS_FAILURE, payload: "Token h·∫øt h·∫°n" });
+      onError?.("Token h·∫øt h·∫°n");
       return;
     }
 
     if (!res.ok) {
       const errorText = await res.text();
-      dispatch({ type: GET_ALL_ORDERS_FAILURE, payload: errorText || "L◊i khi l•y danh s·ch °n h‡ng" });
-      onError?.(errorText || "L◊i khi l•y danh s·ch °n h‡ng");
+      dispatch({ type: GET_ALL_ORDERS_FAILURE, payload: errorText || "L·ªói khi l·∫•y danh s√°ch ƒë∆°n h√†ng" });
+      onError?.(errorText || "L·ªói khi l·∫•y danh s√°ch ƒë∆°n h√†ng");
       return;
     }
 
@@ -108,7 +119,7 @@ export const getAllOrdersAction = (
   }
 };
 
-// L•y °n h‡ng theo ID
+// L·∫•y ƒë∆°n h√†ng theo ID
 export const getOrderByIdAction = (
   orderId: string,
   token: string,
@@ -127,21 +138,21 @@ export const getOrderByIdAction = (
     });
 
     if (res.status === 403) {
-      dispatch({ type: GET_ORDER_BY_ID_FAILURE, payload: "Token høt h°n" });
-      onError?.("Token høt h°n");
+      dispatch({ type: GET_ORDER_BY_ID_FAILURE, payload: "Token h·∫øt h·∫°n" });
+      onError?.("Token h·∫øt h·∫°n");
       return;
     }
 
     if (res.status === 404) {
-      dispatch({ type: GET_ORDER_BY_ID_FAILURE, payload: "KhÙng tÏm th•y °n h‡ng" });
-      onError?.("KhÙng tÏm th•y °n h‡ng");
+      dispatch({ type: GET_ORDER_BY_ID_FAILURE, payload: "Kh√¥ng t√¨m th·∫•y ƒë∆°n h√†ng" });
+      onError?.("Kh√¥ng t√¨m th·∫•y ƒë∆°n h√†ng");
       return;
     }
 
     if (!res.ok) {
       const errorText = await res.text();
-      dispatch({ type: GET_ORDER_BY_ID_FAILURE, payload: errorText || "L◊i khi l•y thÙng tin °n h‡ng" });
-      onError?.(errorText || "L◊i khi l•y thÙng tin °n h‡ng");
+      dispatch({ type: GET_ORDER_BY_ID_FAILURE, payload: errorText || "L·ªói khi l·∫•y th√¥ng tin ƒë∆°n h√†ng" });
+      onError?.(errorText || "L·ªói khi l·∫•y th√¥ng tin ƒë∆°n h√†ng");
       return;
     }
 
@@ -160,7 +171,7 @@ export const getOrderByIdAction = (
   }
 };
 
-// Reset tr°ng th·i order (d˘ng sau khi t°o order th‡nh cÙng)
+// Reset tr·∫°ng th√°i order (d√πng sau khi t·∫°o order th√†nh c√¥ng)
 export const resetOrderStateAction = () => (dispatch: Dispatch<any>) => {
   dispatch({ type: RESET_ORDER_STATE });
 };

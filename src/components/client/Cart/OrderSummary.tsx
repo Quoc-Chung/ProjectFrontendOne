@@ -1,14 +1,36 @@
 
 import React from "react";
 import { useAppSelector } from "../../../redux/store";
+import { useRouter } from "next/navigation";
 
 const OrderSummary = () => {
+  const router = useRouter();
   const cartItems = useAppSelector((state) => state.cart.cart);
+  const token = useAppSelector((state) => state.auth.token);
   
   // Tính tổng tiền
   const totalPrice = cartItems.reduce((total, item) => {
     return total + (item.productPrice * item.quantity);
   }, 0);
+
+  // Handle checkout click
+  const handleCheckout = () => {
+    console.log("Checkout clicked", { cartItemsLength: cartItems.length, hasToken: !!token });
+    
+    if (cartItems.length === 0) {
+      console.log("Cart is empty, cannot checkout");
+      return;
+    }
+    
+    if (!token) {
+      console.log("No token, redirecting to signin");
+      router.push("/signin");
+      return;
+    }
+    
+    console.log("Navigating to checkout page");
+    router.push("/checkout");
+  };
 
   return (
     <div className="lg:max-w-[455px] w-full">
@@ -57,10 +79,12 @@ const OrderSummary = () => {
 
           {/* <!-- checkout button --> */}
           <button
-            type="submit"
-            className="w-full flex justify-center font-medium text-white bg-blue py-3 px-6 rounded-md ease-out duration-200 hover:bg-blue-dark mt-7.5"
+            type="button"
+            onClick={handleCheckout}
+            disabled={cartItems.length === 0}
+            className="w-full flex justify-center font-medium text-white bg-blue py-3 px-6 rounded-md ease-out duration-200 hover:bg-blue-dark mt-7.5 disabled:bg-gray-4 disabled:cursor-not-allowed"
           >
-            Process to Checkout
+            Đặt hàng
           </button>
         </div>
       </div>
