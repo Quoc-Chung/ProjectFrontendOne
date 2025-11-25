@@ -60,6 +60,11 @@ const ShopDetails = ({ productData }: ShopDetailsProps) => {
 
   // Tạo danh sách thông số kỹ thuật gộp lại
   const getMergedSpecs = (specs: { [key: string]: string }) => {
+    // Nếu không có specs, trả về object rỗng
+    if (!specs || Object.keys(specs).length === 0) {
+      return {};
+    }
+
     // Danh sách các trường cần hiển thị (cơ bản + 2 trường từ nâng cao)
     const displayKeys = [
       "Bộ xử lý",
@@ -85,6 +90,11 @@ const ShopDetails = ({ productData }: ShopDetailsProps) => {
       }
     });
 
+    // Nếu không có key nào khớp, trả về tất cả specs
+    if (Object.keys(merged).length === 0 && Object.keys(specs).length > 0) {
+      return specs;
+    }
+
     return merged;
   };
 
@@ -94,8 +104,18 @@ const ShopDetails = ({ productData }: ShopDetailsProps) => {
   }, [product?.id]);
 
   const mergedSpecs = useMemo(() => {
-    return getMergedSpecs(detailedSpecs);
-  }, [detailedSpecs]);
+    // Đảm bảo luôn có thông số để hiển thị
+    if (!detailedSpecs || Object.keys(detailedSpecs).length === 0) {
+      // Nếu không có specs, trả về fallback data
+      return getDetailedSpecs(product || null);
+    }
+    const specs = getMergedSpecs(detailedSpecs);
+    // Nếu mergedSpecs rỗng nhưng có detailedSpecs, hiển thị tất cả
+    if (Object.keys(specs).length === 0 && Object.keys(detailedSpecs).length > 0) {
+      return detailedSpecs;
+    }
+    return specs;
+  }, [detailedSpecs, product]);
 
   if (!productData || !productData.data) {
     console.warn('ShopDetails: No product data available', { productData });
@@ -118,18 +138,15 @@ const ShopDetails = ({ productData }: ShopDetailsProps) => {
 
   const getImageUrl = (url: string | undefined | null) => {
     if (!url || url.trim() === '') return "/images/products/product-1-bg-1.png";
-
     if (url.startsWith('http://') || url.startsWith('https://')) {
       return url;
     }
     if (url.startsWith('/images/')) {
       return url;
     }
-
     if (!url.startsWith('/')) {
       return `/${url}`;
     }
-
     return url;
   };
 
@@ -165,13 +182,11 @@ const ShopDetails = ({ productData }: ShopDetailsProps) => {
         break;
       }
     }
-    
-    // Đảm bảo có ít nhất 4 ảnh
     if (images.length === 0) {
       images.push(...mockImages.slice(0, 4));
     }
     
-    return images.slice(0, 4); // Chỉ lấy 4 ảnh đầu tiên
+    return images.slice(0, 4); 
   };
   const handlePreviewSlider = () => {
     openPreviewModal();
@@ -247,8 +262,6 @@ const ShopDetails = ({ productData }: ShopDetailsProps) => {
       </div>
     );
   }
-
-  // Đảm bảo product có đầy đủ thông tin
   const safeProduct = {
     id: product.id || 'unknown',
     name: product.name || 'Sản phẩm không tên',
@@ -495,9 +508,6 @@ const ShopDetails = ({ productData }: ShopDetailsProps) => {
                       </div>
                     </div>
                   )}
-
-
-
                 </div>
               </div>
 

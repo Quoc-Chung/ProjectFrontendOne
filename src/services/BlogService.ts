@@ -1,7 +1,20 @@
 import { BlogPost } from "@/types/Client/Blog/BlogPost";
 
+// Helper function to get custom blogs from localStorage (client-side only)
+const getCustomBlogs = (): BlogPost[] => {
+  if (typeof window === 'undefined') return [];
+  
+  try {
+    const savedBlogs = localStorage.getItem('customBlogs');
+    return savedBlogs ? JSON.parse(savedBlogs) : [];
+  } catch (e) {
+    console.error('Error loading custom blogs:', e);
+    return [];
+  }
+};
+
 // Fake data - trong thực tế sẽ fetch từ API
-export const getAllBlogPosts = (): BlogPost[] => {
+const getDefaultBlogPosts = (): BlogPost[] => {
   return [
     {
       id: 1,
@@ -104,6 +117,13 @@ Kết luận: Chọn desktop nếu bạn chủ yếu chơi game ở nhà và mu�
       readTime: "6 phút"
     }
   ];
+};
+
+// Get all blog posts including custom ones from localStorage
+export const getAllBlogPosts = (): BlogPost[] => {
+  const defaultPosts = getDefaultBlogPosts();
+  const customPosts = getCustomBlogs();
+  return [...defaultPosts, ...customPosts];
 };
 
 export const getBlogPostById = (id: number): BlogPost | undefined => {
