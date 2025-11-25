@@ -37,7 +37,7 @@ const OrderSummary = () => {
               </div>
               <div>
                 <p className="text-dark text-right">
-                  ${(item.productPrice * item.quantity).toLocaleString()}
+                  {(item.productPrice * item.quantity).toLocaleString('vi-VN')}₫
                 </p>
               </div>
             </div>
@@ -46,11 +46,11 @@ const OrderSummary = () => {
           {/* <!-- total --> */}
           <div className="flex items-center justify-between pt-5">
             <div>
-              <p className="font-medium text-lg text-dark">Total</p>
+              <p className="font-medium text-lg text-dark">Tổng cộng</p>
             </div>
             <div>
               <p className="font-medium text-lg text-dark text-right">
-                ${totalPrice.toLocaleString()}
+                {totalPrice.toLocaleString('vi-VN')}₫
               </p>
             </div>
           </div>

@@ -25,3 +25,27 @@ export interface ProductsResponse {
   };
   extraData: any;
 }
+
+export interface SKU {
+  id: string;
+  productId: string;
+  skuCode: string;
+  specs: { [key: string]: string | number };
+  price: number;
+  discountPrice: number | null;
+  salePrice: number | null;
+  saleId: string | null;
+  stock: number;
+  barcode: string;
+  isActive: boolean;
+}
+
+export interface SKUResponse {
+  status: {
+    code: string;
+    message: string;
+    label: string;
+  };
+  data: SKU[];
+  extraData: any;
+}
