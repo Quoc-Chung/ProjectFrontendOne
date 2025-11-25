@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import toast from "react-hot-toast";
+import { toast } from "react-toastify";
 
 const EditOrder = ({ order, toggleModal }: any) => {
   const [currentStatus, setCurrentStatus] = useState(order?.status);

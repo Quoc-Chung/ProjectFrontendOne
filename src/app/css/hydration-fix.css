@@ -1,0 +1,25 @@
+
+[fdprocessedid] {
+ 
+}
+
+input[fdprocessedid],
+button[fdprocessedid],
+textarea[fdprocessedid],
+select[fdprocessedid] {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+}
+
+input, button, textarea, select {
+  /* Ensure consistent box-sizing */
+  box-sizing: border-box;
+}
+
+input[type="text"],
+input[type="password"],
+input[type="email"] {
+  /* Prevent extension styling from affecting layout */
+  background-clip: padding-box;
+}

@@ -1,8 +1,9 @@
 "use client";
 import { Swiper, SwiperSlide } from "swiper/react";
-import { useCallback, useRef, useEffect } from "react";
-import data from "./categoryData";
+import { useCallback, useRef, useEffect, useState } from "react";
+import { Category } from "@/types/Client/Category/Category";
 import Image from "next/image";
+import { CategoryService } from "@/services/CategoryService";
 
 // Import Swiper styles
 import "swiper/css/navigation";
@@ -10,27 +11,96 @@ import "swiper/css";
 import SingleItem from "./SingleItem";
 
 const Categories = () => {
-  const sliderRef = useRef(null);
+  const sliderRef = useRef<any>(null);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const handlePrev = useCallback(() => {
-    if (!sliderRef.current) return;
+    if (!sliderRef.current?.swiper) return;
     sliderRef.current.swiper.slidePrev();
   }, []);
 
   const handleNext = useCallback(() => {
-    if (!sliderRef.current) return;
+    if (!sliderRef.current?.swiper) return;
     sliderRef.current.swiper.slideNext();
   }, []);
 
-  useEffect(() => {
-    if (sliderRef.current) {
-      sliderRef.current.swiper.init();
+  // Fetch categories from API using CategoryService
+  const fetchCategories = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await CategoryService.getAllCategories();
+      console.log('📦 All categories from API:', data);
+      // Filter only root categories (rootCategory: true)
+      const rootCategories = data.filter(category => category.rootCategory === true);
+      console.log('✅ Root categories filtered:', rootCategories);
+      console.log('🖼️ Root categories with imageUrl:', rootCategories.map(cat => ({
+        name: cat.displayName,
+        imageUrl: cat.imageUrl,
+        hasImage: !!cat.imageUrl,
+        imageUrlType: typeof cat.imageUrl
+      })));
+      setCategories(rootCategories);
+    } catch (err: any) {
+      console.error("Error fetching categories:", err);
+      setError(err.message);
+      // Fallback to static data if API fails
+      setCategories([
+        {
+          id: "1",
+          name: "Televisions",
+          slug: "televisions",
+          parentId: null,
+          parentName: null,
+          parentSlug: null,
+          childrenCount: 0,
+          hasChildren: false,
+          children: null,
+          hierarchyLevel: 1,
+          categoryType: "ROOT",
+          productCount: null,
+          isActive: null,
+          imageUrl: "/images/categories/categories-01.png",
+          displayName: "Televisions",
+          fullPath: "Televisions",
+          rootCategory: true,
+          leafCategory: true
+        },
+        {
+          id: "2",
+          name: "Laptop & PC",
+          slug: "laptop-pc",
+          parentId: null,
+          parentName: null,
+          parentSlug: null,
+          childrenCount: 0,
+          hasChildren: false,
+          children: null,
+          hierarchyLevel: 1,
+          categoryType: "ROOT",
+          productCount: null,
+          isActive: null,
+          imageUrl: "/images/categories/categories-02.png",
+          displayName: "Laptop & PC",
+          fullPath: "Laptop & PC",
+          rootCategory: true,
+          leafCategory: true
+        }
+      ]);
+    } finally {
+      setLoading(false);
     }
+  };
+
+  useEffect(() => {
+    fetchCategories();
   }, []);
 
   return (
-    <section className="overflow-hidden pt-17.5">
-      <div className="max-w-[1170px] w-full mx-auto px-4 sm:px-8 xl:px-0 pb-15 border-b border-gray-3">
+    <section className="overflow-hidden py-6 bg-white">
+      <div className="max-w-[1170px] w-full mx-auto px-4 sm:px-8 xl:px-0 border-b border-gray-3 pb-6">
         <div className="swiper categories-carousel common-carousel">
           {/* <!-- section title --> */}
           <div className="mb-10 flex items-center justify-between">
@@ -70,10 +140,10 @@ const Categories = () => {
                     </clipPath>
                   </defs>
                 </svg>
-                Categories
+                Danh mục
               </span>
               <h2 className="font-semibold text-xl xl:text-heading-5 text-dark">
-                Browse by Category
+                Danh sách loại sản phẩm
               </h2>
             </div>
 
@@ -116,30 +186,50 @@ const Categories = () => {
             </div>
           </div>
 
-          <Swiper
-            ref={sliderRef}
-            slidesPerView={6}
-            breakpoints={{
-              // when window width is >= 640px
-              0: {
-                slidesPerView: 2,
-              },
-              1000: {
-                slidesPerView: 4,
-                // spaceBetween: 4,
-              },
-              // when window width is >= 768px
-              1200: {
-                slidesPerView: 6,
-              },
-            }}
-          >
-            {data.map((item, key) => (
-              <SwiperSlide key={key}>
-                <SingleItem item={item} />
-              </SwiperSlide>
-            ))}
-          </Swiper>
+          {loading ? (
+            <div className="text-center py-20">
+              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+              <p className="mt-4 text-gray-600">Đang tải danh mục...</p>
+            </div>
+          ) : error ? (
+            <div className="text-center py-20">
+              <div className="text-red-600 text-lg font-medium mb-4">
+                Lỗi tải danh mục: {error}
+              </div>
+              <button 
+                onClick={fetchCategories}
+                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Thử lại
+              </button>
+            </div>
+          ) : categories.length === 0 ? (
+            <div className="text-center py-20">
+              <p className="text-gray-600">Không có danh mục nào</p>
+            </div>
+          ) : (
+            <Swiper
+              ref={sliderRef}
+              slidesPerView={6}
+              breakpoints={{
+                0: {
+                  slidesPerView: 2,
+                },
+                1000: {
+                  slidesPerView: 4,
+                },
+                1200: {
+                  slidesPerView: 6,
+                },
+              }}
+            >
+              {categories.map((item, key) => (
+                <SwiperSlide key={item.id}>
+                  <SingleItem item={item} />
+                </SwiperSlide>
+              ))}
+            </Swiper>
+          )}
         </div>
       </div>
     </section>

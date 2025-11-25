@@ -1,20 +1,17 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";   
 import Breadcrumb from "@/components/client/Common/Breadcrumb";
-import Swal from "sweetalert2";
 import { toast } from "react-toastify";
-
-
 import { useAppDispatch } from "@/redux/store";
-
-
 import { Register } from "@/types/Client/Auth/Register";
 import { register } from "../../../../redux/Client/Auth/Action";
 
 const Signup: React.FC = () => {
   const dispatch = useAppDispatch();
+  const router = useRouter(); 
 
   const [formData, setFormData] = useState<Register>({
     account: "",
@@ -22,32 +19,42 @@ const Signup: React.FC = () => {
     email: "",
     fullname: "",
   });
+  const [isHydrated, setIsHydrated] = useState(false);
 
-  // handle input change
+  useEffect(() => {
+    setIsHydrated(true);
+  }, []);
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  // handle form submit
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     console.log("Register data:", formData);
-
+  
     dispatch(
       register(
         formData,
         () => {
-          Swal.fire({
-            title: "🎉 Đăng ký thành công!",
-            text: "Chào mừng bạn trải nghiệm app!",
-            icon: "success",
-            timer: 2000,
-            showConfirmButton: false,
+          if (isHydrated) {
+            localStorage.setItem("account", formData.account); 
+            localStorage.setItem("password", formData.password)
+          }
+          toast.success("🎉 Đăng kí thành công", {
+            autoClose: 1500,
+            position: "top-right"
           });
+          setTimeout(() => {
+            router.push("/signin");
+          }, 1500);
         },
         (err) => {
-          toast.error(`Đăng ký thất bại: ${err}`);
+          toast.error(`Đăng ký thất bại: ${err}`, {
+            autoClose: 2000,
+            position: "top-right"
+          });
         }
       )
     );
@@ -85,6 +92,7 @@ const Signup: React.FC = () => {
                   placeholder="Enter your full name"
                   required
                   className="rounded-lg border border-gray-3 bg-gray-1 w-full py-3 px-5"
+                  suppressHydrationWarning
                 />
               </div>
 
@@ -102,6 +110,7 @@ const Signup: React.FC = () => {
                   placeholder="Enter your account"
                   required
                   className="rounded-lg border border-gray-3 bg-gray-1 w-full py-3 px-5"
+                  suppressHydrationWarning
                 />
               </div>
 
@@ -119,6 +128,7 @@ const Signup: React.FC = () => {
                   placeholder="Enter your email address"
                   required
                   className="rounded-lg border border-gray-3 bg-gray-1 w-full py-3 px-5"
+                  suppressHydrationWarning
                 />
               </div>
 
@@ -136,6 +146,7 @@ const Signup: React.FC = () => {
                   placeholder="Enter your password"
                   required
                   className="rounded-lg border border-gray-3 bg-gray-1 w-full py-3 px-5"
+                  suppressHydrationWarning
                 />
               </div>
 
@@ -143,6 +154,7 @@ const Signup: React.FC = () => {
               <button
                 type="submit"
                 className="w-full flex justify-center font-medium text-white bg-dark py-3 px-6 rounded-lg hover:bg-blue mt-7.5"
+                suppressHydrationWarning
               >
                 Create Account
               </button>
@@ -154,6 +166,55 @@ const Signup: React.FC = () => {
                   Sign in Now
                 </Link>
               </p>
+                  <p className="text-center mt-[10px] mb-[70px]"> ---or--- </p>
+              {/* Login Buttons */}
+              <div className="flex  gap-4">
+                {/* Google Button */}
+                <button
+                  className={`
+              group relative w-full flex items-center justify-center gap-3 
+              bg-gradient-to-r from-red-500 to-orange-400 
+              hover:from-red-600 hover:to-orange-500
+              text-white font-semibold py-4 px-6 rounded-xl
+              transform transition-all duration-300 ease-out
+              hover:scale-105 hover:shadow-2xl hover:-translate-y-1
+              active:scale-95 active:translate-y-0
+              disabled:opacity-70 disabled:cursor-not-allowed
+              overflow-hidden
+              
+            `}
+                  suppressHydrationWarning
+                >
+                  {/* Shimmer Effect */}
+                  <div className="absolute inset-0 -top-2 -bottom-2 bg-gradient-to-r from-transparent via-white/20 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
+
+                  {/* Google Icon */}
+                  <svg className="w-5 h-5 flex-shrink-0" viewBox="0 0 48 48">
+                    <path
+                      fill="#EA4335"
+                      d="M24 9.5c3.54 0 6.71 1.22 9.21 3.61l6.85-6.85C35.64 2.73 30.15 0 24 0 14.64 0 6.48 5.49 2.48 13.44l7.97 6.18C12.29 13.69 17.71 9.5 24 9.5z"
+                    />
+                    <path
+                      fill="#4285F4"
+                      d="M46.1 24.5c0-1.62-.15-3.18-.42-4.68H24v9.09h12.5c-.54 2.89-2.13 5.34-4.54 7.01l7.02 5.46C43.54 37.73 46.1 31.64 46.1 24.5z"
+                    />
+                    <path
+                      fill="#FBBC05"
+                      d="M10.45 28.62c-.48-1.42-.75-2.94-.75-4.62s.27-3.2.75-4.62l-7.97-6.18C.89 16.64 0 20.21 0 24c0 3.79.89 7.36 2.48 10.8l7.97-6.18z"
+                    />
+                    <path
+                      fill="#34A853"
+                      d="M24 48c6.15 0 11.64-2.02 15.54-5.5l-7.02-5.46c-2.04 1.38-4.64 2.21-8.52 2.21-6.29 0-11.71-4.19-13.55-10.12l-7.97 6.18C6.48 42.51 14.64 48 24 48z"
+                    />
+                  </svg>
+
+                  google
+                </button>
+
+             
+              
+              </div>
+
             </form>
           </div>
         </div>

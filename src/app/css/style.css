@@ -14,9 +14,11 @@
 
 @layer components {
   .dropdown {
-    @apply flex-col gap-0 min-w-max xl:w-[193px] mt-2 lg:mt-0 bg-white shadow-2 ease-in duration-200 py-2.5 rounded-md border border-gray-3 left-0 hidden
+    @apply flex-col gap-0 min-w-max xl:w-[193px] mt-2 lg:mt-0 bg-white shadow-2 py-2.5 rounded-md border border-gray-3 left-0 hidden
     xl:translate-y-10 xl:opacity-0 xl:invisible xl:absolute xl:flex
     xl:group-hover:opacity-100 xl:group-hover:visible;
+    /* Loại bỏ transition để tăng tốc độ */
+    transition: none !important;
   }
 }
 
@@ -27,6 +29,16 @@
   }
 
   .no-scrollbar {
+    -ms-overflow-style: none; /* IE and Edge */
+    scrollbar-width: none; /* Firefox */
+  }
+
+  /* Chrome, Safari and Opera */
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  .scrollbar-hide {
     -ms-overflow-style: none; /* IE and Edge */
     scrollbar-width: none; /* Firefox */
   }
@@ -130,6 +142,20 @@ input[type='search']::-webkit-search-results-decoration {
   @apply xl:!bottom-5;
 }
 
+/* Main Banner Swiper Styles */
+.main-banner-swiper .swiper-pagination-bullet {
+  @apply h-1.5 w-6 rounded-full bg-white/50;
+  transition: all 0.3s ease;
+}
+
+.main-banner-swiper .swiper-pagination-bullet-active {
+  @apply w-8 bg-white;
+}
+
+.main-banner-swiper .swiper-pagination {
+  @apply bottom-6;
+}
+
 .common-carousel .swiper-button-next:after,
 .common-carousel .swiper-button-prev:after {
   @apply hidden;
@@ -198,4 +224,16 @@ input[type='search']::-webkit-search-results-decoration {
 
 .range-slider__range {
   @apply !bg-blue;
+}
+
+/* Ẩn Next.js development indicator overlay vĩnh viễn */
+#__next-build-indicator,
+[data-nextjs-dialog],
+[data-nextjs-dialog-overlay],
+nextjs-portal,
+__next-build-indicator {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
 }

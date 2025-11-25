@@ -1,20 +1,358 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
+import dynamic from "next/dynamic";
 import Breadcrumb from "../Common/Breadcrumb";
 import CustomSelect from "./CustomSelect";
 import CategoryDropdown from "./CategoryDropdown";
 import GenderDropdown from "./GenderDropdown";
-import SizeDropdown from "./SizeDropdown";
 import ColorsDropdwon from "./ColorsDropdwon";
-import PriceDropdown from "./PriceDropdown";
-import shopData from "../Shop/shopData";
-import SingleGridItem from "../Shop/SingleGridItem";
-import SingleListItem from "../Shop/SingleListItem";
+import ProductGrid from "./ProductGrid";
+import Pagination from "./Pagination";
+import { useAppSelector } from "@/redux/store";
+
+// Dynamic import PriceDropdown to avoid SSR issues with react-range-slider-input
+const PriceDropdown = dynamic(() => import("./PriceDropdown"), {
+  ssr: false,
+  loading: () => (
+    <div className="bg-white shadow-1 rounded-lg py-3 pl-6 pr-5.5">
+      <p className="text-dark">Price</p>
+    </div>
+  ),
+});
+import { Product, ProductsResponse } from "@/types/Client/Product/Product";
+import { BASE_API_PRODUCT_URL } from "@/utils/configAPI";
 
 const ShopWithSidebar = () => {
-  const [productStyle, setProductStyle] = useState("grid");
+  const [productStyle, setProductStyle] = useState<"grid" | "list">("grid");
   const [productSidebar, setProductSidebar] = useState(false);
   const [stickyMenu, setStickyMenu] = useState(false);
+  
+  // API states
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalElements, setTotalElements] = useState(0);
+  const [hasNext, setHasNext] = useState(false);
+  const [hasPrevious, setHasPrevious] = useState(false);
+  
+  // Lấy dữ liệu từ Redux
+  const { categories: reduxCategories, loading: categoriesLoading } = useAppSelector((state) => state.category);
+  const { brands: reduxBrands, loading: brandsLoading } = useAppSelector((state) => state.brand);
+
+  // Transform categories từ Redux format sang format của CategoryDropdown
+  const categories = React.useMemo(() => {
+    return reduxCategories.map((cat) => ({
+      name: cat.name || cat.displayName,
+      products: cat.productCount || 0,
+      isRefined: false,
+      id: cat.id,
+    }));
+  }, [reduxCategories]);
+
+  // Transform brands từ Redux format sang format của GenderDropdown
+  const brands = React.useMemo(() => {
+    return reduxBrands.map((brand) => ({
+      name: brand.name,
+      products: 0, // Brand service không trả về product count
+      id: brand.id,
+    }));
+  }, [reduxBrands]);
+  
+  // Search and Filter states
+  const [searchTerm, setSearchTerm] = useState<string>("");
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null); // Single category only
+  const [selectedBrand, setSelectedBrand] = useState<string | null>(null); // Single brand only
+  const [priceRange, setPriceRange] = useState<{ min: number | null; max: number | null }>({
+    min: null,
+    max: null,
+  });
+  
+  // Cache for products
+  const [productsCache, setProductsCache] = useState<{ [key: string]: Product[] }>({});
+
+  // Build search API URL with filters (mapped to new API endpoint)
+  const buildSearchUrl = useCallback((page: number = 1, size: number = 6) => {
+    const params = new URLSearchParams();
+    params.append('page', String(page - 1));
+    params.append('size', String(size));
+    
+    // name parameter (search term) - only add if has value
+    if (searchTerm && searchTerm.trim()) {
+      params.append('name', searchTerm.trim());
+    }
+    
+    // category parameter (category name, not ID) - need to get category name from selectedCategory
+    // We'll need to find category name from categories array
+    if (selectedCategory && categories.length > 0) {
+      const category = categories.find(cat => cat.id === selectedCategory);
+      if (category?.name) {
+        params.append('category', category.name);
+      }
+    }
+    
+    // brand parameter (brand name, not ID) - need to get brand name from selectedBrand
+    // We'll need to find brand name from brands array
+    if (selectedBrand && brands.length > 0) {
+      const brand = brands.find(b => b.id === selectedBrand);
+      if (brand?.name) {
+        params.append('brand', brand.name);
+      }
+    }
+    
+    // Price range - only add if set
+    if (priceRange.min !== null && priceRange.min !== undefined) {
+      params.append('minPrice', String(priceRange.min));
+    }
+    if (priceRange.max !== null && priceRange.max !== undefined) {
+      params.append('maxPrice', String(priceRange.max));
+    }
+    
+    return `${BASE_API_PRODUCT_URL}/api/product/search?${params.toString()}`;
+  }, [searchTerm, selectedCategory, selectedBrand, priceRange, categories, brands]);
+
+  // Fetch products from API with search and filters
+  const fetchProducts = useCallback(async (page: number = 1) => {
+    const cacheKey = `${page}-${searchTerm}-${selectedCategory || 'null'}-${selectedBrand || 'null'}-${priceRange.min}-${priceRange.max}`;
+    
+    // Check cache first
+    if (productsCache[cacheKey]) {
+      setProducts(productsCache[cacheKey]);
+      setCurrentPage(page);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      
+      // Build URL safely - only include filters if categories/brands are available when needed
+      let url: string;
+      if ((selectedCategory && categories.length === 0) || (selectedBrand && brands.length === 0)) {
+        // If filter is selected but data not loaded yet, build URL without that filter for now
+        const params = new URLSearchParams();
+        params.append('page', String(page - 1));
+        params.append('size', '6');
+        
+        if (searchTerm && searchTerm.trim()) {
+          params.append('name', searchTerm.trim());
+        }
+        
+        // Only add category if categories are loaded
+        if (selectedCategory && categories.length > 0) {
+          const category = categories.find(cat => cat.id === selectedCategory);
+          if (category?.name) {
+            params.append('category', category.name);
+          }
+        }
+        
+        // Only add brand if brands are loaded
+        if (selectedBrand && brands.length > 0) {
+          const brand = brands.find(b => b.id === selectedBrand);
+          if (brand?.name) {
+            params.append('brand', brand.name);
+          }
+        }
+        
+        if (priceRange.min !== null && priceRange.min !== undefined) {
+          params.append('minPrice', String(priceRange.min));
+        }
+        if (priceRange.max !== null && priceRange.max !== undefined) {
+          params.append('maxPrice', String(priceRange.max));
+        }
+        
+        url = `${BASE_API_PRODUCT_URL}/api/product/search?${params.toString()}`;
+      } else {
+        url = buildSearchUrl(page, 6);
+      }
+      
+      console.log("🔍 Fetching products from:", url);
+      
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text().catch(() => 'Unknown error');
+        console.error("❌ API Error Response:", {
+          status: response.status,
+          statusText: response.statusText,
+          body: errorText,
+          url: url
+        });
+        throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
+      }
+    
+      const data: ProductsResponse = await response.json();
+      
+      if (data.status.code === "200") {
+        const productsList = data.data.content || [];
+        console.log("✅ Products found:", productsList.length);
+        
+        setProducts(productsList);
+        setCurrentPage(data.data.current_page || page);
+        setTotalPages(data.data.total_pages || 1);
+        setTotalElements(data.data.total_elements || 0);
+        setHasNext(data.data.has_next || false);
+        setHasPrevious(data.data.has_previous || false);
+        
+        // Cache the products with filter key
+        setProductsCache(prev => ({
+          ...prev,
+          [cacheKey]: productsList
+        }));
+      } else {
+        console.error("❌ API returned error:", data.status);
+        setProducts([]);
+      }
+    } catch (error) {
+      console.error("❌ Error fetching products:", error);
+      setProducts([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [buildSearchUrl, productsCache, searchTerm, selectedCategory, selectedBrand, priceRange, categories, brands]);
+
+  // Prefetch next page
+  const prefetchNextPage = useCallback(async (currentPage: number) => {
+    const nextPage = currentPage + 1;
+    if (nextPage <= totalPages) {
+      const cacheKey = `${nextPage}-${searchTerm}-${selectedCategory || 'null'}-${selectedBrand || 'null'}-${priceRange.min}-${priceRange.max}`;
+      if (!productsCache[cacheKey]) {
+        try {
+          const url = buildSearchUrl(nextPage, 6); // 6 products per page
+          const response = await fetch(url);
+          const data: ProductsResponse = await response.json();
+          
+          if (data.status.code === "200") {
+            setProductsCache(prev => ({
+              ...prev,
+              [cacheKey]: data.data.content
+            }));
+          }
+        } catch (error) {
+          console.error("Error prefetching next page:", error);
+        }
+      }
+    }
+  }, [totalPages, productsCache, buildSearchUrl, searchTerm, selectedCategory, selectedBrand, priceRange]);
+
+  const handlePageChange = (page: number) => {
+    if (page >= 1 && page <= totalPages) {
+      fetchProducts(page);
+      // Prefetch next page after successful load
+      setTimeout(() => prefetchNextPage(page), 100);
+    }
+  };
+
+  const [hasMounted, setHasMounted] = useState(false);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
+
+
+  useEffect(() => {
+    // Fetch data on mount
+    const initializeData = async () => {
+      try {
+        const params = new URLSearchParams();
+        params.append('page', '0');
+        params.append('size', '6'); // 6 products per page
+
+        
+        const url = `${BASE_API_PRODUCT_URL}/api/product/search?${params.toString()}`;
+        console.log("🔍 Initial fetch from:", url);
+        
+        setLoading(true);
+        
+        // Fetch với error handling tốt hơn
+        const response = await fetch(url, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+        });
+        
+        if (!response.ok) {
+          const errorText = await response.text().catch(() => 'Unknown error');
+          console.error("❌ API Error Response:", {
+            status: response.status,
+            statusText: response.statusText,
+            body: errorText,
+            url: url
+          });
+          // Không throw error, chỉ log và set empty array
+          setProducts([]);
+          setLoading(false);
+          setHasMounted(true);
+          setIsInitialLoad(false);
+          return;
+        }
+        
+        const data: ProductsResponse = await response.json();
+        console.log("📦 Initial products response:", data);
+        
+        if (data.status && data.status.code === "200" && data.data) {
+          const productsList = data.data.content || [];
+          console.log("✅ Initial products found:", productsList.length);
+          
+          setProducts(productsList);
+          setCurrentPage(data.data.current_page !== undefined ? data.data.current_page + 1 : 1);
+          setTotalPages(data.data.total_pages || 1);
+          setTotalElements(data.data.total_elements || 0);
+          setHasNext(data.data.has_next || false);
+          setHasPrevious(data.data.has_previous || false);
+        } else {
+          console.error("❌ API returned error:", data.status || data);
+          setProducts([]);
+        }
+      } catch (error: any) {
+        console.error("❌ Error fetching initial products:", error);
+        console.error("Error details:", {
+          message: error.message,
+          stack: error.stack,
+          name: error.name
+        });
+        setProducts([]);
+      } finally {
+        setLoading(false);
+        setHasMounted(true);
+        setIsInitialLoad(false);
+      }
+    };
+    
+    // Đợi một chút để đảm bảo Redux đã hydrate xong
+    setTimeout(() => {
+      initializeData();
+    }, 200);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only run on mount 
+
+  useEffect(() => {
+    if (isInitialLoad || !hasMounted) return; 
+
+    const needsCategories = selectedCategory && categories.length === 0;
+    const needsBrands = selectedBrand && brands.length === 0;
+    
+    if (needsCategories || needsBrands) {
+      return; // Wait for data to load
+    }
+    
+    setCurrentPage(1);
+    fetchProducts(1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchTerm, selectedCategory, selectedBrand, priceRange.min, priceRange.max, hasMounted, isInitialLoad, categories, brands]);
+
+
+
+  const options = [
+    { label: "Latest Products", value: "0" },
+    { label: "Best Selling", value: "1" },
+    { label: "Old Products", value: "2" },
+  ];
+
 
   const handleStickyMenu = () => {
     if (window.scrollY >= 80) {
@@ -24,66 +362,20 @@ const ShopWithSidebar = () => {
     }
   };
 
-  const options = [
-    { label: "Latest Products", value: "0" },
-    { label: "Best Selling", value: "1" },
-    { label: "Old Products", value: "2" },
-  ];
-
-  const categories = [
-    {
-      name: "Desktop",
-      products: 10,
-      isRefined: true,
-    },
-    {
-      name: "Laptop",
-      products: 12,
-      isRefined: false,
-    },
-    {
-      name: "Monitor",
-      products: 30,
-      isRefined: false,
-    },
-    {
-      name: "UPS",
-      products: 23,
-      isRefined: false,
-    },
-    {
-      name: "Phone",
-      products: 10,
-      isRefined: false,
-    },
-    {
-      name: "Watch",
-      products: 13,
-      isRefined: false,
-    },
-  ];
-
-  const genders = [
-    {
-      name: "Men",
-      products: 10,
-    },
-    {
-      name: "Women",
-      products: 23,
-    },
-    {
-      name: "Unisex",
-      products: 8,
-    },
-  ];
+  // Prefetch next page after products load
+  useEffect(() => {
+    if (currentPage === 1 && products.length > 0) {
+      setTimeout(() => prefetchNextPage(1), 500);
+    }
+  }, [currentPage, products.length, prefetchNextPage]);
 
   useEffect(() => {
     window.addEventListener("scroll", handleStickyMenu);
 
     // closing sidebar while clicking outside
-    function handleClickOutside(event) {
-      if (!event.target.closest(".sidebar-content")) {
+    function handleClickOutside(event: MouseEvent) {
+      if (!event.target) return;
+      if (!(event.target as HTMLElement).closest(".sidebar-content")) {
         setProductSidebar(false);
       }
     }
@@ -100,7 +392,7 @@ const ShopWithSidebar = () => {
   return (
     <>
       <Breadcrumb
-        title={"Explore All Products"}
+        title={"Khám phá tất cả sản phẩm"}
         pages={["shop", "/", "shop with sidebar"]}
       />
       <section className="overflow-hidden relative pb-20 pt-5 lg:pt-20 xl:pt-28 bg-[#f3f4f6]">
@@ -152,24 +444,44 @@ const ShopWithSidebar = () => {
                   <div className="bg-white shadow-1 rounded-lg py-4 px-5">
                     <div className="flex items-center justify-between">
                       <p>Filters:</p>
-                      <button className="text-blue">Clean All</button>
+                      <button 
+                        onClick={() => {
+                          setSearchTerm("");
+                          setSelectedCategory(null);
+                          setSelectedBrand(null);
+                          setPriceRange({ min: null, max: null });
+                        }}
+                        className="text-blue hover:text-blue-700 transition-colors"
+                      >
+                        Clean All
+                      </button>
                     </div>
                   </div>
 
                   {/* <!-- category box --> */}
-                  <CategoryDropdown categories={categories} />
+                  <CategoryDropdown 
+                    categories={categories} 
+                    loading={categoriesLoading}
+                    selectedCategory={selectedCategory}
+                    onCategoryChange={(categoryId: string | null) => setSelectedCategory(categoryId)}
+                  />
 
-                  {/* <!-- gender box --> */}
-                  <GenderDropdown genders={genders} />
-
-                  {/* // <!-- size box --> */}
-                  <SizeDropdown />
+                  {/* <!-- brand box (using GenderDropdown component) --> */}
+                  <GenderDropdown 
+                    genders={brands} 
+                    loading={brandsLoading}
+                    selectedBrand={selectedBrand}
+                    onBrandChange={(brandId: string | null) => setSelectedBrand(brandId)}
+                  />
 
                   {/* // <!-- color box --> */}
                   <ColorsDropdwon />
 
                   {/* // <!-- price range box --> */}
-                  <PriceDropdown />
+                  <PriceDropdown 
+                    priceRange={priceRange}
+                    onPriceChange={(min: number | null, max: number | null) => setPriceRange({ min, max })}
+                  />
                 </div>
               </form>
             </div>
@@ -177,6 +489,50 @@ const ShopWithSidebar = () => {
 
             {/* // <!-- Content Start --> */}
             <div className="xl:max-w-[870px] w-full">
+              {/* Search Bar */}
+              <div className="rounded-lg bg-white shadow-1 pl-4 pr-4 py-3 mb-4">
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder="Tìm kiếm sản phẩm..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full pl-10 pr-10 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                  />
+                  <svg
+                    className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  >
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <path d="m21 21-4.35-4.35"></path>
+                  </svg>
+                  {searchTerm && (
+                    <button
+                      onClick={() => setSearchTerm("")}
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                      aria-label="Clear search"
+                    >
+                      <svg
+                        width="20"
+                        height="20"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                      >
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                      </svg>
+                    </button>
+                  )}
+                </div>
+              </div>
+
               <div className="rounded-lg bg-white shadow-1 pl-3 pr-2.5 py-2.5 mb-6">
                 <div className="flex items-center justify-between">
                   {/* <!-- top bar left --> */}
@@ -184,8 +540,15 @@ const ShopWithSidebar = () => {
                     <CustomSelect options={options} />
 
                     <p>
-                      Showing <span className="text-dark">9 of 50</span>{" "}
+                      Showing <span className="text-dark">
+                        {products.length} of {totalElements}
+                      </span>{" "}
                       Products
+                      {(searchTerm || selectedCategory || selectedBrand || priceRange.min !== null || priceRange.max !== null) && (
+                        <span className="text-gray-500 text-sm ml-2">
+                          (đã lọc)
+                        </span>
+                      )}
                     </p>
                   </div>
 
@@ -270,141 +633,61 @@ const ShopWithSidebar = () => {
                 </div>
               </div>
 
-              {/* <!-- Products Grid Tab Content Start --> */}
-              <div
-                className={`${
-                  productStyle === "grid"
-                    ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-7.5 gap-y-9"
-                    : "flex flex-col gap-7.5"
-                }`}
-              >
-                {shopData.map((item, key) =>
-                  productStyle === "grid" ? (
-                    <SingleGridItem item={item} key={key} />
+              {/* <!-- Products Content Start - Fixed Layout --> */}
+              <div className="flex flex-col" style={{ minHeight: '970px' }}>
+                <div className="flex-1">
+                  {loading ? (
+                    <div className="text-center py-12">
+                      <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                      <p className="mt-4 text-gray-600">Đang tải sản phẩm...</p>
+                    </div>
+                  ) : !loading && products.length === 0 ? (
+                    <div className="text-center py-12">
+                      <svg
+                        className="mx-auto h-12 w-12 text-gray-400"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
+                      </svg>
+                      <p className="mt-4 text-gray-600">
+                        Không tìm thấy sản phẩm nào với bộ lọc hiện tại
+                      </p>
+                      <button
+                        onClick={() => {
+                          setSearchTerm("");
+                          setSelectedCategory(null);
+                          setSelectedBrand(null);
+                          setPriceRange({ min: null, max: null });
+                        }}
+                        className="mt-4 text-blue-600 hover:text-blue-800 underline"
+                      >
+                        Xóa tất cả bộ lọc
+                      </button>
+                    </div>
                   ) : (
-                    <SingleListItem item={item} key={key} />
-                  )
-                )}
-              </div>
-              {/* <!-- Products Grid Tab Content End --> */}
-
-              {/* <!-- Products Pagination Start --> */}
-              <div className="flex justify-center mt-15">
-                <div className="bg-white shadow-1 rounded-md p-2">
-                  <ul className="flex items-center">
-                    <li>
-                      <button
-                        id="paginationLeft"
-                        aria-label="button for pagination left"
-                        type="button"
-                        disabled
-                        className="flex items-center justify-center w-8 h-9 ease-out duration-200 rounded-[3px disabled:text-gray-4"
-                      >
-                        <svg
-                          className="fill-current"
-                          width="18"
-                          height="18"
-                          viewBox="0 0 18 18"
-                          fill="none"
-                          xmlns="http://www.w3.org/2000/svg"
-                        >
-                          <path
-                            d="M12.1782 16.1156C12.0095 16.1156 11.8407 16.0594 11.7282 15.9187L5.37197 9.45C5.11885 9.19687 5.11885 8.80312 5.37197 8.55L11.7282 2.08125C11.9813 1.82812 12.3751 1.82812 12.6282 2.08125C12.8813 2.33437 12.8813 2.72812 12.6282 2.98125L6.72197 9L12.6563 15.0187C12.9095 15.2719 12.9095 15.6656 12.6563 15.9187C12.4876 16.0312 12.347 16.1156 12.1782 16.1156Z"
-                            fill=""
-                          />
-                        </svg>
-                      </button>
-                    </li>
-
-                    <li>
-                      <a
-                        href="#"
-                        className="flex py-1.5 px-3.5 duration-200 rounded-[3px] bg-blue text-white hover:text-white hover:bg-blue"
-                      >
-                        1
-                      </a>
-                    </li>
-
-                    <li>
-                      <a
-                        href="#"
-                        className="flex py-1.5 px-3.5 duration-200 rounded-[3px] hover:text-white hover:bg-blue"
-                      >
-                        2
-                      </a>
-                    </li>
-
-                    <li>
-                      <a
-                        href="#"
-                        className="flex py-1.5 px-3.5 duration-200 rounded-[3px] hover:text-white hover:bg-blue"
-                      >
-                        3
-                      </a>
-                    </li>
-
-                    <li>
-                      <a
-                        href="#"
-                        className="flex py-1.5 px-3.5 duration-200 rounded-[3px] hover:text-white hover:bg-blue"
-                      >
-                        4
-                      </a>
-                    </li>
-
-                    <li>
-                      <a
-                        href="#"
-                        className="flex py-1.5 px-3.5 duration-200 rounded-[3px] hover:text-white hover:bg-blue"
-                      >
-                        5
-                      </a>
-                    </li>
-
-                    <li>
-                      <a
-                        href="#"
-                        className="flex py-1.5 px-3.5 duration-200 rounded-[3px] hover:text-white hover:bg-blue"
-                      >
-                        ...
-                      </a>
-                    </li>
-
-                    <li>
-                      <a
-                        href="#"
-                        className="flex py-1.5 px-3.5 duration-200 rounded-[3px] hover:text-white hover:bg-blue"
-                      >
-                        10
-                      </a>
-                    </li>
-
-                    <li>
-                      <button
-                        id="paginationLeft"
-                        aria-label="button for pagination left"
-                        type="button"
-                        className="flex items-center justify-center w-8 h-9 ease-out duration-200 rounded-[3px] hover:text-white hover:bg-blue disabled:text-gray-4"
-                      >
-                        <svg
-                          className="fill-current"
-                          width="18"
-                          height="18"
-                          viewBox="0 0 18 18"
-                          fill="none"
-                          xmlns="http://www.w3.org/2000/svg"
-                        >
-                          <path
-                            d="M5.82197 16.1156C5.65322 16.1156 5.5126 16.0594 5.37197 15.9469C5.11885 15.6937 5.11885 15.3 5.37197 15.0469L11.2782 9L5.37197 2.98125C5.11885 2.72812 5.11885 2.33437 5.37197 2.08125C5.6251 1.82812 6.01885 1.82812 6.27197 2.08125L12.6282 8.55C12.8813 8.80312 12.8813 9.19687 12.6282 9.45L6.27197 15.9187C6.15947 16.0312 5.99072 16.1156 5.82197 16.1156Z"
-                            fill=""
-                          />
-                        </svg>
-                      </button>
-                    </li>
-                  </ul>
+                    <ProductGrid products={products} productStyle={productStyle} />
+                  )}
+                </div>
+                
+                {/* Pagination - Fixed at bottom */}
+                <div className="mt-8 h-[120px] flex items-center justify-center flex-shrink-0">
+                  <Pagination
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    hasNext={hasNext}
+                    hasPrevious={hasPrevious}
+                    onPageChange={handlePageChange}
+                  />
                 </div>
               </div>
-              {/* <!-- Products Pagination End --> */}
+              {/* <!-- Products Content End --> */}
             </div>
             {/* // <!-- Content End --> */}
           </div>

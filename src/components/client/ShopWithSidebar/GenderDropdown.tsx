@@ -1,37 +1,26 @@
 "use client";
 import React, { useState } from "react";
 
-const GenderItem = ({ category }) => {
-  const [selected, setSelected] = useState(false);
+const GenderItem = ({ category, isSelected, onToggle }) => {
   return (
     <button
       className={`${
-        selected && "text-blue"
+        isSelected && "text-blue"
       } group flex items-center justify-between ease-out duration-200 hover:text-blue `}
-      onClick={() => setSelected(!selected)}
+      onClick={() => onToggle(category.id)}
     >
       <div className="flex items-center gap-2">
+        {/* Radio button style - circle with dot when selected */}
         <div
-          className={`cursor-pointer flex items-center justify-center rounded w-4 h-4 border ${
-            selected ? "border-blue bg-blue" : "bg-white border-gray-3"
+          className={`cursor-pointer flex items-center justify-center rounded-full w-4 h-4 border-2 ${
+            isSelected ? "border-blue bg-white" : "border-gray-3 bg-white"
           }`}
         >
-          <svg
-            className={selected ? "block" : "hidden"}
-            width="10"
-            height="10"
-            viewBox="0 0 10 10"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <path
-              d="M8.33317 2.5L3.74984 7.08333L1.6665 5"
-              stroke="white"
-              strokeWidth="1.94437"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
+          <div
+            className={`w-2 h-2 rounded-full ${
+              isSelected ? "bg-blue" : "bg-transparent"
+            }`}
+          />
         </div>
 
         <span>{category.name}</span>
@@ -39,7 +28,7 @@ const GenderItem = ({ category }) => {
 
       <span
         className={`${
-          selected ? "text-white bg-blue" : "bg-gray-2"
+          isSelected ? "text-white bg-blue" : "bg-gray-2"
         } inline-flex rounded-[30px] text-custom-xs px-2 ease-out duration-200 group-hover:text-white group-hover:bg-blue`}
       >
         {category.products}
@@ -48,8 +37,15 @@ const GenderItem = ({ category }) => {
   );
 };
 
-const GenderDropdown = ({ genders }) => {
+const GenderDropdown = ({ genders, loading = false, selectedBrand = null, onBrandChange }) => {
   const [toggleDropdown, setToggleDropdown] = useState(true);
+
+  const handleBrandToggle = (brandId: string) => {
+    if (!brandId) return;
+    // Radio button behavior: if clicking the same brand, deselect it; otherwise select the new one
+    const newSelected = selectedBrand === brandId ? null : brandId;
+    onBrandChange?.(newSelected);
+  };
 
   return (
     <div className="bg-white shadow-1 rounded-lg">
@@ -59,10 +55,10 @@ const GenderDropdown = ({ genders }) => {
           toggleDropdown && "shadow-filter"
         }`}
       >
-        <p className="text-dark">Gender</p>
+        <p className="text-dark">Brand</p>
         <button
           onClick={() => setToggleDropdown(!toggleDropdown)}
-          aria-label="button for gender dropdown"
+          aria-label="button for brand dropdown"
           className={`text-dark ease-out duration-200 ${
             toggleDropdown && "rotate-180"
           }`}
@@ -91,9 +87,24 @@ const GenderDropdown = ({ genders }) => {
           toggleDropdown ? "flex" : "hidden"
         }`}
       >
-        {genders.map((gender, key) => (
-          <GenderItem key={key} category={gender} />
-        ))}
+        {loading ? (
+          <div className="text-center py-4 text-gray-500 text-sm">
+            Đang tải brands...
+          </div>
+        ) : genders.length === 0 ? (
+          <div className="text-center py-4 text-gray-500 text-sm">
+            Không có brand nào
+          </div>
+        ) : (
+          genders.map((gender, key) => (
+            <GenderItem 
+              key={gender.id || key} 
+              category={gender}
+              isSelected={gender.id ? selectedBrand === gender.id : false}
+              onToggle={handleBrandToggle}
+            />
+          ))
+        )}
       </div>
     </div>
   );

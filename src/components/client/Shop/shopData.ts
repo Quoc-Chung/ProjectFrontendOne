@@ -3,8 +3,8 @@ const shopData: Product[] = [
   {
     title: "Havit HV-G69 USB Gamepad",
     reviews: 15,
-    price: 59.0,
-    discountedPrice: 29.0,
+    price: 1475000,
+    discountedPrice: 725000,
     id: 1,
     imgs: {
       thumbnails: [
@@ -18,10 +18,10 @@ const shopData: Product[] = [
     },
   },
   {
-    title: "iPhone 14 Plus , 6/128GB",
+    title: "ASUS TUF Gaming A15 - RTX 4060",
     reviews: 5,
-    price: 899.0,
-    discountedPrice: 99.0,
+    price: 23990000,
+    discountedPrice: 21990000,
     id: 2,
     imgs: {
       thumbnails: [
@@ -35,10 +35,10 @@ const shopData: Product[] = [
     },
   },
   {
-    title: "Apple iMac M1 24-inch 2021",
+    title: "PC Desktop Intel Core i7 - RTX 4070",
     reviews: 5,
-    price: 59.0,
-    discountedPrice: 29.0,
+    price: 35990000,
+    discountedPrice: 32990000,
     id: 3,
     imgs: {
       thumbnails: [
@@ -52,10 +52,10 @@ const shopData: Product[] = [
     },
   },
   {
-    title: "MacBook Air M1 chip, 8/256GB",
+    title: "Dell XPS 13 Plus - Intel Core i7",
     reviews: 6,
-    price: 59.0,
-    discountedPrice: 29.0,
+    price: 29990000,
+    discountedPrice: 26990000,
     id: 4,
     imgs: {
       thumbnails: [
@@ -69,10 +69,10 @@ const shopData: Product[] = [
     },
   },
   {
-    title: "Apple Watch Ultra",
+    title: "HP Spectre x360 - 2-in-1",
     reviews: 3,
-    price: 99.0,
-    discountedPrice: 29.0,
+    price: 32990000,
+    discountedPrice: 29990000,
     id: 5,
     imgs: {
       thumbnails: [
@@ -86,10 +86,10 @@ const shopData: Product[] = [
     },
   },
   {
-    title: "Logitech MX Master 3 Mouse",
+    title: "Lenovo ThinkPad P1 - Workstation",
     reviews: 15,
-    price: 59.0,
-    discountedPrice: 29.0,
+    price: 45990000,
+    discountedPrice: 42990000,
     id: 6,
     imgs: {
       thumbnails: [
@@ -103,10 +103,10 @@ const shopData: Product[] = [
     },
   },
   {
-    title: "Apple iPad Air 5th Gen - 64GB",
+    title: "MSI Katana 15 - RTX 4050",
     reviews: 15,
-    price: 59.0,
-    discountedPrice: 29.0,
+    price: 21990000,
+    discountedPrice: 19990000,
     id: 7,
     imgs: {
       thumbnails: [
@@ -122,8 +122,8 @@ const shopData: Product[] = [
   {
     title: "Asus RT Dual Band Router",
     reviews: 15,
-    price: 59.0,
-    discountedPrice: 29.0,
+    price: 1475000,
+    discountedPrice: 725000,
     id: 8,
     imgs: {
       thumbnails: [

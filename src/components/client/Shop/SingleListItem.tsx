@@ -3,25 +3,39 @@ import React from "react";
 
 import { Product } from "@/types/product";
 import { useModalContext } from "@/app/context/QuickViewModalContext";
-import { useDispatch } from "react-redux";
 import Link from "next/link";
 import Image from "next/image";
 
 const SingleListItem = ({ item }: { item: Product }) => {
   const { openModal } = useModalContext();
+  const productId = item.originalId || item.id;
 
+  // Validate productId
+  if (!productId || productId === 'undefined' || productId === 'null') {
+    console.error('Invalid product ID:', productId, item);
+    return null;
+  }
 
   return (
-    <div className="group rounded-lg bg-white shadow-1">
+    <Link
+      href={`/shop-details/${String(productId)}`}
+      prefetch={true}
+      scroll={true}
+      className="group rounded-lg bg-white shadow-1 block cursor-pointer"
+      role="button"
+      tabIndex={0}
+      aria-label={`Xem chi tiết sản phẩm ${item.title}`}
+    >
       <div className="flex">
         <div className="shadow-list relative overflow-hidden flex items-center justify-center max-w-[270px] w-full sm:min-h-[270px] p-4">
           <Image src={item.imgs.previews[0]} alt="" width={250} height={250} />
 
           <div className="absolute left-0 bottom-0 translate-y-full w-full flex items-center justify-center gap-2.5 pb-5 ease-linear duration-200 group-hover:translate-y-0">
             <button
-              onClick={() => {
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
                 openModal();
-              
               }}
               aria-label="button for quick view"
               className="flex items-center justify-center w-9 h-9 rounded-[5px] shadow-1 ease-out duration-200 text-dark bg-white hover:text-blue"
@@ -50,14 +64,22 @@ const SingleListItem = ({ item }: { item: Product }) => {
             </button>
 
             <button
-              
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                // Add to cart logic here
+              }}
               className="inline-flex font-medium text-custom-sm py-[7px] px-5 rounded-[5px] bg-blue text-white ease-out duration-200 hover:bg-blue-dark"
             >
-              Add to cart
+              Thêm vào giỏ
             </button>
 
             <button
-          
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                // Add to favorite logic here
+              }}
               aria-label="button for favorite select"
               className="flex items-center justify-center w-9 h-9 rounded-[5px] shadow-1 ease-out duration-200 text-dark bg-white hover:text-blue"
             >
@@ -82,55 +104,32 @@ const SingleListItem = ({ item }: { item: Product }) => {
 
         <div className="w-full flex flex-col gap-5 sm:flex-row sm:items-center justify-center sm:justify-between py-5 px-4 sm:px-7.5 lg:pl-11 lg:pr-12">
           <div>
-            <h3 className="font-medium text-dark ease-out duration-200 hover:text-blue mb-1.5">
-              <Link href="/shop-details"> {item.title} </Link>
+            <h3 className="font-medium text-dark ease-out duration-200 group-hover:text-blue mb-1.5 transition-colors">
+              {item.title}
             </h3>
 
             <span className="flex items-center gap-2 font-medium text-lg">
-              <span className="text-dark">${item.discountedPrice}</span>
-              <span className="text-dark-4 line-through">${item.price}</span>
+              <span className="text-dark">{item.discountedPrice.toLocaleString('vi-VN')}₫</span>
+              {item.price !== item.discountedPrice && (
+                <span className="text-dark-4 line-through">{item.price.toLocaleString('vi-VN')}₫</span>
+              )}
             </span>
           </div>
 
           <div className="flex items-center gap-2.5 mb-2">
             <div className="flex items-center gap-1">
-              <Image
-                src="/images/icons/icon-star.svg"
-                alt="star icon"
-                width={15}
-                height={15}
-              />
-              <Image
-                src="/images/icons/icon-star.svg"
-                alt="star icon"
-                width={15}
-                height={15}
-              />
-              <Image
-                src="/images/icons/icon-star.svg"
-                alt="star icon"
-                width={15}
-                height={15}
-              />
-              <Image
-                src="/images/icons/icon-star.svg"
-                alt="star icon"
-                width={15}
-                height={15}
-              />
-              <Image
-                src="/images/icons/icon-star.svg"
-                alt="star icon"
-                width={15}
-                height={15}
-              />
+              {[...Array(5)].map((_, i) => (
+                <svg key={i} className="w-4 h-4 text-yellow-400" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M16.7906 6.72187L11.7 5.93438L9.39377 1.09688C9.22502 0.759375 8.77502 0.759375 8.60627 1.09688L6.30002 5.9625L1.23752 6.72187C0.871891 6.77812 0.731266 7.25625 1.01252 7.50938L4.69689 11.3063L3.82502 16.6219C3.76877 16.9875 4.13439 17.2969 4.47189 17.0719L9.05627 14.5687L13.6125 17.0719C13.9219 17.2406 14.3156 16.9594 14.2313 16.6219L13.3594 11.3063L17.0438 7.50938C17.2688 7.25625 17.1563 6.77812 16.7906 6.72187Z" fill="currentColor" />
+                </svg>
+              ))}
             </div>
 
             <p className="text-custom-sm">({item.reviews})</p>
           </div>
         </div>
       </div>
-    </div>
+    </Link>
   );
 };
 

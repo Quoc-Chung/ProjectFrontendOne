@@ -14,17 +14,84 @@ import {
   CHANGE_PASSWORD_REQUEST,
   CHANGE_PASSWORD_SUCCESS,
   CHANGE_PASSWORD_FAILURE,
+  LOGIN_GOOGLE_REQUEST,
+  LOGIN_GOOGLE_SUCCESS,
+  LOGIN_GOOGLE_FAILURE,
+  FORGOT_PASSWORD_REQUEST,
+  FORGOT_PASSWORD_SUCCESS,
+  FORGOT_PASSWORD_FAILURE,
+  VERIFY_OTP_REQUEST,
+  VERIFY_OTP_SUCCESS,
+  VERIFY_OTP_FAILURE,
+  RESET_PASSWORD_REQUEST,
+  RESET_PASSWORD_SUCCESS,
+  RESET_PASSWORD_FAILURE,
 } from "./ActionType";
+import { setCookie, deleteCookie, getCookie } from "../../../utils/cookies";
+
 
 const initialState = {
   loading: false,
   user: null,
-  token: typeof window !== "undefined" ? localStorage.getItem("token") : null,
+  isLogin: false,
+  token: null,
+  roleNames: [],
   error: null,
+
+  forgotPassword: {
+    loading: false,
+    data: null,
+    error: null,
+  },
+
+  verifyOtp: {
+    loading: false,
+    data: null,
+    error: null,
+  },
+
+  resetPassword: {
+    loading: false,
+    data: null,
+    error: null,
+  },
 };
 
 export const authReducer = (state = initialState, action: any) => {
   switch (action.type) {
+
+    case 'persist/REHYDRATE':
+      // action.payload có structure: { auth: {...}, cart: {...}, ... }
+      const rehydratedAuthState = action.payload?.auth;
+      
+      if (rehydratedAuthState) {
+        // Đảm bảo có token trong cookie
+        if (rehydratedAuthState.token && typeof window !== 'undefined') {
+          const cookieToken = getCookie('token');
+          if (!cookieToken && rehydratedAuthState.token) {
+            setCookie('token', rehydratedAuthState.token, 7);
+          }
+        }
+        
+        // Set isLogin dựa trên token hoặc isLogin flag đã lưu
+        const shouldBeLogin = !!(rehydratedAuthState.token || rehydratedAuthState.isLogin === true || rehydratedAuthState.isLogin === 'true');
+        
+        console.log('AuthReducer REHYDRATE:', {
+          hasToken: !!rehydratedAuthState.token,
+          isLoginFlag: rehydratedAuthState.isLogin,
+          shouldBeLogin,
+          hasUser: !!rehydratedAuthState.user
+        });
+        
+        return {
+          ...state,
+          ...rehydratedAuthState,
+          isLogin: shouldBeLogin,
+        };
+      }
+
+      return state;
+    
     // ============== REGISTER ==============
     case REGISTER_REQUEST:
       return { ...state, loading: true, error: null };
@@ -37,14 +104,123 @@ export const authReducer = (state = initialState, action: any) => {
     case LOGIN_REQUEST:
       return { ...state, loading: true, error: null };
     case LOGIN_SUCCESS:
+      console.log('AuthReducer LOGIN_SUCCESS - Full payload:', action.payload);
+      
+      // Lưu token vào cookie để middleware có thể kiểm tra
+      if (action.payload?.token && typeof window !== 'undefined') {
+        setCookie('token', action.payload.token, 7); // Lưu 7 ngày
+        
+        // Lấy roleNames từ payload hoặc decode từ JWT
+        let roleNamesToSave = action.payload?.roleNames || [];
+        
+        // Nếu không có roleNames trong payload, thử decode từ JWT
+        if ((!roleNamesToSave || roleNamesToSave.length === 0) && action.payload?.token) {
+          try {
+            const parts = action.payload.token.split('.');
+            if (parts.length === 3) {
+              const payload = JSON.parse(atob(parts[1]));
+              const rawRoles = payload.roleNames || payload.roles || payload.authorities || [];
+              // Map ADMIN -> Administrator
+              roleNamesToSave = rawRoles.map((role: string) => {
+                if (role === 'ADMIN') return 'Administrator';
+                if (role === 'MANAGER') return 'Manager';
+                if (role === 'SALES') return 'Sales';
+                if (role === 'WAREHOUSE') return 'Warehouse';
+                return role;
+              });
+              console.log('AuthReducer: Decoded roleNames from JWT:', roleNamesToSave);
+            }
+          } catch (e) {
+            console.error('AuthReducer: Error decoding JWT for roleNames:', e);
+          }
+        }
+        
+        // Lưu roleNames vào cookie và localStorage
+        if (roleNamesToSave && Array.isArray(roleNamesToSave) && roleNamesToSave.length > 0) {
+          const roleNamesString = JSON.stringify(roleNamesToSave);
+          setCookie('userRoleNames', roleNamesString, 7); // Lưu 7 ngày
+          localStorage.setItem('userRoleNames', roleNamesString);
+          console.log('AuthReducer: Saved roleNames to cookie and localStorage:', roleNamesToSave);
+        } else {
+          console.warn('AuthReducer: No roleNames to save. Payload roleNames:', action.payload?.roleNames);
+        }
+      }
+      
+      // Sử dụng roleNames từ JWT nếu không có trong payload
+      const finalRoleNames = action.payload?.roleNames || (() => {
+        if (action.payload?.token) {
+          try {
+            const parts = action.payload.token.split('.');
+            if (parts.length === 3) {
+              const payload = JSON.parse(atob(parts[1]));
+              const rawRoles = payload.roleNames || payload.roles || payload.authorities || [];
+              return rawRoles.map((role: string) => {
+                if (role === 'ADMIN') return 'Administrator';
+                if (role === 'MANAGER') return 'Manager';
+                if (role === 'SALES') return 'Sales';
+                if (role === 'WAREHOUSE') return 'Warehouse';
+                return role;
+              });
+            }
+          } catch (e) {
+            console.error('AuthReducer: Error decoding JWT in return statement:', e);
+          }
+        }
+        return [];
+      })();
+      
+      // Tạo user object từ payload để đảm bảo có đầy đủ thông tin
+      const userData = {
+        ...action.payload,
+        token: action.payload.token, // Đảm bảo token có trong user object
+      };
+      
+      const newState = {
+        ...state,
+        loading: false,
+        user: userData, // Lưu toàn bộ user data
+        token: action.payload.token,
+        isLogin: true,
+        roleNames: finalRoleNames
+      };
+      
+      console.log('AuthReducer LOGIN_SUCCESS - New state:', {
+        hasUser: !!newState.user,
+        hasToken: !!newState.token,
+        isLogin: newState.isLogin,
+        roleNames: newState.roleNames,
+        userKeys: newState.user ? Object.keys(newState.user) : []
+      });
+      
+      return newState;
+    case LOGIN_FAILURE:
+      return { ...state, loading: false, error: action.payload };
+
+    // ============== LOGIN WITH GOOGLE ==============  
+    case LOGIN_GOOGLE_REQUEST:
+      return {
+        ...state,
+        loading: false,
+        error: null
+      }
+
+    case LOGIN_GOOGLE_SUCCESS:
+      // Lưu token vào cookie để middleware có thể kiểm tra
+      if (action.payload?.token && typeof window !== 'undefined') {
+        setCookie('token', action.payload.token, 7); // Lưu 7 ngày
+      }
       return {
         ...state,
         loading: false,
         user: action.payload,
         token: action.payload.token,
-      };
-    case LOGIN_FAILURE:
+        isLogin: true,
+        roleNames: action.payload.roleNames || []
+      }
+
+    case LOGIN_GOOGLE_FAILURE:
       return { ...state, loading: false, error: action.payload };
+
 
     // ============== UPDATE USER ==============
     case UPDATE_USER_REQUEST:
@@ -58,7 +234,11 @@ export const authReducer = (state = initialState, action: any) => {
     case LOGOUT_REQUEST:
       return { ...state, loading: true, error: null };
     case LOGOUT_SUCCESS:
-      return { ...state, loading: false, user: null, token: null };
+      // Xóa token khỏi cookie khi logout
+      if (typeof window !== 'undefined') {
+        deleteCookie('token');
+      }
+      return { ...state, loading: false, user: null, token: null, isLogin: false, roleNames: [] };
     case LOGOUT_FAILURE:
       return { ...state, loading: false, error: action.payload };
 
@@ -69,6 +249,63 @@ export const authReducer = (state = initialState, action: any) => {
       return { ...state, loading: false };
     case CHANGE_PASSWORD_FAILURE:
       return { ...state, loading: false, error: action.payload };
+
+    // ----- FORGOT PASSWORD -----
+    case FORGOT_PASSWORD_REQUEST:
+      return {
+        ...state,
+        forgotPassword: { loading: true, data: null, error: null },
+      };
+
+    case FORGOT_PASSWORD_SUCCESS:
+      return {
+        ...state,
+        forgotPassword: { loading: false, data: action.payload, error: null },
+      };
+
+    case FORGOT_PASSWORD_FAILURE:
+      return {
+        ...state,
+        forgotPassword: { loading: false, data: null, error: action.payload },
+      };
+
+    // ----- VERIFY OTP -----
+    case VERIFY_OTP_REQUEST:
+      return {
+        ...state,
+        verifyOtp: { loading: true, data: null, error: null },
+      };
+
+    case VERIFY_OTP_SUCCESS:
+      return {
+        ...state,
+        verifyOtp: { loading: false, data: action.payload, error: null },
+      };
+
+    case VERIFY_OTP_FAILURE:
+      return {
+        ...state,
+        verifyOtp: { loading: false, data: null, error: action.payload },
+      };
+
+    // ----- RESET PASSWORD -----
+    case RESET_PASSWORD_REQUEST:
+      return {
+        ...state,
+        resetPassword: { loading: true, data: null, error: null },
+      };
+
+    case RESET_PASSWORD_SUCCESS:
+      return {
+        ...state,
+        resetPassword: { loading: false, data: action.payload, error: null },
+      };
+
+    case RESET_PASSWORD_FAILURE:
+      return {
+        ...state,
+        resetPassword: { loading: false, data: null, error: action.payload },
+      };
 
     default:
       return state;

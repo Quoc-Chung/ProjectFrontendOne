@@ -2,9 +2,14 @@
 import React, { useState } from "react";
 import { Edit, Save, X, ArrowLeft } from "lucide-react";
 import { ProductDetail } from "@/types/Admin";
+import Image from "next/image";
 
 interface ProductDetailsProps {
   product: ProductDetail;
+  brandName?: string;
+  categoryName?: string;
+  price?: number;
+  thumbnailUrl?: string | null;
   brands: { id: string; name: string }[];
   categories: { id: string; name: string }[];
   onSave: (updatedProduct: ProductDetail) => void;
@@ -13,6 +18,10 @@ interface ProductDetailsProps {
 
 export const ProductDetails: React.FC<ProductDetailsProps> = ({
   product,
+  brandName,
+  categoryName,
+  price,
+  thumbnailUrl,
   brands,
   categories,
   onSave,
@@ -112,6 +121,35 @@ export const ProductDetails: React.FC<ProductDetailsProps> = ({
           )}
         </div>
 
+        {/* Thumbnail Image */}
+        {thumbnailUrl && (
+          <div className="flex flex-col md:flex-row md:items-center md:space-x-6">
+            <label className="w-36 font-semibold text-black text-sm">Hình ảnh:</label>
+            <div className="flex-1">
+              <Image
+                src={thumbnailUrl}
+                alt={product.name}
+                width={200}
+                height={200}
+                className="rounded-lg object-cover border border-gray-300"
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Price */}
+        {price !== undefined && (
+          <div className="flex flex-col md:flex-row md:items-center md:space-x-6">
+            <label className="w-36 font-semibold text-black text-sm">Giá:</label>
+            <span className="text-black font-medium text-lg">
+              {new Intl.NumberFormat("vi-VN", {
+                style: "currency",
+                currency: "VND",
+              }).format(price)}
+            </span>
+          </div>
+        )}
+
         {/* Brand & Category */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="flex flex-col md:flex-row md:items-center md:space-x-6">
@@ -130,7 +168,7 @@ export const ProductDetails: React.FC<ProductDetailsProps> = ({
               </select>
             ) : (
               <span className="text-black font-medium text-sm">
-                {brands.find((b) => b.id === product.brandId)?.name}
+                {brandName || brands.find((b) => b.id === product.brandId)?.name || product.brandId}
               </span>
             )}
           </div>
@@ -151,46 +189,37 @@ export const ProductDetails: React.FC<ProductDetailsProps> = ({
               </select>
             ) : (
               <span className="text-black font-medium text-sm">
-                {categories.find((c) => c.id === product.categoryId)?.name}
+                {categoryName || categories.find((c) => c.id === product.categoryId)?.name || product.categoryId}
               </span>
             )}
           </div>
         </div>
 
-        {/* Specs */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="flex items-center space-x-4">
-            <label className="w-36 font-semibold text-black text-sm">RAM:</label>
-            {isEditing ? (
-              <input
-                type="text"
-                value={editableProduct.specs.ram}
-                onChange={(e) => handleChange("ram", e.target.value)}
-                className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-black text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
-            ) : (
-              <span className="px-2 py-1 bg-gray-200 rounded-md text-black text-sm font-medium">
-                {product.specs.ram}
-              </span>
-            )}
+        {/* Specs - Dynamic display */}
+        {Object.keys(product.specs || {}).length > 0 && (
+          <div>
+            <label className="w-full font-semibold text-black text-sm mb-4 block">Thông số kỹ thuật:</label>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {Object.entries(product.specs || {}).map(([key, value]) => (
+                <div key={key} className="flex items-center space-x-4">
+                  <label className="w-36 font-semibold text-black text-sm">{key}:</label>
+                  {isEditing ? (
+                    <input
+                      type="text"
+                      value={editableProduct.specs[key as keyof typeof editableProduct.specs] || ""}
+                      onChange={(e) => handleChange(key, e.target.value)}
+                      className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-black text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  ) : (
+                    <span className="px-2 py-1 bg-gray-200 rounded-md text-black text-sm font-medium">
+                      {value || "-"}
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
-
-          <div className="flex items-center space-x-4">
-            <label className="w-36 font-semibold text-black text-sm">Dung lượng:</label>
-            {isEditing ? (
-              <input
-                type="text"
-                value={editableProduct.specs.storage}
-                onChange={(e) => handleChange("storage", e.target.value)}
-                className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-black text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
-            ) : (
-              <span className="px-2 py-1 bg-gray-200 rounded-md text-black text-sm font-medium">
-                {product.specs.storage}
-              </span>
-            )}
-          </div>
-        </div>
+        )}
       </div>
     </div>
   );

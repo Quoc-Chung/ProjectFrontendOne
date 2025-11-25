@@ -1,23 +1,14 @@
 "use client";
 
-import React, { useState } from "react";
-import { Product } from "../../../../../types/Admin";
+import React, { useEffect } from "react";
 import ProductManagement from "../../../../../components/server/ProductManagement";
-import { mockProducts } from "../../../../../utils/mockData";
 
 const ProductPage = () => {
-    const [products, setProducts] = useState<Product[]>(mockProducts);
+  useEffect(() => {
+    document.title = "NextCommerce | Quản lý sản phẩm";
+  }, []);
 
-  const handleDelete = (id: string) => {
-    
-  };
-
-  return (
-    <ProductManagement
-      products={products}
-      onDeleteProduct={handleDelete}
-    />
-  );
+  return <ProductManagement />;
 };
 
 export default ProductPage;

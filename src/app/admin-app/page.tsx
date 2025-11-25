@@ -1,10 +1,9 @@
-
 import { Metadata } from "next";
 import { mockCustomers, mockOrders, mockProducts } from "../../utils/mockData";
 import { DashboardOverview } from "../../components/server/DashboardOverview";
 export const metadata: Metadata = {
-  title: "NextCommerce | Home",
-  description: "This is the main dashboard of NextCommerce Admin",
+  title: "NextCommerce | Trang chủ Admin",
+  description: "Bảng điều khiển chính của NextCommerce Admin",
 };
 
 export default function HomePage() {
