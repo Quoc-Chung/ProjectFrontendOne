@@ -1,26 +1,43 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import { CartOrderResponse } from "@/types/Client/CartOrder/cartorder";
+import { ProductService } from "@/services/ProductService";
 
 interface SingleItemProps {
   item: CartOrderResponse;
+  onRemove?: (productId: string, skuId: string) => void;
 }
 
-const SingleItem = ({ item }: SingleItemProps) => {
-  // Sử dụng placeholder image nếu không có image URL hoặc là chuỗi rỗng
-  const rawImageSrc = (item as any).productImage || (item as any).thumbnailUrl || "";
-  const imageSrc = rawImageSrc && rawImageSrc.trim() !== "" 
-    ? rawImageSrc 
-    : "/images/products/product-1-1.png";
+const SingleItem = ({ item, onRemove }: SingleItemProps) => {
+  const [productImage, setProductImage] = useState<string>("/images/products/product-1-1.png");
+
+  // Fetch product image from Product API
+  useEffect(() => {
+    const fetchProductImage = async () => {
+      try {
+        const product = await ProductService.getProductById(item.productId);
+        if (product.thumbnailUrl) {
+          setProductImage(product.thumbnailUrl);
+        }
+      } catch (error) {
+        console.error("Error fetching product image:", error);
+        // Keep default image if error
+      }
+    };
+
+    if (item.productId) {
+      fetchProductImage();
+    }
+  }, [item.productId]);
 
   return (
     <div className="flex items-center justify-between gap-5">
       <div className="w-full flex items-center gap-6">
         <div className="flex items-center justify-center rounded-[10px] bg-gray-3 max-w-[90px] w-full h-22.5">
-          <Image 
-            src={imageSrc} 
-            alt={item.productName || "product"} 
-            width={100} 
+          <Image
+            src={productImage}
+            alt={item.productName || "product"}
+            width={100}
             height={100}
             onError={(e) => {
               const target = e.target as HTMLImageElement;
@@ -33,12 +50,15 @@ const SingleItem = ({ item }: SingleItemProps) => {
           <h3 className="font-medium text-dark mb-1 ease-out duration-200 hover:text-blue">
             <a href={`/shop-details/${item.productId}`}> {item.productName} </a>
           </h3>
+          {item.skuId && (
+            <p className="text-xs text-gray-500 mb-1">SKU: {item.skuId}</p>
+          )}
           <p className="text-custom-sm">Giá: {item.productPrice?.toLocaleString('vi-VN') || 0}₫</p>
         </div>
       </div>
 
       <button
-    
+        onClick={() => onRemove?.(item.productId, item.skuId)}
         aria-label="button for remove product from cart"
         className="flex items-center justify-center rounded-lg max-w-[38px] w-full h-9.5 bg-gray-2 border border-gray-3 text-dark ease-out duration-200 hover:bg-red-light-6 hover:border-red-light-4 hover:text-red"
       >

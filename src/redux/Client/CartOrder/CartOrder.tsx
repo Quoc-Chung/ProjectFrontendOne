@@ -19,10 +19,11 @@ export const cartReducer = (state = initialState, action: any): CartState => {
     case ADD_PRODUCT_TO_CART:
       return { ...state, loading: true, error: undefined };
     case ADD_PRODUCT_TO_CART_SUCCESS:
+      // Tìm item theo cả productId VÀ skuId vì cùng product có thể có nhiều SKU khác nhau
       const existingItemIndex = state.cart.findIndex(
-        item => item.productId === action.payload.productId
+        item => item.productId === action.payload.productId && item.skuId === action.payload.skuId
       );
-      
+
       if (existingItemIndex >= 0) {
         const updatedCart = [...state.cart];
         updatedCart[existingItemIndex] = {
@@ -61,8 +62,10 @@ export const cartReducer = (state = initialState, action: any): CartState => {
       return {
         ...state,
         loading: false,
-        // Filter theo productId thay vì id
-        cart: state.cart.filter(item => item.productId !== action.payload)
+        // Filter theo cả productId VÀ skuId
+        cart: state.cart.filter(
+          item => !(item.productId === action.payload.productId && item.skuId === action.payload.skuId)
+        )
       };
     case DELETE_PRODUCT_FROM_CART_FAILURE:
       return { ...state, loading: false, error: action.payload };

@@ -10,6 +10,8 @@ import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 import { addProductToCartAction } from "../../../redux/Client/CartOrder/Action";
 import { useOptimizedHydration } from "../../../hooks/useOptimizedHydration";
+import { ProductService } from "@/services/ProductService";
+import { SKU } from "@/types/Client/Product/Product";
 
 interface ShopDetailsProps {
   productData: ProductDetailResponse | null;
@@ -18,6 +20,9 @@ interface ShopDetailsProps {
 const ShopDetails = ({ productData }: ShopDetailsProps) => {
   const [quantity, setQuantity] = useState(1);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [skus, setSkus] = useState<SKU[]>([]);
+  const [selectedSKU, setSelectedSKU] = useState<SKU | null>(null);
+  const [loadingSKUs, setLoadingSKUs] = useState(false);
   const isHydrated = useOptimizedHydration(30); // Sử dụng hook tối ưu hóa
   const { openPreviewModal } = usePreviewSlider();
   const router = useRouter();
@@ -28,6 +33,30 @@ const ShopDetails = ({ productData }: ShopDetailsProps) => {
 
   // Lấy product với fallback
   const product = productData?.data;
+
+  // Fetch SKUs khi component mount
+  useEffect(() => {
+    const fetchSKUs = async () => {
+      if (!product?.id) return;
+
+      setLoadingSKUs(true);
+      try {
+        const response = await ProductService.getSKUsByProductId(product.id);
+        setSkus(response.data);
+        // Tự động chọn SKU đầu tiên nếu có
+        if (response.data.length > 0) {
+          setSelectedSKU(response.data[0]);
+        }
+      } catch (error) {
+        console.error("Error fetching SKUs:", error);
+        toast.error("Không thể tải thông tin SKU");
+      } finally {
+        setLoadingSKUs(false);
+      }
+    };
+
+    fetchSKUs();
+  }, [product?.id]);
 
   // Helper functions - được định nghĩa trước hooks
   const getDetailedSpecs = (prod: typeof product) => {
@@ -176,6 +205,7 @@ const ShopDetails = ({ productData }: ShopDetailsProps) => {
   const handlePreviewSlider = () => {
     openPreviewModal();
   };
+
   const handleAddToCart = (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -186,6 +216,7 @@ const ShopDetails = ({ productData }: ShopDetailsProps) => {
       });
       return;
     }
+
     if (!isLogin) {
       const currentUrl = window.location.pathname + window.location.search;
       localStorage.setItem('redirectAfterLogin', currentUrl);
@@ -197,21 +228,35 @@ const ShopDetails = ({ productData }: ShopDetailsProps) => {
       router.push('/signin');
       return;
     }
-    else {
-      toast.success(`Đã thêm ${quantity} sản phẩm "${productData.data.name}" vào giỏ hàng!`, {
-        autoClose: 1500,
-        position: "top-right"
-      });
-    }
+
     if (!productData) {
       toast.error("Không tìm thấy thông tin sản phẩm!");
       return;
     }
+
+    if (!selectedSKU) {
+      toast.error("Vui lòng chọn phiên bản sản phẩm!");
+      return;
+    }
+
+    if (selectedSKU.stock < quantity) {
+      toast.error(`Chỉ còn ${selectedSKU.stock} sản phẩm trong kho!`);
+      return;
+    }
+
     dispatch(
       addProductToCartAction(
-        { productId: productData.data.id, quantity },
+        {
+          productId: productData.data.id,
+          skuId: selectedSKU.id,
+          quantity
+        },
         token || "",
         (res) => {
+          toast.success(`Đã thêm ${quantity} sản phẩm "${productData.data.name}" vào giỏ hàng!`, {
+            autoClose: 1500,
+            position: "top-right"
+          });
         },
         (err) => {
           if (err === "Token hết hạn") {
@@ -364,7 +409,12 @@ const ShopDetails = ({ productData }: ShopDetailsProps) => {
                     <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-4 mb-5">
                       <div className="flex items-center justify-between mb-2">
                         <h3 className="text-3xl font-bold text-blue">
-                          {safeProduct.price > 0 ? `${safeProduct.price.toLocaleString('vi-VN')} VNĐ` : 'Liên hệ'}
+                          {selectedSKU
+                            ? `${selectedSKU.price.toLocaleString('vi-VN')} VNĐ`
+                            : safeProduct.price > 0
+                              ? `${safeProduct.price.toLocaleString('vi-VN')} VNĐ`
+                              : 'Liên hệ'
+                          }
                         </h3>
                         <div className="flex items-center gap-1">
                           {[...Array(5)].map((_, i) => (
@@ -375,7 +425,75 @@ const ShopDetails = ({ productData }: ShopDetailsProps) => {
                           <span className="text-sm text-gray-600 ml-1">(5 reviews)</span>
                         </div>
                       </div>
+                      {selectedSKU && selectedSKU.stock > 0 && (
+                        <div className="text-sm text-green-600">
+                          Còn {selectedSKU.stock} sản phẩm
+                        </div>
+                      )}
+                      {selectedSKU && selectedSKU.stock === 0 && (
+                        <div className="text-sm text-red-600 font-medium">
+                          Hết hàng
+                        </div>
+                      )}
                     </div>
+
+                    {/* SKU Selection */}
+                    {skus.length > 0 && (
+                      <div className="bg-white shadow-1 rounded-lg p-4 mb-5">
+                        <h4 className="font-semibold text-lg text-dark mb-3">
+                          Chọn phiên bản sản phẩm
+                        </h4>
+                        {loadingSKUs ? (
+                          <div className="text-center py-4">
+                            <span className="text-gray-500">Đang tải...</span>
+                          </div>
+                        ) : (
+                          <div className="space-y-2">
+                            {skus.map((sku) => (
+                              <button
+                                key={sku.id}
+                                type="button"
+                                onClick={() => setSelectedSKU(sku)}
+                                disabled={!sku.isActive || sku.stock === 0}
+                                className={`w-full text-left p-3 rounded-lg border-2 transition-all duration-200 ${
+                                  selectedSKU?.id === sku.id
+                                    ? 'border-blue bg-blue-50'
+                                    : 'border-gray-300 hover:border-blue-300'
+                                } ${
+                                  !sku.isActive || sku.stock === 0
+                                    ? 'opacity-50 cursor-not-allowed'
+                                    : ''
+                                }`}
+                              >
+                                <div className="flex items-center justify-between mb-2">
+                                  <span className="font-semibold text-dark">
+                                    {sku.skuCode}
+                                  </span>
+                                  <span className="font-bold text-blue">
+                                    {sku.price.toLocaleString('vi-VN')} VNĐ
+                                  </span>
+                                </div>
+                                <div className="flex flex-wrap gap-2 text-sm text-gray-600">
+                                  {Object.entries(sku.specs).map(([key, value]) => (
+                                    <span key={key} className="bg-gray-100 px-2 py-1 rounded">
+                                      {key}: {value}
+                                    </span>
+                                  ))}
+                                </div>
+                                <div className="mt-2 flex items-center justify-between text-sm">
+                                  <span className={sku.stock > 0 ? 'text-green-600' : 'text-red-600'}>
+                                    {sku.stock > 0 ? `Còn ${sku.stock} sp` : 'Hết hàng'}
+                                  </span>
+                                  {!sku.isActive && (
+                                    <span className="text-red-600">Ngừng kinh doanh</span>
+                                  )}
+                                </div>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
 
                     {/* Action Buttons */}
                     <form onSubmit={handleAddToCart}>
@@ -409,9 +527,17 @@ const ShopDetails = ({ productData }: ShopDetailsProps) => {
 
                         <button
                           type="submit"
-                          className="flex-1 bg-blue text-white py-2.5 px-6 rounded-md font-medium hover:bg-blue-dark transition-colors duration-200"
+                          disabled={!selectedSKU || selectedSKU.stock === 0 || !selectedSKU.isActive}
+                          className="flex-1 bg-blue text-white py-2.5 px-6 rounded-md font-medium hover:bg-blue-dark transition-colors duration-200 disabled:bg-gray-400 disabled:cursor-not-allowed"
                         >
-                          Thêm vào giỏ hàng
+                          {!selectedSKU
+                            ? 'Chọn phiên bản'
+                            : selectedSKU.stock === 0
+                              ? 'Hết hàng'
+                              : !selectedSKU.isActive
+                                ? 'Ngừng kinh doanh'
+                                : 'Thêm vào giỏ hàng'
+                          }
                         </button>
 
                         <button

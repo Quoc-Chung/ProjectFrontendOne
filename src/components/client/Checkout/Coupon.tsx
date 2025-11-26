@@ -1,28 +1,118 @@
-import React from "react";
+import React, { useState } from "react";
 
-const Coupon = () => {
+interface CouponProps {
+  value?: string;
+  onChange?: (value: string) => void;
+  onApply?: (code: string) => void;
+}
+
+const Coupon: React.FC<CouponProps> = ({ value, onChange, onApply }) => {
+  const [selectedCoupon, setSelectedCoupon] = useState<string>("");
+  const [customCode, setCustomCode] = useState<string>(value || "");
+
+  // Danh sách mã giảm giá có sẵn
+  const availableCoupons = [
+    { code: "", label: "-- Chọn mã giảm giá --" },
+    { code: "SALE10", label: "SALE10 - Giảm 10%" },
+    { code: "SALE20", label: "SALE20 - Giảm 20%" },
+    { code: "FREESHIP", label: "FREESHIP - Miễn phí vận chuyển" },
+    { code: "NEWUSER", label: "NEWUSER - Giảm 15% cho khách hàng mới" },
+  ];
+
+  const handleCouponSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const code = e.target.value;
+    setSelectedCoupon(code);
+    if (code) {
+      setCustomCode(code);
+      if (onChange) {
+        onChange(code);
+      }
+    }
+  };
+
+  const handleCustomCodeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const code = e.target.value;
+    setCustomCode(code);
+    setSelectedCoupon("");
+    if (onChange) {
+      onChange(code);
+    }
+  };
+
+  const handleApply = () => {
+    if (customCode.trim() && onApply) {
+      onApply(customCode.trim());
+    }
+  };
+
   return (
     <div className="bg-white shadow-1 rounded-[10px] mt-7.5">
       <div className="border-b border-gray-3 py-5 px-4 sm:px-8.5">
-        <h3 className="font-medium text-xl text-dark">Have any Coupon Code?</h3>
+        <h3 className="font-medium text-xl text-dark">Mã code giảm giá</h3>
       </div>
 
       <div className="py-8 px-4 sm:px-8.5">
-        <div className="flex gap-4">
-          <input
-            type="text"
-            name="coupon"
-            id="coupon"
-            placeholder="Enter coupon code"
-            className="rounded-md border border-gray-3 bg-gray-1 placeholder:text-dark-5 w-full py-2.5 px-5 outline-none duration-200 focus:border-transparent focus:shadow-input focus:ring-2 focus:ring-blue/20"
-          />
+        <div className="space-y-4">
+          {/* Dropdown chọn mã giảm giá */}
+          <div>
+            <label className="block mb-2.5 text-dark font-medium">
+              Chọn mã giảm giá
+            </label>
+            <div className="relative">
+              <select
+                value={selectedCoupon}
+                onChange={handleCouponSelect}
+                className="w-full rounded-lg border border-gray-3 bg-white text-dark py-3 px-4 pr-10 appearance-none outline-none transition-all duration-300 hover:border-gray-4 hover:bg-gray-1 hover:shadow-sm focus:border-gray-4 focus:bg-white focus:shadow-md focus:ring-2 focus:ring-gray-200 cursor-pointer text-base"
+              >
+                {availableCoupons.map((coupon, index) => (
+                  <option key={index} value={coupon.code} className="text-dark py-2">
+                    {coupon.label}
+                  </option>
+                ))}
+              </select>
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-dark-4 pointer-events-none transition-transform duration-200">
+                <svg
+                  className="fill-current"
+                  width="18"
+                  height="18"
+                  viewBox="0 0 16 16"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M2.41469 5.03569L8.0015 10.492L13.5844 4.98735C13.6809 4.89086 13.8199 4.89087 13.9147 4.98569C14.0092 5.08024 14.0095 5.21864 13.9155 5.31345L8.16469 10.9643C8.06838 11.0606 8.00039 11.0667 7.82064 10.9991L2.08526 5.36345C1.99127 5.26865 1.99154 5.13024 2.08609 5.03569C2.18092 4.94086 2.31986 4.94086 2.41469 5.03569Z"
+                    fill="currentColor"
+                  />
+                </svg>
+              </span>
+            </div>
+          </div>
 
-          <button
-            type="submit"
-            className="inline-flex font-medium text-white bg-blue py-3 px-6 rounded-md ease-out duration-200 hover:bg-blue-dark"
-          >
-            Apply
-          </button>
+          {/* Input nhập mã tùy chỉnh */}
+          <div>
+            <label className="block mb-2.5 text-dark">
+              Hoặc nhập mã code giảm giá
+            </label>
+            <div className="flex gap-4">
+              <input
+                type="text"
+                name="coupon"
+                id="coupon"
+                value={customCode}
+                onChange={handleCustomCodeChange}
+                placeholder="Nhập mã code giảm giá"
+                className="rounded-md border border-gray-3 bg-white placeholder:text-dark-5 text-dark w-full py-2.5 px-5 outline-none duration-200 hover:border-gray-4 hover:bg-gray-1 focus:border-gray-4 focus:bg-white focus:shadow-input focus:ring-2 focus:ring-gray-300"
+              />
+
+              <button
+                type="button"
+                onClick={handleApply}
+                className="inline-flex font-medium text-white bg-blue py-3 px-6 rounded-lg ease-out duration-200 hover:bg-blue-dark whitespace-nowrap"
+              >
+                Áp dụng
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>

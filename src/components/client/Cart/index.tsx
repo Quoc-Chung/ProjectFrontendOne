@@ -14,6 +14,7 @@ const Cart = () => {
    const dispatch = useAppDispatch();
    const token = useAppSelector((state) => state.auth.token);
    const router = useRouter();
+   
   useEffect(() => {
     if(token) {
       dispatch(getAllCartAction(
