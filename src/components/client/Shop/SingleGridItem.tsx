@@ -1,5 +1,5 @@
 "use client";
-import React from "react";
+import React, { useState } from "react";
 import { Product } from "@/types/product";
 import { useModalContext } from "@/app/context/QuickViewModalContext";
 import { useRouter } from "next/navigation";
@@ -8,6 +8,7 @@ import Image from "next/image";
 import { useAppDispatch, useAppSelector } from "../../../redux/store";
 import { addProductToCartAction } from "../../../redux/Client/CartOrder/Action";
 import { toast } from "react-toastify";
+import { ProductService } from "@/services/ProductService";
 
 const SingleGridItem = ({ item }: { item: Product }) => {
   const { openModal } = useModalContext();
@@ -15,10 +16,11 @@ const SingleGridItem = ({ item }: { item: Product }) => {
   const dispatch = useAppDispatch();
   const user = useAppSelector((state) => state.auth.user);
   const token = useAppSelector((state) => state.auth.token);
+  const [isAddingToCart, setIsAddingToCart] = useState(false);
 
-  const handleAddToCart = (e: React.MouseEvent) => {
+  const handleAddToCart = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    
+
     // Kiểm tra đăng nhập
     if (!user || !token) {
       toast.warning("Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng!", {
@@ -29,35 +31,66 @@ const SingleGridItem = ({ item }: { item: Product }) => {
       return;
     }
 
-    // Thêm sản phẩm vào giỏ hàng với số lượng mặc định là 1
-    // Sử dụng skuId mặc định (backend sẽ chọn SKU đầu tiên hoặc mặc định)
-    dispatch(
-      addProductToCartAction(
-        {
-          productId: item.id.toString(),
-          skuId: "default", // SKU mặc định, backend sẽ xử lý
-          quantity: 1
-        },
-        token,
-        (res) => toast.success(`Đã thêm sản phẩm "${item.title}" vào giỏ hàng!`, {
-          autoClose: 1500,
-          position: "top-right"
-        }),
-        (err) => {
-          if (err === "Token hết hạn") {
-            // Clear token và redirect về trang đăng nhập
-            dispatch({ type: "LOGOUT" });
-            toast.warning("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại!", {
-              autoClose: 3000,
+    // Prevent double click
+    if (isAddingToCart) return;
+    setIsAddingToCart(true);
+
+    try {
+      // Fetch SKUs của sản phẩm
+      const response = await ProductService.getSKUsByProductId(item.id.toString());
+
+      if (!response.data || response.data.length === 0) {
+        toast.error("Sản phẩm hiện không có phiên bản nào!");
+        setIsAddingToCart(false);
+        return;
+      }
+
+      // Lấy SKU đầu tiên (mặc định)
+      const defaultSKU = response.data[0];
+
+      // Kiểm tra SKU có sẵn hàng không
+      if (defaultSKU.stock === 0 || !defaultSKU.isActive) {
+        toast.warning("Sản phẩm tạm hết hàng. Vui lòng xem chi tiết để chọn phiên bản khác!");
+        setIsAddingToCart(false);
+        return;
+      }
+
+      // Thêm sản phẩm vào giỏ hàng với SKU đầu tiên
+      dispatch(
+        addProductToCartAction(
+          {
+            productId: item.id.toString(),
+            skuId: defaultSKU.id,
+            quantity: 1
+          },
+          token,
+          (res) => {
+            toast.success(`Đã thêm sản phẩm "${item.title}" vào giỏ hàng!`, {
+              autoClose: 1500,
               position: "top-right"
             });
-            router.push('/signin');
-          } else {
-            toast.error("Thêm sản phẩm thất bại: " + err);
+            setIsAddingToCart(false);
+          },
+          (err) => {
+            if (err === "Token hết hạn") {
+              dispatch({ type: "LOGOUT" });
+              toast.warning("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại!", {
+                autoClose: 3000,
+                position: "top-right"
+              });
+              router.push('/signin');
+            } else {
+              toast.error("Thêm sản phẩm thất bại: " + err);
+            }
+            setIsAddingToCart(false);
           }
-        }
-      )
-    );
+        )
+      );
+    } catch (error) {
+      console.error("Error fetching SKUs:", error);
+      toast.error("Không thể thêm sản phẩm. Vui lòng thử lại!");
+      setIsAddingToCart(false);
+    }
   };
 
   const productId = item.originalId || item.id;
@@ -121,9 +154,20 @@ const SingleGridItem = ({ item }: { item: Product }) => {
               e.stopPropagation();
               handleAddToCart(e);
             }}
-            className="inline-flex font-medium text-custom-sm py-[7px] px-5 rounded-[5px] bg-blue text-white ease-out duration-200 hover:bg-blue-dark"
+            disabled={isAddingToCart}
+            className="inline-flex items-center justify-center font-medium text-custom-sm py-[7px] px-5 rounded-[5px] bg-blue text-white ease-out duration-200 hover:bg-blue-dark disabled:bg-gray-400 disabled:cursor-not-allowed"
           >
-            Thêm vào giỏ
+            {isAddingToCart ? (
+              <>
+                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Đang thêm...
+              </>
+            ) : (
+              'Thêm vào giỏ'
+            )}
           </button>
 
           <button
