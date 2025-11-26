@@ -5,11 +5,8 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Copy package.json luôn
-COPY package.json ./
-
-# Copy package-lock.json nếu tồn tại (không fail nếu không có)
-COPY package-lock.json ./ || true
+# Copy package files (bao gồm cả package-lock.json nếu có)
+COPY package*.json ./
 
 # Install dependencies
 RUN if [ -f package-lock.json ]; then npm ci; else npm install; fi
@@ -31,12 +28,11 @@ FROM node:20-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 
-# Copy package.json và package-lock.json nếu có
-COPY package.json ./
-COPY package-lock.json ./ || true
+# Copy package files từ builder
+COPY --from=builder /app/package*.json ./
 
-# Cài dependencies production
-RUN npm install --omit=dev
+# Copy các file build output và dependencies từ builder
+COPY --from=builder /app/node_modules ./node_modules
 
 # Copy build output từ builder stage
 COPY --from=builder /app/.next ./.next
