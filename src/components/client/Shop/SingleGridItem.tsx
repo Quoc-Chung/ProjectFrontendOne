@@ -30,9 +30,14 @@ const SingleGridItem = ({ item }: { item: Product }) => {
     }
 
     // Thêm sản phẩm vào giỏ hàng với số lượng mặc định là 1
+    // Sử dụng skuId mặc định (backend sẽ chọn SKU đầu tiên hoặc mặc định)
     dispatch(
       addProductToCartAction(
-        { productId: item.id.toString(), quantity: 1 },
+        {
+          productId: item.id.toString(),
+          skuId: "default", // SKU mặc định, backend sẽ xử lý
+          quantity: 1
+        },
         token,
         (res) => toast.success(`Đã thêm sản phẩm "${item.title}" vào giỏ hàng!`, {
           autoClose: 1500,
