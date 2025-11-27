@@ -1,0 +1,5 @@
+// Lấy token từ redux: 
+const { token } = useSelector((state: RootState) => state.auth);
+await ProductService.createProductWithFiles(cleanedData, imageFiles, token); 
+
+// 

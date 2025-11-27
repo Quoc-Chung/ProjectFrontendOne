@@ -1,8 +1,27 @@
 "use client"
 import React, { useState } from "react";
-import { Edit, Save, X, ArrowLeft } from "lucide-react";
+import { Edit, Save, X, ArrowLeft, Plus, Trash2 } from "lucide-react";
 import { ProductDetail } from "@/types/Admin";
 import Image from "next/image";
+
+// Danh sách tất cả các trường specs có thể có
+const AVAILABLE_SPEC_KEYS = [
+  "CPU",
+  "Display",
+  "RAM",
+  "SSD",
+  "Size",
+  "Panel",
+  "Resolution",
+  "Refresh Rate",
+  "Socket",
+  "Chipset",
+  "Form Factor",
+  "Type",
+  "Speed",
+  "Bus",
+  "Memory",
+];
 
 interface ProductDetailsProps {
   product: ProductDetail;
@@ -14,6 +33,7 @@ interface ProductDetailsProps {
   categories: { id: string; name: string }[];
   onSave: (updatedProduct: ProductDetail) => void;
   onCancel: () => void;
+  updating?: boolean;
 }
 
 export const ProductDetails: React.FC<ProductDetailsProps> = ({
@@ -26,21 +46,56 @@ export const ProductDetails: React.FC<ProductDetailsProps> = ({
   categories,
   onSave,
   onCancel,
+  updating = false,
 }) => {
   const [editableProduct, setEditableProduct] = useState<ProductDetail>({
     ...product,
+    specs: product.specs ? { ...product.specs } : {},
   });
   const [isEditing, setIsEditing] = useState<boolean>(false);
+  const [newSpecKey, setNewSpecKey] = useState<string>("");
+  const [newSpecValue, setNewSpecValue] = useState<string>("");
 
   const handleChange = (field: string, value: string) => {
-    if (field in editableProduct.specs) {
+    if (field === "name" || field === "description" || field === "brandId" || field === "categoryId") {
+      setEditableProduct({ ...editableProduct, [field]: value });
+    } else {
+      // Update specs
       setEditableProduct({
         ...editableProduct,
         specs: { ...editableProduct.specs, [field]: value },
       });
-    } else {
-      setEditableProduct({ ...editableProduct, [field]: value });
     }
+  };
+
+  const handleAddSpec = () => {
+    if (newSpecKey.trim() && newSpecValue.trim()) {
+      setEditableProduct({
+        ...editableProduct,
+        specs: {
+          ...editableProduct.specs,
+          [newSpecKey.trim()]: newSpecValue.trim(),
+        },
+      });
+      setNewSpecKey("");
+      setNewSpecValue("");
+    }
+  };
+
+  const handleRemoveSpec = (key: string) => {
+    const newSpecs = { ...editableProduct.specs };
+    delete newSpecs[key];
+    setEditableProduct({
+      ...editableProduct,
+      specs: newSpecs,
+    });
+  };
+
+  // Lấy tất cả các specs keys (có giá trị + chưa có giá trị)
+  const getAllSpecKeys = (): string[] => {
+    const existingKeys = Object.keys(editableProduct.specs || {});
+    const allKeysSet = new Set([...AVAILABLE_SPEC_KEYS, ...existingKeys]);
+    return Array.from(allKeysSet).sort();
   };
 
   const handleSave = () => {
@@ -64,9 +119,19 @@ export const ProductDetails: React.FC<ProductDetailsProps> = ({
             <>
               <button
                 onClick={handleSave}
-                className="flex items-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium text-sm transition-colors"
+                disabled={updating}
+                className="flex items-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <Save size={16} className="mr-1" /> Lưu
+                {updating ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-1"></div>
+                    Đang lưu...
+                  </>
+                ) : (
+                  <>
+                    <Save size={16} className="mr-1" /> Lưu
+                  </>
+                )}
               </button>
               <button
                 onClick={() => {
@@ -160,6 +225,7 @@ export const ProductDetails: React.FC<ProductDetailsProps> = ({
                 onChange={(e) => handleChange("brandId", e.target.value)}
                 className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-black text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
+                <option value="">Chọn thương hiệu</option>
                 {brands.map((b) => (
                   <option key={b.id} value={b.id}>
                     {b.name}
@@ -168,7 +234,7 @@ export const ProductDetails: React.FC<ProductDetailsProps> = ({
               </select>
             ) : (
               <span className="text-black font-medium text-sm">
-                {brandName || brands.find((b) => b.id === product.brandId)?.name || product.brandId}
+                {brandName || brands.find((b) => b.id === product.brandId)?.name || product.brandId || "Chưa có"}
               </span>
             )}
           </div>
@@ -181,6 +247,7 @@ export const ProductDetails: React.FC<ProductDetailsProps> = ({
                 onChange={(e) => handleChange("categoryId", e.target.value)}
                 className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-black text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
+                <option value="">Chọn danh mục</option>
                 {categories.map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.name}
@@ -189,37 +256,155 @@ export const ProductDetails: React.FC<ProductDetailsProps> = ({
               </select>
             ) : (
               <span className="text-black font-medium text-sm">
-                {categoryName || categories.find((c) => c.id === product.categoryId)?.name || product.categoryId}
+                {categoryName || categories.find((c) => c.id === product.categoryId)?.name || product.categoryId || "Chưa có"}
               </span>
             )}
           </div>
         </div>
 
-        {/* Specs - Dynamic display */}
-        {Object.keys(product.specs || {}).length > 0 && (
-          <div>
-            <label className="w-full font-semibold text-black text-sm mb-4 block">Thông số kỹ thuật:</label>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {Object.entries(product.specs || {}).map(([key, value]) => (
+        {/* Specs - Display all available specs */}
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <label className="w-full font-semibold text-black text-sm">Thông số kỹ thuật:</label>
+            {isEditing && (
+              <button
+                type="button"
+                onClick={() => {
+                  const key = prompt("Nhập tên thông số mới:");
+                  if (key && key.trim()) {
+                    setNewSpecKey(key.trim());
+                  }
+                }}
+                className="flex items-center px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs transition-colors"
+              >
+                <Plus size={14} className="mr-1" />
+                Thêm thông số
+              </button>
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {getAllSpecKeys().map((key) => {
+              const value = editableProduct.specs?.[key] || "";
+              const hasValue = value && value.trim() !== "";
+
+              // Chỉ hiển thị nếu có giá trị hoặc đang edit
+              if (!hasValue && !isEditing) {
+                return null;
+              }
+
+              return (
                 <div key={key} className="flex items-center space-x-4">
                   <label className="w-36 font-semibold text-black text-sm">{key}:</label>
                   {isEditing ? (
-                    <input
-                      type="text"
-                      value={editableProduct.specs[key as keyof typeof editableProduct.specs] || ""}
-                      onChange={(e) => handleChange(key, e.target.value)}
-                      className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-black text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    />
+                    <div className="flex-1 flex items-center space-x-2">
+                      <input
+                        type="text"
+                        value={value}
+                        onChange={(e) => handleChange(key, e.target.value)}
+                        placeholder="Nhập giá trị..."
+                        className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-black text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      />
+                      {hasValue && (
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveSpec(key)}
+                          className="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors"
+                          title="Xóa thông số"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      )}
+                    </div>
                   ) : (
                     <span className="px-2 py-1 bg-gray-200 rounded-md text-black text-sm font-medium">
                       {value || "-"}
                     </span>
                   )}
                 </div>
-              ))}
-            </div>
+              );
+            })}
           </div>
-        )}
+
+          {/* Add new custom spec */}
+          {isEditing && newSpecKey && (
+            <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+              <div className="flex items-center space-x-2 mb-2">
+                <label className="font-semibold text-black text-sm">Thêm thông số mới:</label>
+                <span className="text-blue-700 font-medium">{newSpecKey}</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <input
+                  type="text"
+                  value={newSpecValue}
+                  onChange={(e) => setNewSpecValue(e.target.value)}
+                  placeholder="Nhập giá trị..."
+                  className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-black text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  onKeyPress={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      handleAddSpec();
+                    }
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={handleAddSpec}
+                  className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm transition-colors flex items-center"
+                >
+                  <Plus size={16} className="mr-1" />
+                  Thêm
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setNewSpecKey("");
+                    setNewSpecValue("");
+                  }}
+                  className="px-4 py-2 bg-gray-300 hover:bg-gray-400 text-black rounded-lg text-sm transition-colors"
+                >
+                  Hủy
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Display custom specs (not in AVAILABLE_SPEC_KEYS) */}
+          {Object.keys(editableProduct.specs || {})
+            .filter((key) => !AVAILABLE_SPEC_KEYS.includes(key))
+            .map((key) => {
+              const value = editableProduct.specs?.[key] || "";
+              if (!value || value.trim() === "") return null;
+
+              return (
+                <div key={key} className="flex items-center space-x-4 mt-2">
+                  <label className="w-36 font-semibold text-black text-sm">{key}:</label>
+                  {isEditing ? (
+                    <div className="flex-1 flex items-center space-x-2">
+                      <input
+                        type="text"
+                        value={value}
+                        onChange={(e) => handleChange(key, e.target.value)}
+                        className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-black text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveSpec(key)}
+                        className="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors"
+                        title="Xóa thông số"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  ) : (
+                    <span className="px-2 py-1 bg-gray-200 rounded-md text-black text-sm font-medium">
+                      {value}
+                    </span>
+                  )}
+                </div>
+              );
+            })}
+        </div>
       </div>
     </div>
   );

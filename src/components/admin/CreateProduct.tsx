@@ -32,7 +32,7 @@ const CreateProduct = () => {
     brandId: "",
     categoryId: "",
     specs: {},
-    imageUrls: [],
+    imageUrls: [], // Not used, kept for type compatibility
   });
 
   const [formErrors, setFormErrors] = useState<{
@@ -42,12 +42,43 @@ const CreateProduct = () => {
     categoryId?: string;
   }>({});
 
-  // Specs management
+  // Specs managemen
   const [specKey, setSpecKey] = useState<string>("");
   const [specValue, setSpecValue] = useState<string>("");
 
-  // Image URL management
-  const [imageUrl, setImageUrl] = useState<string>("");
+  // Available spec keys from ProductSpec interface
+  const availableSpecKeys = [
+    "CPU",
+    "Display",
+    "RAM",
+    "SSD",
+    "Size",
+    "Panel",
+    "Resolution",
+    "Refresh Rate",
+    "Socket",
+    "Chipset",
+    "Form Factor",
+    "Type",
+    "Speed",
+    "Bus",
+    "Memory",
+  ];
+
+
+  const availableSpecs = availableSpecKeys.filter(
+    (key) => !formData.specs || !(key in formData.specs)
+  );
+
+  // Image file management
+  const [imageFiles, setImageFiles] = useState<File[]>([]);
+  const [imageFileErrors, setImageFileErrors] = useState<string[]>([]);
+  const [imagePreviewUrls, setImagePreviewUrls] = useState<string[]>([]);
+  
+  // File validation constants
+  const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+  const MAX_FILES = 10;
+  const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
 
   // Debug: Log token
   useEffect(() => {
@@ -58,6 +89,15 @@ const CreateProduct = () => {
   useEffect(() => {
     loadCategoriesAndBrands();
   }, []);
+
+  // Cleanup object URLs on unmount
+  useEffect(() => {
+    return () => {
+      imagePreviewUrls.forEach((url) => {
+        URL.revokeObjectURL(url);
+      });
+    };
+  }, [imagePreviewUrls]);
 
   const loadCategoriesAndBrands = async () => {
     try {
@@ -113,6 +153,15 @@ const CreateProduct = () => {
       errors.categoryId = "Vui lòng chọn danh mục";
     }
 
+    // Validate images - at least one image file is required
+    if (imageFiles.length === 0) {
+      toast.error("Vui lòng thêm ít nhất một hình ảnh", {
+        position: "top-right",
+        autoClose: 3000,
+      });
+      return false;
+    }
+
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -149,15 +198,16 @@ const CreateProduct = () => {
         description: formData.description.trim(),
         brandId: formData.brandId.trim(),
         categoryId: formData.categoryId.trim(),
-        specs: cleanedSpecs, // Only valid string specs
-        imageUrls: (formData.imageUrls || [])
-          .map(url => url?.trim())
-          .filter(url => url && url !== ''), // Filter out empty URLs
+        specs: cleanedSpecs,
+        imageUrls: [], // Not used when uploading files
       };
 
       console.log("📤 Sending cleaned product data:", cleanedData);
+      console.log("📤 Image files:", imageFiles);
 
-      await ProductService.createProduct(cleanedData, token);
+
+      await ProductService.createProductWithFiles(cleanedData, imageFiles, token);
+
       toast.success("Tạo sản phẩm thành công!", {
         position: "top-right",
         autoClose: 2000,
@@ -214,21 +264,114 @@ const CreateProduct = () => {
     });
   };
 
-  const handleAddImageUrl = () => {
-    if (imageUrl.trim()) {
-      setFormData((prev) => ({
-        ...prev,
-        imageUrls: [...(prev.imageUrls || []), imageUrl.trim()],
-      }));
-      setImageUrl("");
+
+  const validateImageFile = (file: File): string | null => {
+    // Check file type
+    if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+      return `File "${file.name}" không đúng định dạng. Chỉ chấp nhận: JPG, PNG, GIF, WEBP`;
+    }
+
+    // Check file size
+    if (file.size > MAX_FILE_SIZE) {
+      return `File "${file.name}" quá lớn. Kích thước tối đa: ${MAX_FILE_SIZE / (1024 * 1024)}MB`;
+    }
+
+    return null;
+  };
+
+  const handleImageFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) {
+      return;
+    }
+
+    const newFiles = Array.from(files);
+    const errors: string[] = [];
+    const validFiles: File[] = [];
+
+    // Check total file count
+    if (imageFiles.length + newFiles.length > MAX_FILES) {
+      toast.error(`Chỉ được upload tối đa ${MAX_FILES} ảnh`, {
+        position: "top-right",
+        autoClose: 3000,
+      });
+      e.target.value = ""; // Reset input
+      return;
+    }
+
+    // Validate each file
+    newFiles.forEach((file) => {
+      const error = validateImageFile(file);
+      if (error) {
+        errors.push(error);
+      } else {
+        // Check for duplicate files
+        const isDuplicate = imageFiles.some(
+          (existingFile) =>
+            existingFile.name === file.name &&
+            existingFile.size === file.size &&
+            existingFile.lastModified === file.lastModified
+        );
+
+        if (isDuplicate) {
+          errors.push(`File "${file.name}" đã được thêm trước đó`);
+        } else {
+          validFiles.push(file);
+        }
+      }
+    });
+
+    // Show errors if any
+    if (errors.length > 0) {
+      setImageFileErrors(errors);
+      errors.forEach((error) => {
+        toast.error(error, {
+          position: "top-right",
+          autoClose: 4000,
+        });
+      });
+    } else {
+      setImageFileErrors([]);
+    }
+
+    // Add valid files
+    if (validFiles.length > 0) {
+      setImageFiles((prev) => [...prev, ...validFiles]);
+      // Create preview URLs for new files
+      const newPreviewUrls = validFiles.map((file) => URL.createObjectURL(file));
+      setImagePreviewUrls((prev) => [...prev, ...newPreviewUrls]);
+      toast.success(`Đã thêm ${validFiles.length} ảnh thành công`, {
+        position: "top-right",
+        autoClose: 2000,
+      });
+    }
+
+    // Reset input to allow selecting the same file again
+    e.target.value = "";
+  };
+
+  const handleRemoveImageFile = (index: number) => {
+    // Cleanup object URL to prevent memory leak
+    if (imagePreviewUrls[index]) {
+      URL.revokeObjectURL(imagePreviewUrls[index]);
+    }
+    
+    setImageFiles((prev) => prev.filter((_, i) => i !== index));
+    setImagePreviewUrls((prev) => prev.filter((_, i) => i !== index));
+    
+    // Clear errors if no files left
+    if (imageFiles.length === 1) {
+      setImageFileErrors([]);
     }
   };
 
-  const handleRemoveImageUrl = (index: number) => {
-    setFormData((prev) => ({
-      ...prev,
-      imageUrls: prev.imageUrls?.filter((_, i) => i !== index) || [],
-    }));
+  // Format file size
+  const formatFileSize = (bytes: number): string => {
+    if (bytes === 0) return "0 Bytes";
+    const k = 1024;
+    const sizes = ["Bytes", "KB", "MB", "GB"];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return Math.round(bytes / Math.pow(k, i) * 100) / 100 + " " + sizes[i];
   };
 
   const handleCancel = () => {
@@ -390,19 +533,18 @@ const CreateProduct = () => {
 
               <div className="space-y-2">
                 <div className="flex gap-2">
-                  <input
-                    type="text"
+                  <select
                     className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-                    placeholder="Tên thông số (VD: CPU, RAM)"
                     value={specKey}
                     onChange={(e) => setSpecKey(e.target.value)}
-                    onKeyPress={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        handleAddSpec();
-                      }
-                    }}
-                  />
+                  >
+                    <option value="">Chọn thông số kỹ thuật</option>
+                    {availableSpecs.map((key) => (
+                      <option key={key} value={key}>
+                        {key}
+                      </option>
+                    ))}
+                  </select>
                   <input
                     type="text"
                     className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
@@ -449,58 +591,94 @@ const CreateProduct = () => {
               </div>
             </div>
 
-            {/* Image URLs */}
+            {/* Image Upload */}
             <div>
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-semibold text-gray-900">
-                  URL hình ảnh
+                  Hình ảnh sản phẩm
                 </h2>
               </div>
 
-              <div className="space-y-2">
-                <div className="flex gap-2">
+              <div className="space-y-4">
+                {/* File Upload */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Chọn ảnh từ máy tính
+                    {imageFiles.length > 0 && (
+                      <span className="ml-2 text-blue-600 font-normal">
+                        ({imageFiles.length}/{MAX_FILES})
+                      </span>
+                    )}
+                  </label>
                   <input
-                    type="text"
-                    className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-                    placeholder="Nhập URL hình ảnh"
-                    value={imageUrl}
-                    onChange={(e) => setImageUrl(e.target.value)}
-                    onKeyPress={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        handleAddImageUrl();
-                      }
-                    }}
+                    type="file"
+                    accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
+                    multiple
+                    onChange={handleImageFileChange}
+                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm cursor-pointer file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 ${
+                      imageFileErrors.length > 0
+                        ? "border-red-500"
+                        : "border-gray-300"
+                    }`}
                   />
-                  <button
-                    type="button"
-                    onClick={handleAddImageUrl}
-                    className="px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm transition-colors flex items-center gap-2"
-                  >
-                    <Plus size={16} />
-                    Thêm
-                  </button>
+                  <div className="mt-1 space-y-1">
+                    <p className="text-xs text-gray-500">
+                      Có thể chọn nhiều ảnh cùng lúc (Ctrl/Cmd + Click)
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      Định dạng: JPG, PNG, GIF, WEBP | Kích thước tối đa: {MAX_FILE_SIZE / (1024 * 1024)}MB/ảnh | Tối đa: {MAX_FILES} ảnh
+                    </p>
+                    {imageFileErrors.length > 0 && (
+                      <div className="mt-2 space-y-1">
+                        {imageFileErrors.map((error, index) => (
+                          <p key={index} className="text-xs text-red-600">
+                            ⚠️ {error}
+                          </p>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
 
-                {formData.imageUrls && formData.imageUrls.length > 0 && (
-                  <div className="space-y-2 mt-4">
-                    {formData.imageUrls.map((url, index) => (
-                      <div
-                        key={index}
-                        className="flex items-center gap-2 bg-gray-50 px-4 py-2 rounded-lg text-sm"
-                      >
-                        <span className="flex-1 truncate">{url}</span>
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveImageUrl(index)}
-                          className="text-red-600 hover:text-red-800"
+                {/* Preview Selected Images */}
+                {imageFiles.length > 0 && (
+                  <div>
+                    <p className="text-sm font-medium text-gray-700 mb-2">
+                      Đã chọn {imageFiles.length} ảnh
+                    </p>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      {imageFiles.map((file, index) => (
+                        <div
+                          key={index}
+                          className="relative group border border-gray-200 rounded-lg overflow-hidden bg-white"
                         >
-                          <X size={14} />
-                        </button>
-                      </div>
-                    ))}
+                          <img
+                            src={imagePreviewUrls[index]}
+                            alt={`Preview ${index + 1}`}
+                            className="w-full h-32 object-cover"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveImageFile(index)}
+                            className="absolute top-2 right-2 bg-red-600 hover:bg-red-700 text-white rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
+                            title="Xóa ảnh"
+                          >
+                            <X size={14} />
+                          </button>
+                          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-2">
+                            <p className="text-white text-xs font-medium truncate">
+                              {file.name}
+                            </p>
+                            <p className="text-white/80 text-xs">
+                              {formatFileSize(file.size)}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
+
               </div>
             </div>
 

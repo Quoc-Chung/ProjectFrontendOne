@@ -10,11 +10,17 @@ import {
 import { Product as AdminProduct, ProductDetail, SortConfig } from "@/types/Admin";
 import { Product } from "@/types/Admin/ProductAPI";
 import { ProductService } from "@/services/ProductService";
+import { BrandService } from "@/services/BrandService";
+import { CategoryService } from "@/services/CategoryService";
+import { Brand } from "@/types/Admin/BrandAPI";
+import { Category } from "@/types/Client/Category/Category";
 import { formatPrice } from '../../utils/helpers';
 import Image from "next/image";
 import { ProductDetails } from "./ProductDetails"; 
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
+import { useSelector } from "react-redux";
+import { RootState } from "../../redux/store";
 
 // Component riêng để xử lý image với error handling
 const ProductImageCell: React.FC<{ product: Product }> = ({ product }) => {
@@ -69,7 +75,14 @@ const ProductManagement: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [selectedCategory, setSelectedCategory] = useState<string>("");
   const [selectedBrand, setSelectedBrand] = useState<string>("");
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [brands, setBrands] = useState<Brand[]>([]);
+  const [loadingFilters, setLoadingFilters] = useState<boolean>(false);
+  const [updating, setUpdating] = useState<boolean>(false);
   const router = useRouter();
+  
+  // Get token from Redux
+  const { token } = useSelector((state: RootState) => state.auth);
 
   // Phân trang từ API
   const [currentPage, setCurrentPage] = useState<number>(0); 
@@ -110,8 +123,30 @@ const ProductManagement: React.FC = () => {
     }
   };
 
+  // Load categories and brands for filters
+  const loadFilters = async () => {
+    try {
+      setLoadingFilters(true);
+      const [categoriesData, brandsData] = await Promise.all([
+        CategoryService.getAllCategories(),
+        BrandService.getAllBrandsSimple(),
+      ]);
+      setCategories(categoriesData);
+      setBrands(brandsData);
+    } catch (error) {
+      console.error("Error loading filters:", error);
+      toast.error("Không thể tải danh mục và thương hiệu!", {
+        position: "top-right",
+        autoClose: 3000,
+      });
+    } finally {
+      setLoadingFilters(false);
+    }
+  };
+
   useEffect(() => {
     loadProducts();
+    loadFilters();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentPage]);
 
@@ -197,7 +232,7 @@ const ProductManagement: React.FC = () => {
     loadProducts();
   };
 
-  // --- Hàm chuyển sang Product Detail ---
+
   const handleViewProductDetails = async (product: Product) => {
     try {
       setLoadingDetail(true);
@@ -218,6 +253,48 @@ const ProductManagement: React.FC = () => {
       });
     } finally {
       setLoadingDetail(false);
+    }
+  };
+
+  const handleDeleteProduct = async (productId: string) => {
+    if (!token) {
+      toast.error("Bạn cần đăng nhập với quyền Administrator!", {
+        position: "top-right",
+        autoClose: 3000,
+      });
+      return;
+    }
+
+    if (!confirm("Bạn có chắc chắn muốn xóa sản phẩm này?")) {
+      return;
+    }
+
+    try {
+      await ProductService.deleteProductById(productId, token);
+      toast.success("Xóa sản phẩm thành công!", {
+        position: "top-right",
+        autoClose: 2000,
+      });
+      // Reload products
+      await loadProducts();
+    } catch (error: any) {
+      console.error("Error deleting product:", error);
+      
+      let errorMessage = "Không thể xóa sản phẩm!";
+      if (error.message?.includes("500")) {
+        errorMessage += " Lỗi server. Vui lòng kiểm tra quyền admin hoặc liên hệ IT.";
+      } else if (error.message?.includes("403")) {
+        errorMessage += " Bạn không có quyền thực hiện thao tác này.";
+      } else if (error.message?.includes("401")) {
+        errorMessage += " Token hết hạn. Vui lòng đăng nhập lại.";
+      } else if (error.message?.includes("400")) {
+        errorMessage += " Dữ liệu không hợp lệ.";
+      }
+
+      toast.error(errorMessage, {
+        position: "top-right",
+        autoClose: 5000,
+      });
     }
   };
 
@@ -265,16 +342,26 @@ const ProductManagement: React.FC = () => {
 
   // --- Nếu đang xem chi tiết sản phẩm ---
   if (selectedProduct) {
+    // Tìm brandId và categoryId từ name
+    const matchedBrand = brands.find(b => b.name === selectedProduct.brandName);
+    const matchedCategory = categories.find(c => c.name === selectedProduct.categoryName);
+    
     // Convert Product (from API) to ProductDetail (for ProductDetails component)
     const productDetail: ProductDetail = {
       id: selectedProduct.id,
       name: selectedProduct.name,
       description: selectedProduct.description || "",
-      brandId: selectedProduct.brandName || "", // Use brandName as brandId for display
-      categoryId: selectedProduct.categoryName || "", // Use categoryName as categoryId for display
+      brandId: matchedBrand?.id || selectedProduct.brandName || "", // Use ID if found, otherwise use name
+      categoryId: matchedCategory?.id || selectedProduct.categoryName || "", // Use ID if found, otherwise use name
       specs: selectedProduct.specs || {},
     };
 
+    // Convert brands và categories to format expected by ProductDetails
+    const brandsForDetails = brands.map(b => ({ id: b.id, name: b.name }));
+    const categoriesForDetails = categories.map(c => ({ 
+      id: c.id, 
+      name: c.displayName || c.name 
+    }));
     
     return (
       <ProductDetails
@@ -283,20 +370,78 @@ const ProductManagement: React.FC = () => {
         categoryName={selectedProduct.categoryName}
         price={selectedProduct.price}
         thumbnailUrl={selectedProduct.thumbnailUrl}
-        brands={[
-          { id: "1", name: "Apple" },
-          { id: "2", name: "Dell" },
-          { id: "3", name: "ASUS" },
-        ]}
-        categories={[
-          { id: "1", name: "Laptop cao cấp" },
-          { id: "2", name: "Laptop văn phòng" },
-        ]}
-        onSave={(updatedProduct) => {
-          console.log("Updated product:", updatedProduct);
-          setSelectedProduct(null); // quay lại danh sách
+        brands={brandsForDetails}
+        categories={categoriesForDetails}
+        onSave={async (updatedProduct) => {
+          if (!token) {
+            toast.error("Bạn cần đăng nhập với quyền Administrator!", {
+              position: "top-right",
+              autoClose: 3000,
+            });
+            return;
+          }
+
+          try {
+            setUpdating(true);
+
+            // Clean specs
+            const cleanedSpecs: Record<string, string> = {};
+            Object.entries(updatedProduct.specs || {}).forEach(([key, value]) => {
+              if (value && typeof value === 'string' && value.trim() !== '') {
+                cleanedSpecs[key.trim()] = value.trim();
+              }
+            });
+
+            // Prepare product data
+            const productUpdateData = {
+              name: updatedProduct.name.trim(),
+              description: updatedProduct.description.trim(),
+              brandId: updatedProduct.brandId.trim(),
+              categoryId: updatedProduct.categoryId.trim(),
+              specs: cleanedSpecs,
+              imageUrls: [], // Not used when updating with files
+            };
+
+            // Update product (không có file ảnh mới, chỉ update thông tin)
+            const updated = await ProductService.updateProductWithFiles(
+              updatedProduct.id,
+              productUpdateData,
+              [], // Không có file ảnh mới
+              token
+            );
+
+            toast.success("Cập nhật sản phẩm thành công!", {
+              position: "top-right",
+              autoClose: 2000,
+            });
+
+            // Reload products và quay lại danh sách
+            await loadProducts();
+            setSelectedProduct(null);
+          } catch (error: any) {
+            console.error("❌ Update product failed:", error);
+            
+            let errorMessage = "Cập nhật sản phẩm thất bại!";
+            if (error.message?.includes("500")) {
+              errorMessage += " Lỗi server. Vui lòng kiểm tra quyền admin hoặc liên hệ IT.";
+            } else if (error.message?.includes("403")) {
+              errorMessage += " Bạn không có quyền thực hiện thao tác này.";
+            } else if (error.message?.includes("401")) {
+              errorMessage += " Token hết hạn. Vui lòng đăng nhập lại.";
+            } else if (error.message?.includes("400")) {
+              errorMessage += " Dữ liệu không hợp lệ.";
+            }
+
+            toast.error(errorMessage, {
+              position: "top-right",
+              autoClose: 5000,
+            });
+          } finally {
+            setUpdating(false);
+          }
         }}
         onCancel={() => setSelectedProduct(null)}
+        updating={updating}
       />
     );
   }
@@ -347,20 +492,28 @@ const ProductManagement: React.FC = () => {
             className="px-3 py-2 border border-gray-400 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm text-gray-800"
             value={selectedCategory}
             onChange={(e) => setSelectedCategory(e.target.value)}
+            disabled={loadingFilters}
           >
             <option value="">Tất cả danh mục</option>
-            <option value="Laptop cao cấp">Laptop cao cấp</option>
-            <option value="Laptop văn phòng">Laptop văn phòng</option>
+            {categories.map((category) => (
+              <option key={category.id} value={category.name}>
+                {category.displayName || category.name}
+              </option>
+            ))}
           </select>
 
           <select
             className="px-3 py-2 border border-gray-400 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm text-gray-800"
             value={selectedBrand}
             onChange={(e) => setSelectedBrand(e.target.value)}
+            disabled={loadingFilters}
           >
             <option value="">Tất cả thương hiệu</option>
-            <option value="Apple">Apple</option>
-            <option value="Dell">Dell</option>
+            {brands.map((brand) => (
+              <option key={brand.id} value={brand.name}>
+                {brand.name}
+              </option>
+            ))}
           </select>
 
           <div className="flex space-x-2">
@@ -485,12 +638,16 @@ const ProductManagement: React.FC = () => {
                                 <Eye size={16} />
                               )}
                             </button>
+
                             <button
+                              onClick={() => handleDeleteProduct(product.id)}
                               className="text-red-600 hover:text-red-900"
                               title="Xóa"
                             >
                               <Trash2 size={16} />
                             </button>
+
+
                           </div>
                         </td>
                       </tr>

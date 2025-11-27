@@ -3,6 +3,7 @@ import {
   ProductListResponse,
   ProductDetailResponse,
   ProductCreateRequest,
+  ProductDeleteResponse,
 } from "../types/Admin/ProductAPI";
 
 const API_BASE_URL = "http://103.90.225.90:8080/services/product-service/api";
@@ -144,39 +145,58 @@ export class ProductService {
     }
   }
 
+
   /**
-   * Tạo sản phẩm mới
+   * Tạo sản phẩm mới với file upload (form-data)
    * @param productData - Dữ liệu sản phẩm cần tạo
+   * @param imageFiles - Mảng các file ảnh cần upload
    * @param token - JWT token để xác thực
    */
-  static async createProduct(
+  static async createProductWithFiles(
     productData: ProductCreateRequest,
+    imageFiles: File[],
     token: string
   ): Promise<Product> {
     try {
-      const requestBody = JSON.stringify(productData);
+      // Tạo FormData
+      const formData = new FormData();
       
-      console.log("🚀 CREATE PRODUCT - Request:", {
+      // Thêm product data dưới dạng JSON string
+      const productJson = JSON.stringify({
+        name: productData.name,
+        description: productData.description,
+        brandId: productData.brandId,
+        categoryId: productData.categoryId,
+        specs: productData.specs,
+      });
+      
+      formData.append("product", productJson);
+      
+      // Thêm các file ảnh
+      imageFiles.forEach((file) => {
+        formData.append("images", file);
+      });
+      
+      console.log("🚀 CREATE PRODUCT WITH FILES - Request:", {
         url: `${API_BASE_URL}/product/create`,
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token ? token.substring(0, 20) + "..." : "NULL"}`,
+          Authorization: `Bearer ${token}`,
         },
-        body: requestBody,
-        parsedData: productData,
+        productData: productJson,
+        imageCount: imageFiles.length,
+        imageNames: imageFiles.map((f) => f.name),
       });
 
       const response = await fetch(`${API_BASE_URL}/product/create`, {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: requestBody,
+        body: formData,
       });
 
-      console.log("📡 CREATE PRODUCT - Response:", {
+      console.log("📡 CREATE PRODUCT WITH FILES - Response:", {
         status: response.status,
         statusText: response.statusText,
         headers: Object.fromEntries(response.headers.entries()),
@@ -184,12 +204,12 @@ export class ProductService {
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error("❌ CREATE PRODUCT - Error response:", errorText);
+        console.error("❌ CREATE PRODUCT WITH FILES - Error response:", errorText);
         throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
       }
 
       const data: ProductDetailResponse = await response.json();
-      console.log("✅ CREATE PRODUCT - Success data:", data);
+      console.log("✅ CREATE PRODUCT WITH FILES - Success data:", data);
 
       if (data.status.code !== "200" && data.status.code !== "201") {
         throw new Error(data.status.message || "Failed to create product");
@@ -197,7 +217,87 @@ export class ProductService {
 
       return data.data;
     } catch (error) {
-      console.error("Error creating product:", error);
+      console.error("Error creating product with files:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Cập nhật sản phẩm với file upload (form-data)
+   * @param productId - ID của sản phẩm cần cập nhật
+   * @param productData - Dữ liệu sản phẩm cần cập nhật
+   * @param imageFiles - Mảng các file ảnh cần upload (optional)
+   * @param token - JWT token để xác thực
+   */
+  static async updateProductWithFiles(
+    productId: string,
+    productData: ProductCreateRequest,
+    imageFiles: File[],
+    token: string
+  ): Promise<Product> {
+    try {
+      // Tạo FormData
+      const formData = new FormData();
+      
+      // Thêm product data dưới dạng JSON string
+      const productJson = JSON.stringify({
+        name: productData.name,
+        description: productData.description,
+        brandId: productData.brandId,
+        categoryId: productData.categoryId,
+        specs: productData.specs,
+      });
+      
+      formData.append("product", productJson);
+      
+      // Thêm các file ảnh (nếu có)
+      if (imageFiles && imageFiles.length > 0) {
+        imageFiles.forEach((file) => {
+          formData.append("images", file);
+        });
+      }
+      
+      console.log("🚀 UPDATE PRODUCT WITH FILES - Request:", {
+        url: `${API_BASE_URL}/product/${productId}`,
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        productData: productJson,
+        imageCount: imageFiles?.length || 0,
+        imageNames: imageFiles?.map((f) => f.name) || [],
+      });
+
+      const response = await fetch(`${API_BASE_URL}/product/${productId}`, {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      console.log("📡 UPDATE PRODUCT WITH FILES - Response:", {
+        status: response.status,
+        statusText: response.statusText,
+        headers: Object.fromEntries(response.headers.entries()),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("❌ UPDATE PRODUCT WITH FILES - Error response:", errorText);
+        throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
+      }
+
+      const data: ProductDetailResponse = await response.json();
+      console.log("✅ UPDATE PRODUCT WITH FILES - Success data:", data);
+
+      if (data.status.code !== "200") {
+        throw new Error(data.status.message || "Failed to update product");
+      }
+
+      return data.data;
+    } catch (error) {
+      console.error("Error updating product with files:", error);
       throw error;
     }
   }
@@ -234,5 +334,45 @@ export class ProductService {
       throw error;
     }
   }
+
+
+   static async deleteProductById(productId: string, token: string) : Promise<ProductDeleteResponse> {
+      try{
+        const response = await fetch(`${API_BASE_URL}/delete?id=${productId}`, {
+          method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        
+        console.log("🗑️ DELETE PRODUCT - Request:", {
+          url: `${API_BASE_URL}/delete?id=${productId}`,
+          method: "DELETE",
+          productId,
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error("❌ DELETE PRODUCT - Error response:", errorText);
+          throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
+        }
+        
+        const data: ProductDeleteResponse = await response.json();
+        console.log("✅ DELETE PRODUCT - Success data:", data);
+        
+        if (data.status.code !== "200") {
+          throw new Error(data.status.message || "Failed to delete product");
+        }
+        return data;
+      } catch (error) {
+        console.error("Error deleting product by ID:", error);
+        throw error;
+      }
+   }; 
+
+
+
+
 }
 

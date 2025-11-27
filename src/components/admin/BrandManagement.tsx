@@ -103,6 +103,7 @@ const BrandManagement = () => {
     }
   };
 
+  /*- Khi mở modal -*/ 
   const handleOpenCreateModal = () => {
     setModalMode("create");
     setSelectedBrand(null);
@@ -115,6 +116,8 @@ const BrandManagement = () => {
     setFormErrors({});
     setIsModalOpen(true);
   };
+
+  
 
   const handleOpenEditModal = (brand: Brand) => {
     setModalMode("edit");

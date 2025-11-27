@@ -11,6 +11,37 @@ const API_BASE_URL = "http://103.90.225.90:8080/services/product-service/api";
 
 export class BrandService {
   /**
+   * Lấy danh sách tất cả brands từ API /brand (không phân trang)
+   * Dùng cho dropdown/filter
+   */
+  static async getAllBrandsSimple(): Promise<Brand[]> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/brand`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text().catch(() => 'Unknown error');
+        throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
+      }
+
+      const data: BrandListResponse = await response.json();
+
+      if (data.status.code !== "200") {
+        throw new Error(data.status.message || "Failed to fetch brands");
+      }
+
+      return data.data.content || [];
+    } catch (error) {
+      console.error("Error fetching brands:", error);
+      throw error;
+    }
+  }
+
+  /**
    * Lấy danh sách tất cả brands (tự động fetch tất cả các trang)
    */
   static async getAllBrands(): Promise<Brand[]> {

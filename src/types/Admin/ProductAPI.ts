@@ -39,6 +39,19 @@ export interface ApiStatus {
   label: string;
 }
 
+
+export interface ProductDeleteResponse {
+   status : ApiStatus;
+   data : {
+    id : string;
+    name : string;
+   };
+   extraData : null;
+}
+
+
+
+
 export interface ProductListResponse {
   status: ApiStatus;
   data: {
